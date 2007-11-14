@@ -11,7 +11,7 @@ dnl Process this file with autoconf to produce a configure script.
 # set vsg_binary_age _and_ vsg_interface_age to 0.
 #
 m4_define([vsg_major_version], [0])
-m4_define([vsg_minor_version], [2])
+m4_define([vsg_minor_version], [3])
 m4_define([vsg_micro_version], [0])
 m4_define([vsg_interface_age], [0])
 m4_define([vsg_binary_age],
@@ -29,7 +29,7 @@ m4_define([vsg_lt_current_minus_age],
           [m4_eval(vsg_lt_current - vsg_lt_age)])
 
 
-AC_INIT(vsg, [vsg_version])
+AC_INIT(vsgp, [vsg_version])
 
 AC_CONFIG_SRCDIR([src/vsg.c])
 
@@ -203,6 +203,22 @@ fi
 AM_CONDITIONAL(ENABLE_PYGTK, test x$enable_pygtk = xyes)
 AC_SUBST(PYGTK_CFLAGS)
 AC_SUBST(PYGTK_LIBS)
+
+###############################################################################
+# check for MPI parallel libraries.
+###############################################################################
+
+dnl Let people disable parallel features.
+AC_ARG_ENABLE(mpi, [  --enable-mpi  Use MPI parallel features [default=yes]], enable_mpi="$enableval", enable_mpi=yes)
+
+if test x$enable_mpi = xyes ; then
+  ACX_MPI()
+else
+  AC_MSG_NOTICE([disabling MPI at user request.])
+  have_mpi=no
+fi
+
+AM_CONDITIONAL(HAVE_MPI, test x$have_mpi=xyes)
 
 dnl Checks for header files.
 AC_HEADER_STDC
