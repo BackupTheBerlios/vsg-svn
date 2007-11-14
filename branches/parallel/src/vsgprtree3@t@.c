@@ -1182,6 +1182,7 @@ vsg_prtree3@t@_new_full (const VsgVector3@t@ *lbound,
  * @lbound: lower limit for coordinates of #VsgPoint3 to be stored
  * @ubound: upper limit for coordinates of #VsgPoint3 to be stored
  * @region_locfunc: the #VsgRegion3 localization function
+ * @maxpoint: maximum number of #VsgPoint to be stored in a VsgPRTree3@t@ Leaf
  *
  * Convenience macro that calls #vsg_prtree3@t@_new_full ().
  */

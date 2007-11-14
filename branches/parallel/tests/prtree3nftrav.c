@@ -163,7 +163,7 @@ gint main (gint argc, gchar ** argv)
   vsg_init_gdouble ();
 
   /* create the tree */
-  tree = vsg_prtree3d_new (&lb, &ub, NULL);
+  tree = vsg_prtree3d_new (&lb, &ub, NULL, 1);
 
   vsg_prtree3d_set_node_data (tree, TYPE_NODE_COUNTER, &counter);
 

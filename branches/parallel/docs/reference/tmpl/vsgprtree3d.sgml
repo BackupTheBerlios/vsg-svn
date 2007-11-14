@@ -160,6 +160,7 @@ vsgprtree3d
 @lbound: 
 @ubound: 
 @region_locfunc: 
+@maxpoint: 
 
 
 <!-- ##### FUNCTION vsg_prtree3d_free ##### -->

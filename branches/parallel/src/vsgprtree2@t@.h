@@ -105,10 +105,10 @@ vsg_prtree2@t@_new_full (const VsgVector2@t@ *lbound,
                          const VsgRegion2@t@LocFunc region_locfunc,
                          guint max_point);
 
-#define vsg_prtree2@t@_new(lbound, ubound, region_locfunc) \
+#define vsg_prtree2@t@_new(lbound, ubound, region_locfunc, maxpoint) \
 vsg_prtree2@t@_new_full (lbound, ubound, \
 (VsgPoint2@t@LocFunc) vsg_vector2@t@_vector2@t@_locfunc, \
-(VsgPoint2@t@DistFunc) vsg_vector2@t@_dist, region_locfunc, 0)
+(VsgPoint2@t@DistFunc) vsg_vector2@t@_dist, region_locfunc, (maxpoint))
 
 void vsg_prtree2@t@_free (VsgPRTree2@t@ *prtree2@t@);
 

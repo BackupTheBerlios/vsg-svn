@@ -167,6 +167,7 @@ vsgprtree2f
 @lbound: 
 @ubound: 
 @region_locfunc: 
+@maxpoint: 
 
 
 <!-- ##### FUNCTION vsg_prtree2f_free ##### -->
