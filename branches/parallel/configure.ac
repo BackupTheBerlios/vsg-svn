@@ -212,7 +212,10 @@ dnl Let people disable parallel features.
 AC_ARG_ENABLE(mpi, [  --enable-mpi  Use MPI parallel features [default=yes]], enable_mpi="$enableval", enable_mpi=yes)
 
 if test x$enable_mpi = xyes ; then
-  ACX_MPI()
+  ACX_MPI([
+    AC_DEFINE(HAVE_MPI,1,[Define if you have the MPI library.])
+    CC=$MPICC
+  ])
 else
   AC_MSG_NOTICE([disabling MPI at user request.])
   have_mpi=no
