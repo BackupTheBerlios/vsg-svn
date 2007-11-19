@@ -14,6 +14,52 @@ vsg_init_gfloat
 </SECTION>
 
 <SECTION>
+<FILE>vsgmpi</FILE>
+vsg_mpi_error_output
+
+<SUBSECTION Standard>
+</SECTION>
+<SECTION>
+<FILE>vsgpackedmsg</FILE>
+VsgPackedMsg
+
+vsg_packed_msg_init
+vsg_packed_msg_new
+vsg_packed_msg_recv_new
+
+vsg_packed_msg_send
+vsg_packed_msg_recv
+vsg_packed_msg_send_append
+vsg_packed_msg_recv_read
+vsg_packed_msg_drop_buffer
+
+vsg_packed_msg_free
+
+<SUBSECTION Standard>
+</SECTION>
+
+<SECTION>
+<FILE>vsgcommbuffer</FILE>
+VsgCommBuffer
+
+vsg_comm_buffer_new
+
+vsg_comm_buffer_send_append
+vsg_comm_buffer_recv_read
+
+vsg_comm_buffer_share
+
+vsg_comm_buffer_drop_buffers
+vsg_comm_buffer_drop_recv_buffer
+vsg_comm_buffer_drop_recv_buffers
+vsg_comm_buffer_drop_send_buffer
+vsg_comm_buffer_drop_send_buffers
+
+vsg_comm_buffer_free
+<SUBSECTION Standard>
+</SECTION>
+
+<SECTION>
 <FILE>vsgvector2d</FILE>
 VsgVector2d
 VSG_TYPE_VECTOR2D
@@ -173,6 +219,8 @@ vsg_vector3f_get_type
 <FILE>vsgprtree-common</FILE>
 VsgChildrenOrderDataFunc
 VsgChildrenOrderFunc
+VsgParallelStatus
+VsgParallelStorage
 
 <SUBSECTION Standard>
 </SECTION>

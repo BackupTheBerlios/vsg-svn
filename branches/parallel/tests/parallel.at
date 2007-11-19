@@ -19,20 +19,12 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
+AT_TESTED([commbuffer])
 
-AT_INIT([vsg_test])
+AT_SETUP(Vsg basic parallel features)
+AT_CHECK([mpiexec -n 2 commbuffer], 0)
+AT_CHECK([mpiexec -n 3 commbuffer], 0)
+AT_CHECK([mpiexec -n 4 commbuffer], 0)
+AT_CLEANUP
 
 
-m4_include([vec2ops.at])
-
-m4_include([vec3ops.at])
-
-m4_include([mat3ops.at])
-
-m4_include([mat4ops.at])
-
-m4_include([prtree2.at])
-
-m4_include([prtree3.at])
-
-m4_include([parallel.at])
