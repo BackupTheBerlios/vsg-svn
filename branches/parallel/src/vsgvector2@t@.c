@@ -95,6 +95,26 @@ GType vsg_vector2@t@_get_type (void)
 }
 
 /**
+ * VSG_MPI_TYPE_VECTOR2@T@:
+ *
+ * The #MPI_Datatype associated to #VsgVector2@t@.
+ */
+
+MPI_Datatype vsg_vector2@t@_get_mpi_type (void)
+{
+  static MPI_Datatype vector2@t@_mpi_type = MPI_DATATYPE_NULL;
+
+  if (vector2@t@_mpi_type == MPI_DATATYPE_NULL)
+    {
+      MPI_Type_contiguous (2, @MPI_DATATYPE@, &vector2@t@_mpi_type);
+      MPI_Type_commit (&vector2@t@_mpi_type);
+    }
+
+  return vector2@t@_mpi_type;
+}
+
+
+/**
  * vsg_vector2@t@_new:
  * @x: abscissa
  * @y: ordinate

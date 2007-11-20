@@ -105,6 +105,25 @@ GType vsg_matrix4@t@_get_type (void)
 }
 
 /**
+ * VSG_MPI_TYPE_MATRIX4@T@:
+ *
+ * The #MPI_Datatype associated to #VsgMatrix4@t@.
+ */
+
+MPI_Datatype vsg_matrix4@t@_get_mpi_type (void)
+{
+  static MPI_Datatype matrix4@t@_mpi_type = MPI_DATATYPE_NULL;
+
+  if (matrix4@t@_mpi_type == MPI_DATATYPE_NULL)
+    {
+      MPI_Type_contiguous (9, @MPI_DATATYPE@, &matrix4@t@_mpi_type);
+      MPI_Type_commit (&matrix4@t@_mpi_type);
+    }
+
+  return matrix4@t@_mpi_type;
+}
+
+/**
  * vsg_matrix4@t@_new:
  * @a00: a #@type@
  * @a01: a #@type@

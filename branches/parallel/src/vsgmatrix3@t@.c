@@ -58,8 +58,8 @@ static VsgMatrix3@t@ *_matrix3@t@_alloc ()
   if (!vsg_matrix3@t@_mem_chunk)
     {
       vsg_matrix3@t@_mem_chunk = g_mem_chunk_create (VsgMatrix3@t@,
-                                                        VSG_MATRIX3@T@_PREALLOC,
-                                                        G_ALLOC_ONLY);
+                                                     VSG_MATRIX3@T@_PREALLOC,
+                                                     G_ALLOC_ONLY);
     }
 
   vsg_matrix3@t@_instances_count ++;
@@ -101,6 +101,25 @@ GType vsg_matrix3@t@_get_type (void)
     }
 
   return matrix3@t@_type;
+}
+
+/**
+ * VSG_MPI_TYPE_MATRIX3@T@:
+ *
+ * The #MPI_Datatype associated to #VsgMatrix3@t@.
+ */
+
+MPI_Datatype vsg_matrix3@t@_get_mpi_type (void)
+{
+  static MPI_Datatype matrix3@t@_mpi_type = MPI_DATATYPE_NULL;
+
+  if (matrix3@t@_mpi_type == MPI_DATATYPE_NULL)
+    {
+      MPI_Type_contiguous (9, @MPI_DATATYPE@, &matrix3@t@_mpi_type);
+      MPI_Type_commit (&matrix3@t@_mpi_type);
+    }
+
+  return matrix3@t@_mpi_type;
 }
 
 /**

@@ -22,6 +22,8 @@
 
 #include <vsg/vsgquaternion@t@.h>
 
+#include <vsg/vsgmpi.h>
+
 #include <glib.h>
 #include <glib-object.h>
 
@@ -30,6 +32,8 @@
 G_BEGIN_DECLS;
 /* macros */
 #define VSG_TYPE_MATRIX4@T@ (vsg_matrix4@t@_get_type ())
+
+#define VSG_MPI_TYPE_MATRIX4@T@ (vsg_matrix4@t@_get_mpi_type ())
 
 /* forward declarations */
 typedef struct _VsgMatrix4@t@ VsgMatrix4@t@;
@@ -63,6 +67,8 @@ static const VsgMatrix4@t@ VSG_M4@T@_ID = {
 
 /* functions */
 GType vsg_matrix4@t@_get_type () G_GNUC_CONST;
+
+MPI_Datatype vsg_matrix4@t@_get_mpi_type (void) G_GNUC_CONST;
 
 VsgMatrix4@t@ *
 vsg_matrix4@t@_new (@type@ a00, @type@ a01, @type@ a02, @type@ a03,

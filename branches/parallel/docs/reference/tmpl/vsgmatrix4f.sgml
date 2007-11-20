@@ -36,6 +36,13 @@ vsgmatrix4f
 
 
 
+<!-- ##### MACRO VSG_MPI_TYPE_MATRIX4F ##### -->
+<para>
+
+</para>
+
+
+
 <!-- ##### FUNCTION vsg_matrix4f_new ##### -->
 <para>
 

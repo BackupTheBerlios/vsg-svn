@@ -27,10 +27,14 @@
 
 #include <vsg/vsgprtree3-common.h>
 
+#include <vsg/vsgmpi.h>
+
 G_BEGIN_DECLS;
 
 /* macros */
 #define VSG_TYPE_VECTOR3@T@ (vsg_vector3@t@_get_type ())
+
+#define VSG_MPI_TYPE_VECTOR3@T@ (vsg_vector3@t@_get_mpi_type ())
 
 #define VSG_VECTOR3@T@_COMP(vec,i) ( \
 ((@type@ *) (vec)) + (i) \
@@ -65,6 +69,8 @@ static const VsgVector3@t@ VSG_V3@T@_K = {0., 0., 1.};
 
 /* functions */
 GType vsg_vector3@t@_get_type () G_GNUC_CONST;
+
+MPI_Datatype vsg_vector3@t@_get_mpi_type (void) G_GNUC_CONST;
 
 VsgVector3@t@ *vsg_vector3@t@_new (@type@ x, @type@ y,
                                    @type@ z);

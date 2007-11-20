@@ -92,6 +92,25 @@ GType vsg_quaternion@t@_get_type (void)
 }
 
 /**
+ * VSG_MPI_TYPE_QUATERNION@T@:
+ *
+ * The #MPI_Datatype associated to #VsgQuaternion@t@.
+ */
+
+MPI_Datatype vsg_quaternion@t@_get_mpi_type (void)
+{
+  static MPI_Datatype quaternion@t@_mpi_type = MPI_DATATYPE_NULL;
+
+  if (quaternion@t@_mpi_type == MPI_DATATYPE_NULL)
+    {
+      MPI_Type_contiguous (4, @MPI_DATATYPE@, &quaternion@t@_mpi_type);
+      MPI_Type_commit (&quaternion@t@_mpi_type);
+    }
+
+  return quaternion@t@_mpi_type;
+}
+
+/**
  * vsg_quaternion@t@_new:
  * @x: abscissa
  * @y: ordinate

@@ -63,6 +63,7 @@ vsg_comm_buffer_free
 <FILE>vsgvector2d</FILE>
 VsgVector2d
 VSG_TYPE_VECTOR2D
+VSG_MPI_TYPE_VECTOR2D
 
 VSG_VECTOR2D_COMP
 
@@ -96,12 +97,14 @@ vsg_vector2d_vector2f_locfunc
 
 <SUBSECTION Standard>
 vsg_vector2d_get_type
+vsg_vector2d_get_mpi_type
 </SECTION>
 
 <SECTION>
 <FILE>vsgvector2f</FILE>
 VsgVector2f
 VSG_TYPE_VECTOR2F
+VSG_MPI_TYPE_VECTOR2F
 
 VSG_VECTOR2F_COMP
 
@@ -135,12 +138,14 @@ vsg_vector2f_vector2d_locfunc
 
 <SUBSECTION Standard>
 vsg_vector2f_get_type
+vsg_vector2f_get_mpi_type
 </SECTION>
 
 <SECTION>
 <FILE>vsgvector3d</FILE>
 VsgVector3d
 VSG_TYPE_VECTOR3D
+VSG_MPI_TYPE_VECTOR3D
 
 VSG_VECTOR3D_COMP
 
@@ -174,12 +179,14 @@ vsg_vector3d_vector3f_locfunc
 
 <SUBSECTION Standard>
 vsg_vector3d_get_type
+vsg_vector3d_get_mpi_type
 </SECTION>
 
 <SECTION>
 <FILE>vsgvector3f</FILE>
 VsgVector3f
 VSG_TYPE_VECTOR3F
+VSG_MPI_TYPE_VECTOR3F
 
 VSG_VECTOR3F_COMP
 
@@ -213,6 +220,7 @@ vsg_vector3f_vector3d_locfunc
 
 <SUBSECTION Standard>
 vsg_vector3f_get_type
+vsg_vector3f_get_mpi_type
 </SECTION>
 
 <SECTION>
@@ -530,6 +538,7 @@ vsg_prtree3f_node_info_clone
 <FILE>vsgmatrix3d</FILE>
 VsgMatrix3d
 VSG_TYPE_MATRIX3D
+VSG_MPI_TYPE_MATRIX3D
 
 
 vsg_matrix3d_new
@@ -560,12 +569,14 @@ vsg_matrix3d_print
 
 <SUBSECTION Standard>
 vsg_matrix3d_get_type
+vsg_matrix3d_get_mpi_type
 </SECTION>
 
 <SECTION>
 <FILE>vsgmatrix3f</FILE>
 VsgMatrix3f
 VSG_TYPE_MATRIX3F
+VSG_MPI_TYPE_MATRIX3F
 
 
 vsg_matrix3f_new
@@ -596,12 +607,14 @@ vsg_matrix3f_print
 
 <SUBSECTION Standard>
 vsg_matrix3f_get_type
+vsg_matrix3f_get_mpi_type
 </SECTION>
 
 <SECTION>
 <FILE>vsgmatrix4d</FILE>
 VsgMatrix4d
 VSG_TYPE_MATRIX4D
+VSG_MPI_TYPE_MATRIX4D
 
 
 vsg_matrix4d_new
@@ -640,12 +653,14 @@ vsg_matrix4d_print
 
 <SUBSECTION Standard>
 vsg_matrix4d_get_type
+vsg_matrix4d_get_mpi_type
 </SECTION>
 
 <SECTION>
 <FILE>vsgmatrix4f</FILE>
 VsgMatrix4f
 VSG_TYPE_MATRIX4F
+VSG_MPI_TYPE_MATRIX4F
 
 
 vsg_matrix4f_new
@@ -684,12 +699,14 @@ vsg_matrix4f_print
 
 <SUBSECTION Standard>
 vsg_matrix4f_get_type
+vsg_matrix4f_get_mpi_type
 </SECTION>
 
 <SECTION>
 <FILE>vsgquaterniond</FILE>
 VsgQuaterniond
 VSG_TYPE_QUATERNIOND
+VSG_MPI_TYPE_QUATERNIOND
 
 
 VSG_QUATERNIOND_COMP
@@ -725,13 +742,14 @@ vsg_quaterniond_print
 
 <SUBSECTION Standard>
 vsg_quaterniond_get_type
+vsg_quaterniond_get_mpi_type
 </SECTION>
 
 <SECTION>
 <FILE>vsgquaternionf</FILE>
 VsgQuaternionf
 VSG_TYPE_QUATERNIONF
-
+VSG_MPI_TYPE_QUATERNIONF
 
 VSG_QUATERNIONF_COMP
 vsg_quaternionf_new
@@ -766,5 +784,6 @@ vsg_quaternionf_print
 
 <SUBSECTION Standard>
 vsg_quaternionf_get_type
+vsg_quaternionf_get_mpi_type
 </SECTION>
 

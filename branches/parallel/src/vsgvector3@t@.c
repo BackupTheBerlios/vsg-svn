@@ -96,6 +96,25 @@ GType vsg_vector3@t@_get_type (void)
 
 
 /**
+ * VSG_MPI_TYPE_VECTOR3@T@:
+ *
+ * The #MPI_Datatype associated to #VsgVector3@t@.
+ */
+
+MPI_Datatype vsg_vector3@t@_get_mpi_type (void)
+{
+  static MPI_Datatype vector3@t@_mpi_type = MPI_DATATYPE_NULL;
+
+  if (vector3@t@_mpi_type == MPI_DATATYPE_NULL)
+    {
+      MPI_Type_contiguous (3, @MPI_DATATYPE@, &vector3@t@_mpi_type);
+      MPI_Type_commit (&vector3@t@_mpi_type);
+    }
+
+  return vector3@t@_mpi_type;
+}
+
+/**
  * vsg_vector3@t@_new:
  * @x: abscissa
  * @y: ordinate
@@ -180,7 +199,7 @@ void vsg_vector3@t@_copy(const VsgVector3@t@ *src, VsgVector3@t@ *dst)
 
 /**
  * vsg_vector3@t@_clone:
- * @src: a #VsgVector2@t@
+ * @src: a #VsgVector3@t@
  *
  * Duplicates @src.
  *

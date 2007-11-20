@@ -36,6 +36,13 @@ vsgmatrix3f
 
 
 
+<!-- ##### MACRO VSG_MPI_TYPE_MATRIX3F ##### -->
+<para>
+
+</para>
+
+
+
 <!-- ##### FUNCTION vsg_matrix3f_new ##### -->
 <para>
 
