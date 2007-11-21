@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: LibVsg
 Description: Visaurin Geometric Library
 Version: @VERSION@
-Libs: -L${libdir} -lvsg
+Libs: -L${libdir} -lvsg @MPILIBS@
 Cflags: -I${includedir}
 
