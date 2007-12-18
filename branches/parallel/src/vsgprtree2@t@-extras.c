@@ -120,6 +120,8 @@ void _vsg_prtree2@t@node_get_info (VsgPRTree2@t@Node *node,
   else node_info->depth = father_info->depth + 1;
 
   node_info->user_data = node->user_data;
+
+  node_info->parallel_status = node->parallel_status;
 }
 
 

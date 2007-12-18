@@ -124,6 +124,9 @@ VsgPRTree2@t@Node *_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
                                      config->user_data_model);
     }
 
+  ret->parallel_status.storage = VSG_PARALLEL_LOCAL;
+  ret->parallel_status.proc = 0;
+
   return ret;
 }
 
@@ -399,6 +402,15 @@ _prtree2@t@node_insert_point_list(VsgPRTree2@t@Node *node,
 {
   guint len = 0;
 
+  if (PRTREE2@T@NODE_IS_REMOTE (node))
+    {
+      /* store outgoing points into remote nodes as if they they were a leaf */
+      PRTREE2@T@NODE_LEAF (node).point =
+        g_slist_concat (point, PRTREE2@T@NODE_LEAF (node).point);
+
+      /* PARALLEL_TODO: set flag signaling waiting messages in config */
+    }
+
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
       while (point)
@@ -485,7 +497,8 @@ static void _prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
 static void _prtree2@t@node_free (VsgPRTree2@t@Node *node,
                                   const VsgPRTree2@t@Config *config)
 {
-  if (PRTREE2@T@NODE_ISLEAF (node))
+  if (PRTREE2@T@NODE_ISLEAF (node) ||
+      PRTREE2@T@NODE_IS_REMOTE (node))
     {
       g_slist_free (PRTREE2@T@NODE_LEAF (node).point);
 
@@ -508,7 +521,8 @@ static guint _prtree2@t@node_depth (const VsgPRTree2@t@Node *node)
   guint res = 0;
   vsgloc2 i;
 
-  if (PRTREE2@T@NODE_ISLEAF (node)) return 0;
+  if (PRTREE2@T@NODE_ISLEAF (node) ||
+      PRTREE2@T@NODE_IS_REMOTE (node)) return 0;
 
   for (i=0; i<4; i++)
     {
@@ -547,6 +561,13 @@ _prtree2@t@node_remove_point (VsgPRTree2@t@Node *node,
                               const VsgPRTree2@t@Config *config)
 {
   gboolean ret = FALSE;
+
+  if (PRTREE2@T@NODE_IS_REMOTE (node))
+    {
+      /* unable to remove a node located on another processor */
+      return FALSE;
+    }
+
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
       ret = g_slist_find (PRTREE2@T@NODE_LEAF (node).point,
@@ -568,7 +589,12 @@ _prtree2@t@node_remove_point (VsgPRTree2@t@Node *node,
       if (ret)
         {
           node->point_count --;
-          if (node->point_count <= config->max_point)
+
+          /* flatten only if node is local. Shared nodes mean heterogenously
+           * distributed children.
+           */
+          if (node->point_count <= config->max_point &&
+              PRTREE2@T@NODE_IS_LOCAL (node))
             _prtree2@t@node_flatten (node, config);
         }
     }
@@ -589,6 +615,20 @@ static void _wtabs (FILE *file, guint tab)
 static void _prtree2@t@node_write (const VsgPRTree2@t@Node *node, FILE *file,
                                    guint tab)
 {
+  if (PRTREE2@T@NODE_IS_REMOTE (node))
+    {
+      _wtabs (file, tab);
+      fprintf (file,
+               "remote[(%@tcode@,%@tcode@) (%@tcode@,%@tcode@)]"
+               " point=%d region=%d\n",
+               node->lbound.x, node->lbound.y,
+               node->ubound.x, node->ubound.y,
+               node->point_count,
+               node->region_count);
+
+      return;
+    }
+
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
       _wtabs (file, tab);
@@ -629,6 +669,11 @@ _prtree2@t@node_find_point (VsgPRTree2@t@Node *node,
                             VsgPoint2 selector,
                             const VsgPRTree2@t@Config *config)
 {
+  if (PRTREE2@T@NODE_IS_REMOTE (node))
+    {
+      return NULL;
+    }
+
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
       GSList *point = PRTREE2@T@NODE_LEAF (node).point;
@@ -683,6 +728,18 @@ _prtree2@t@node_insert_region_list (VsgPRTree2@t@Node *node,
                                     const VsgPRTree2@t@Config *config)
 {
   guint len = g_slist_length (region_list);
+
+  if (PRTREE2@T@NODE_IS_REMOTE (node))
+    {
+      /* store outgoing regions into remote nodes. */
+      node->region_list = g_slist_concat (node->region_list, region_list);
+
+      /* PARALLEL_TODO: set flag signaling waiting messages in config */
+      /* PARALLEL_TODO: avoid multiple migrations of the same region towards
+       * the same processor.
+       */
+      return 0;
+    }
 
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
@@ -747,6 +804,12 @@ _prtree2@t@node_remove_region (VsgPRTree2@t@Node *node,
 {
   gboolean ret = FALSE;
 
+  if (PRTREE2@T@NODE_IS_REMOTE (node))
+    {
+      /* unable to remove a region on a remote processor */
+      return FALSE;
+    }
+
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
       ret = g_slist_find (node->region_list, region) != NULL;
@@ -796,6 +859,9 @@ _prtree2@t@node_find_deep_region (VsgPRTree2@t@Node *node,
                                   const VsgPRTree2@t@Config *config)
 {
   VsgRegion2 result = NULL;
+
+  if (PRTREE2@T@NODE_IS_REMOTE (node))
+    return NULL;
 
   if (PRTREE2@T@NODE_ISINT (node))
     {
@@ -847,7 +913,7 @@ void _prtree2@t@node_update_user_data_type (VsgPRTree2@t@Node *node,
       node->user_data = NULL;
     }
 
-  if (PRTREE2@T@NODE_ISINT (node))
+  if (PRTREE2@T@NODE_ISINT (node) && ! PRTREE2@T@NODE_IS_REMOTE (node))
     {
       vsgloc2 i;
 
@@ -891,6 +957,12 @@ _prtree2@t@node_traverse_custom (VsgPRTree2@t@Node *node,
   gpointer children_keys[4];
 
   _vsg_prtree2@t@node_get_info (node, &node_info, father_info);
+
+  if (PRTREE2@T@NODE_IS_REMOTE (node))
+    {
+      func (&node_info, user_data);
+      return;
+    }
 
   if (order == G_PRE_ORDER)
     func (&node_info, user_data);
@@ -951,6 +1023,9 @@ static void _foreach_point_custom (const VsgPRTree2@t@NodeInfo *node_info,
 {
   GSList *point_list = node_info->point_list;
 
+  if (PRTREE2@T@NODE_INFO_IS_REMOTE (node_info))
+    return;
+
   while (point_list)
     {
       VsgPoint2 point = point_list->data;
@@ -966,6 +1041,9 @@ static void _foreach_region_custom (const VsgPRTree2@t@NodeInfo *node_info,
                                     CustomForeach *custom)
 {
   GSList *region_list = node_info->region_list;
+
+  if (PRTREE2@T@NODE_INFO_IS_REMOTE (node_info))
+    return;
 
   while (region_list)
     {
@@ -989,6 +1067,9 @@ static void _foreach_point (const VsgPRTree2@t@NodeInfo *node_info,
 {
   GSList *point_list = node_info->point_list;
 
+  if (PRTREE2@T@NODE_INFO_IS_REMOTE (node_info))
+    return;
+
   while (point_list)
     {
       VsgPoint2 point = point_list->data;
@@ -1003,6 +1084,9 @@ static void _foreach_region (const VsgPRTree2@t@NodeInfo *node_info,
                              Foreach *custom)
 {
   GSList *region_list = node_info->region_list;
+
+  if (PRTREE2@T@NODE_INFO_IS_REMOTE (node_info))
+    return;
 
   while (region_list)
     {
@@ -1219,6 +1303,8 @@ VsgPRTree2@t@ *vsg_prtree2@t@_clone (VsgPRTree2@t@ *prtree2@t@)
   vsg_prtree2@t@_foreach_point (prtree2@t@, (GFunc) _copy_point, res);
 
   vsg_prtree2@t@_foreach_region (prtree2@t@, (GFunc) _copy_region, res);
+
+  /* PARALLEL_TODO: copy parallel_status between shared or remote nodes */
 
   return res;
 }
@@ -1535,6 +1621,8 @@ void vsg_prtree2@t@_insert_point (VsgPRTree2@t@ *prtree2@t@,
   if (CALL_POINT2@T@_LOC (config, point, lbound) != VSG_LOC2_NE ||
       CALL_POINT2@T@_LOC (config, point, ubound) != VSG_LOC2_SW)
     {
+      /* PARALLEL_TODO: handle this case? */
+
       VsgVector2@t@ center = {0.,};
       VsgVector2@t@ diff, new_lbound, new_ubound;
       vsgloc2 loc;

@@ -51,6 +51,7 @@ vsgprtree2f
 @depth: 
 @user_data: 
 @isleaf: 
+@parallel_status: 
 
 <!-- ##### USER_FUNCTION VsgPoint2fLocFunc ##### -->
 <para>

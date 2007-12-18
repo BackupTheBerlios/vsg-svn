@@ -20,6 +20,7 @@
 #ifndef __VSGPRTREE2@T@_PRIVATE_H__
 #define __VSGPRTREE2@T@_PRIVATE_H__
 
+#include "vsgprtree-parallel.h"
 #include "vsgprtree2@t@.h"
 
 G_BEGIN_DECLS;
@@ -102,6 +103,9 @@ struct _VsgPRTree2@t@Node {
 
   /* user data */
   gpointer user_data;
+
+  /* parallel status */
+  VsgParallelStatus parallel_status;
 };
 
 #define PRTREE2@T@NODE_ISINT(node) ( \
@@ -121,6 +125,18 @@ PRTREE2@T@NODE_INT(node).children[i] \
 
 #define PRTREE2@T@NODE_LEAF(node) ( \
 (node)->variable.leaf \
+)
+
+#define PRTREE2@T@NODE_IS_REMOTE(node) ( \
+VSG_PARALLEL_STATUS_IS_REMOTE (node->parallel_status) \
+)
+
+#define PRTREE2@T@NODE_IS_LOCAL(node) ( \
+VSG_PARALLEL_STATUS_IS_LOCAL (node->parallel_status) \
+)
+
+#define PRTREE2@T@NODE_IS_SHARED(node) ( \
+VSG_PARALLEL_STATUS_IS_SHARED (node->parallel_status) \
 )
 
 struct _VsgPRTree2@t@Config {
