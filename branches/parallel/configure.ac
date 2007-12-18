@@ -29,7 +29,7 @@ m4_define([vsg_lt_current_minus_age],
           [m4_eval(vsg_lt_current - vsg_lt_age)])
 
 
-AC_INIT(vsgp, [vsg_version])
+AC_INIT(vsg, [vsg_version])
 
 AC_CONFIG_SRCDIR([src/vsg.c])
 
