@@ -209,15 +209,11 @@ AC_SUBST(PYGTK_LIBS)
 ###############################################################################
 
 dnl Let people disable parallel features.
-AC_ARG_ENABLE(mpi, [  --enable-mpi  Use MPI parallel features [default=yes]], enable_mpi="$enableval", enable_mpi=yes)
+ACX_MPI_PATHS
 
-if test x$enable_mpi = xyes ; then
-  ACX_MPI([
-    AC_DEFINE(HAVE_MPI,1,[Define if you have the MPI library.])
-    CC=$MPICC
-  ])
+if test $MPI_ENABLED = 1; then
+  have_mpi=yes
 else
-  AC_MSG_NOTICE([disabling MPI at user request.])
   have_mpi=no
 fi
 
@@ -238,7 +234,6 @@ dnl Checks for library functions.
 
 # Testsuite configuration.
 AC_CONFIG_TESTDIR(tests)
-
 
 # Generate files.
 AC_OUTPUT([

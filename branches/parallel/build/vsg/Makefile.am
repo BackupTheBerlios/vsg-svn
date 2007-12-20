@@ -3,7 +3,7 @@ include $(top_srcdir)/src/sources.list
 
 doc:
 
-AM_CFLAGS = @CFLAGS@ -DG_LOG_DOMAIN=\"Vsg\" -I$(top_srcdir)/build
+AM_CFLAGS = @CFLAGS@ -DG_LOG_DOMAIN=\"Vsg\" -I$(top_srcdir)/build $(MPI_CFLAGS)
 
 lib_LTLIBRARIES = libvsgd.la libvsgf.la libvsg.la
 
@@ -12,7 +12,7 @@ lib_LTLIBRARIES = libvsgd.la libvsgf.la libvsg.la
 libvsgd_la_SOURCES = $(libvsgd_la_built_headers) $(libvsgd_la_built_sources) \
 $(libvsgd_built_noinst_headers) $(libvsg_common_headers)
 
-libvsgd_la_LIBADD = $(MPILIBS)
+libvsgd_la_LIBADD =  $(MPI_LIBS)
 
 libvsgd_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
@@ -23,7 +23,7 @@ libvsgd_la_LDFLAGS = \
 libvsgf_la_SOURCES = $(libvsgf_la_built_headers) $(libvsgf_la_built_sources) \
 $(libvsgf_built_noinst_headers) $(libvsg_common_headers)
 
-libvsgf_la_LIBADD = $(MPILIBS)
+libvsgf_la_LIBADD = $(MPI_LIBS)
 
 libvsgf_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \

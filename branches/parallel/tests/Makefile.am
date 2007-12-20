@@ -4,8 +4,8 @@ vec2pred vec3add vec3sub vec3dotp vec3scalp vec3vecp vec3norm vec3pred \
 mat3add mat4add prtree2pt prtree2nftrav prtree2nftrave prtree3pt \
 prtree3nftrav prtree3nftrave prtree2hilb prtree3hilb commbuffer
 
-AM_CFLAGS = -I$(top_srcdir)/build
-LDADD = $(top_srcdir)/build/vsg/libvsg.la
+AM_CFLAGS = -I$(top_srcdir)/build $(MPI_CFLAGS)
+LDADD = $(top_srcdir)/build/vsg/libvsg.la $(MPI_LIBS)
 
 
 $(srcdir)/package.m4: $(top_srcdir)/configure.ac
