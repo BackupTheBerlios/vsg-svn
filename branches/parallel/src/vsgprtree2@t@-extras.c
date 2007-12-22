@@ -124,6 +124,21 @@ void _vsg_prtree2@t@node_get_info (VsgPRTree2@t@Node *node,
   node_info->parallel_status = node->parallel_status;
 }
 
+VsgPRTree2@t@Node *_vsg_prtree2@t@node_get_child_at (VsgPRTree2@t@Node *node,
+                                                     const VsgVector2@t@ *pos,
+                                                     gint depth)
+{
+  vsgloc2 i;
+  VsgPRTree2@t@Node *child = NULL;
+
+  if (depth == 0 || PRTREE2@T@NODE_ISLEAF(node)) return node;
+
+  i = vsg_vector2@t@_vector2@t@_locfunc (&node->center, pos);
+
+  child = PRTREE2@T@NODE_CHILD(node, i);
+
+  return _vsg_prtree2@t@node_get_child_at (child, pos, depth - 1);
+}
 
 static void recursive_near_func (VsgPRTree2@t@Node *one,
                                  VsgPRTree2@t@NodeInfo *one_info,

@@ -25,6 +25,10 @@ AT_SETUP(VsgPRTree2d point operations)
 AT_CHECK(prtree2pt, 0)
 AT_CLEANUP
 
+AT_SETUP(VsgPRTree2d cloning)
+AT_CHECK(prtree2clone, 0)
+AT_CLEANUP
+
 AT_SETUP(VsgPRTree2d near/far traversals)
 AT_CHECK(prtree2nftrav, 0)
 AT_CLEANUP

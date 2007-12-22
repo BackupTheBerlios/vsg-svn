@@ -1107,6 +1107,21 @@ _z_order_data (gpointer key, gint *children, gpointer *children_keys,
   memcpy (children, zorder, 4 * sizeof (gint));
 }
 
+static void _clone_parallel_status (const VsgPRTree2@t@NodeInfo *node_info,
+                                    VsgPRTree2@t@Node *cloned)
+{
+  if (! PRTREE2@T@NODE_INFO_IS_LOCAL (node_info))
+    {
+      VsgPRTree2@t@Node *cloned_node;
+
+      cloned_node = _vsg_prtree2@t@node_get_child_at (cloned,
+                                                      &node_info->center,
+                                                      node_info->depth);
+
+      cloned_node->parallel_status = node_info->parallel_status;
+    }
+}
+
 /*-------------------------------------------------------------------*/
 /* typedefs and structure doc */
 /*-------------------------------------------------------------------*/
@@ -1304,8 +1319,10 @@ VsgPRTree2@t@ *vsg_prtree2@t@_clone (VsgPRTree2@t@ *prtree2@t@)
 
   vsg_prtree2@t@_foreach_region (prtree2@t@, (GFunc) _copy_region, res);
 
-  /* PARALLEL_TODO: copy parallel_status between shared or remote nodes */
-
+  /* copy parallel_status between shared or remote nodes */
+  vsg_prtree2@t@_traverse (prtree2@t@, G_PRE_ORDER,
+                           (VsgPRTree2@t@Func) _clone_parallel_status,
+                           res);
   return res;
 }
 
