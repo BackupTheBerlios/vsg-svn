@@ -80,6 +80,8 @@ static VsgPRTree2@t@ *_prtree2@t@_alloc ()
   ret->config.user_data_type = G_TYPE_NONE;
   ret->config.user_data_model = NULL;
 
+  ret->config.parallel_config.communicator = MPI_COMM_NULL;
+
   return ret;
 }
 
