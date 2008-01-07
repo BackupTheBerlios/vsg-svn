@@ -166,6 +166,9 @@ struct _VsgPRTree2@t@Config {
   VsgChildrenOrderDataFunc children_order;
   gpointer children_order_data;
   gpointer root_key;
+
+  /* parallel tree configuration */
+  VsgPRTreeParallelConfig parallel_config;
 };
 
 struct _VsgPRTree2@t@ {
@@ -178,6 +181,14 @@ struct _VsgPRTree2@t@ {
 };
 
 /* private functions */
+
+void vsg_prtree2@t@node_free (VsgPRTree2@t@Node *node,
+                              const VsgPRTree2@t@Config *config);
+
+VsgPRTree2@t@Node *
+vsg_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
+                          const VsgVector2@t@ *ubound,
+                          const VsgPRTree2@t@Config *config);
 
 void _vsg_prtree2@t@node_get_info (VsgPRTree2@t@Node *node,
                                    VsgPRTree2@t@NodeInfo *node_info,

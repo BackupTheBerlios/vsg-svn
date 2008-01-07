@@ -17,34 +17,18 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#ifndef __VSGPRTREE2@T@_PARALLEL_H__
+#define __VSGPRTREE2@T@_PARALLEL_H__
 
-#ifndef __VSG@T@_H__ /* __VSG@T@_H__ */
-#define __VSG@T@_H__
-
-#include <glib.h>
-
-#include <vsg/vsgvector2@t@.h>
-#include <vsg/vsgvector3@t@.h>
-
-#include <vsg/vsgmatrix3@t@.h>
-#include <vsg/vsgmatrix4@t@.h>
-
-#include <vsg/vsgquaternion@t@.h>
-
-#include <vsg/vsgprtree2-common.h>
-#include <vsg/vsgprtree2@t@.h>
-#include <vsg/vsgprtree2@t@-extras.h>
-
-#include <vsg/vsgprtree3-common.h>
-#include <vsg/vsgprtree3@t@.h>
-#include <vsg/vsgprtree3@t@-extras.h>
-
-#include <vsg/vsgprtree2@t@-parallel.h>
+#include "vsgprtree-parallel.h"
+#include "vsgprtree2@t@-private.h"
+#include "vsgprtree2@t@.h"
 
 G_BEGIN_DECLS;
 
-void vsg_init_@type@ ();
+void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
+                                  VsgPRTreeParallelConfig *pconfig);
 
 G_END_DECLS;
 
-#endif /* __VSG@T@_H__ */
+#endif /* __VSGPRTREE2@T@_PARALLEL_H__ */

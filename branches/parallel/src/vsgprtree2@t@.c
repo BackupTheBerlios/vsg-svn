@@ -100,10 +100,9 @@ static void _prtree2@t@_dealloc (VsgPRTree2@t@ *prtree2@t@)
     }
 }
 
-static
-VsgPRTree2@t@Node *_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
-                                          const VsgVector2@t@ *ubound,
-                                          const VsgPRTree2@t@Config *config)
+VsgPRTree2@t@Node *vsg_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
+                                             const VsgVector2@t@ *ubound,
+                                             const VsgPRTree2@t@Config *config)
 {
   VsgPRTree2@t@Node *ret;
   ret = g_chunk_new (VsgPRTree2@t@Node, vsg_prtree2@t@node_mem_chunk);
@@ -146,7 +145,7 @@ static VsgPRTree2@t@Node *_leaf_alloc (const VsgVector2@t@ *lbound,
                                        const VsgVector2@t@ *ubound,
                                        const VsgPRTree2@t@Config *config)
 {
-  VsgPRTree2@t@Node *node = _prtree2@t@node_alloc (lbound, ubound, config);
+  VsgPRTree2@t@Node *node = vsg_prtree2@t@node_alloc (lbound, ubound, config);
 
   node->variable.isint = 0;
 
@@ -193,7 +192,7 @@ static VsgPRTree2@t@Node *_int_alloc (const VsgVector2@t@ *lbound,
                                       vsgloc2 loc,
                                       const VsgPRTree2@t@Config *config)
 {
-  VsgPRTree2@t@Node *node = _prtree2@t@node_alloc (lbound, ubound, config);
+  VsgPRTree2@t@Node *node = vsg_prtree2@t@node_alloc (lbound, ubound, config);
   vsgloc2 i;
   VsgPRTree2@t@Node *children[4];
 
@@ -494,8 +493,8 @@ static void _prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
       
 }
 
-static void _prtree2@t@node_free (VsgPRTree2@t@Node *node,
-                                  const VsgPRTree2@t@Config *config)
+void vsg_prtree2@t@node_free (VsgPRTree2@t@Node *node,
+                              const VsgPRTree2@t@Config *config)
 {
   if (PRTREE2@T@NODE_ISLEAF (node) ||
       PRTREE2@T@NODE_IS_REMOTE (node))
@@ -508,7 +507,7 @@ static void _prtree2@t@node_free (VsgPRTree2@t@Node *node,
       vsgloc2 i;
 
       for (i=0; i<4; i++)
-        _prtree2@t@node_free (PRTREE2@T@NODE_CHILD (node, i), config);
+        vsg_prtree2@t@node_free (PRTREE2@T@NODE_CHILD (node, i), config);
     }
 
   g_slist_free (node->region_list);
@@ -547,7 +546,7 @@ static void _prtree2@t@node_flatten (VsgPRTree2@t@Node *node,
 
   for (i=0; i<4; i++)
     {
-      _prtree2@t@node_free (PRTREE2@T@NODE_CHILD (node, i), config);
+      vsg_prtree2@t@node_free (PRTREE2@T@NODE_CHILD (node, i), config);
       PRTREE2@T@NODE_CHILD (node, i) = NULL;
     }
 
@@ -1262,7 +1261,7 @@ void vsg_prtree2@t@_free (VsgPRTree2@t@ *prtree2@t@)
   g_return_if_fail (prtree2@t@ != NULL);
 #endif
 
-  _prtree2@t@node_free (prtree2@t@->node, &prtree2@t@->config);
+  vsg_prtree2@t@node_free (prtree2@t@->node, &prtree2@t@->config);
 
   _prtree2@t@_dealloc (prtree2@t@);
 }

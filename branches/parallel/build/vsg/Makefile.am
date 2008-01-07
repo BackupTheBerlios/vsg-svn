@@ -10,7 +10,8 @@ lib_LTLIBRARIES = libvsgd.la libvsgf.la libvsg.la
 # gdouble library
 
 libvsgd_la_SOURCES = $(libvsgd_la_built_headers) $(libvsgd_la_built_sources) \
-$(libvsgd_built_noinst_headers) $(libvsg_common_headers)
+$(libvsgd_built_noinst_headers) $(libvsg_common_headers) \
+$(libvsg_common_noinst_headers)
 
 libvsgd_la_LIBADD =  $(MPI_LIBS)
 
@@ -21,7 +22,8 @@ libvsgd_la_LDFLAGS = \
 # gfloat library
 
 libvsgf_la_SOURCES = $(libvsgf_la_built_headers) $(libvsgf_la_built_sources) \
-$(libvsgf_built_noinst_headers) $(libvsg_common_headers)
+$(libvsgf_built_noinst_headers) $(libvsg_common_headers) \
+$(libvsg_common_noinst_headers)
 
 libvsgf_la_LIBADD = $(MPI_LIBS)
 
@@ -33,7 +35,7 @@ libvsgf_la_LDFLAGS = \
 # general library
 
 libvsg_la_SOURCES =  $(libvsg_common_headers) $(libvsg_la_sources) \
-$(libvsg_la_headers)
+$(libvsg_la_headers) $(libvsg_common_noinst_headers)
 
 libvsg_la_LIBADD = libvsgd.la libvsgf.la
 
@@ -48,7 +50,7 @@ vsginclude_HEADERS = $(libvsgd_la_built_headers) $(libvsgf_la_built_headers) \
 $(libvsg_la_headers) $(libvsg_common_headers)
 
 noinst_HEADERS = $(libvsgd_built_noinst_headers) \
-$(libvsgf_built_noinst_headers)
+$(libvsgf_built_noinst_headers) $(libvsg_common_noinst_headers)
 
 BUILT_SOURCES = $(libvsgd_la_SOURCES) $(libvsgf_la_SOURCES) \
 $(libvsg_la_SOURCES) 
@@ -72,6 +74,12 @@ tmpldir = $(top_srcdir)/src
 	$(PYTHON) $(typegen) -f=$(types_list) $<
 
 %d-extras.c %f-extras.c : $(tmpldir)/%@t@-extras.c $(typegen) $(types_list)
+	$(PYTHON) $(typegen) -f=$(types_list) $<
+
+%d-parallel.h %f-parallel.h : $(tmpldir)/%@t@-parallel.h $(typegen) $(types_list)
+	$(PYTHON) $(typegen) -f=$(types_list) $<
+
+%d-parallel.c %f-parallel.c : $(tmpldir)/%@t@-parallel.c $(typegen) $(types_list)
 	$(PYTHON) $(typegen) -f=$(types_list) $<
 
 %.c : $(top_srcdir)/src/%.c
