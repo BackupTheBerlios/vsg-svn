@@ -410,6 +410,8 @@ _prtree2@t@node_insert_point_list(VsgPRTree2@t@Node *node,
         g_slist_concat (point, PRTREE2@T@NODE_LEAF (node).point);
 
       /* PARALLEL_TODO: set flag signaling waiting messages in config */
+
+      return 0;
     }
 
   if (PRTREE2@T@NODE_ISLEAF (node))
