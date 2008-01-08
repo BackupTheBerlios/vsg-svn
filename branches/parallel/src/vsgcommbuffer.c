@@ -1,4 +1,5 @@
 #include "vsgcommbuffer.h"
+#include "vsgcommbuffer-private.h"
 
 #include "string.h"
 
@@ -136,6 +137,28 @@ void vsg_comm_buffer_share (VsgCommBuffer *cb)
       tag = i*numtasks + src;
       vsg_packed_msg_recv (&cb->recv[src], src, tag);
     }
+}
+
+VsgPackedMsg * vsg_comm_buffer_get_send_buffer (VsgCommBuffer *cb, gint dst)
+{
+  g_return_val_if_fail (cb != NULL, NULL);
+
+  g_return_val_if_fail (dst >= 0, NULL);
+
+  g_return_val_if_fail (dst < cb->numtasks, NULL);
+
+  return &cb->send[dst];
+}
+
+VsgPackedMsg * vsg_comm_buffer_get_recv_buffer (VsgCommBuffer *cb, gint src)
+{
+  g_return_val_if_fail (cb != NULL, NULL);
+
+  g_return_val_if_fail (src >= 0, NULL);
+
+  g_return_val_if_fail (src < cb->numtasks, NULL);
+
+  return &cb->send[src];
 }
 
 /**

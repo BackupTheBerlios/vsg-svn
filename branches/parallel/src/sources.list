@@ -30,7 +30,8 @@ vsgprtree2f-extras.c vsgprtree3f-extras.c vsgf.c vsgprtree2f-parallel.c
 libvsgf_built_noinst_headers = vsgprtree2f-private.h vsgprtree3f-private.h
 
 # general library
-libvsg_la_headers = vsg.h vsgcommbuffer.h vsgmpi.h vsgpackedmsg.h
+libvsg_la_headers = vsg.h vsgcommbuffer.h vsgcommbuffer-private.h vsgmpi.h \
+vsgpackedmsg.h
 libvsg_la_sources = vsg.c vsgcommbuffer.c vsgpackedmsg.c
 
 # template files
