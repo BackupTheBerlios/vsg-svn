@@ -158,7 +158,7 @@ VsgPackedMsg * vsg_comm_buffer_get_recv_buffer (VsgCommBuffer *cb, gint src)
 
   g_return_val_if_fail (src < cb->numtasks, NULL);
 
-  return &cb->send[src];
+  return &cb->recv[src];
 }
 
 /**
