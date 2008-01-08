@@ -765,6 +765,10 @@ _prtree2@t@node_insert_region_list (VsgPRTree2@t@Node *node,
             {
               node->region_list =
                 g_slist_concat (current, node->region_list);
+
+              /* PARALLEL TODO: shared regions should be notified to *all* the
+               * processors.
+               */
             }
           else
             {
