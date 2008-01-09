@@ -178,6 +178,9 @@ struct _VsgPRTree2@t@ {
 
   /* tree configuration */
   VsgPRTree2@t@Config config;
+
+  /* place to store pending message of inter processor VsgRegion */
+  GSList *pending_shared_regions;
 };
 
 /* private functions */

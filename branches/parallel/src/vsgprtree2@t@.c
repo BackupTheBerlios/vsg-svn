@@ -82,6 +82,8 @@ static VsgPRTree2@t@ *_prtree2@t@_alloc ()
 
   ret->config.parallel_config.communicator = MPI_COMM_NULL;
 
+  ret->pending_shared_regions = NULL;
+
   return ret;
 }
 
@@ -92,6 +94,9 @@ static void _prtree2@t@_dealloc (VsgPRTree2@t@ *prtree2@t@)
       g_boxed_free (prtree2@t@->config.user_data_type,
                     prtree2@t@->config.user_data_model);
     }
+
+  if (prtree2@t@->pending_shared_regions != NULL)
+    g_slist_free (prtree2@t@->pending_shared_regions);
 
   g_chunk_free (prtree2@t@, vsg_prtree2@t@_mem_chunk);
   vsg_prtree2@t@_instances_count --;
@@ -339,7 +344,8 @@ _prtree2@t@node_insert_point_list(VsgPRTree2@t@Node *node,
 static guint
 _prtree2@t@node_insert_region_list (VsgPRTree2@t@Node *node,
                                     GSList *region_list,
-                                    const VsgPRTree2@t@Config *config);
+                                    const VsgPRTree2@t@Config *config,
+                                    GSList **shared_regions);
 
 static gboolean _check_point_dist (VsgPRTree2@t@Leaf *node,
                                    GSList *point,
@@ -493,7 +499,7 @@ static void _prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
           4*sizeof (VsgPRTree2@t@Node*));
 
   _prtree2@t@node_insert_point_list(node, stolen_point, config);
-  _prtree2@t@node_insert_region_list(node, stolen_region, config);
+  _prtree2@t@node_insert_region_list(node, stolen_region, config, NULL);
       
 }
 
@@ -555,7 +561,7 @@ static void _prtree2@t@node_flatten (VsgPRTree2@t@Node *node,
     }
 
   _prtree2@t@node_insert_point_list (node, point, config);
-  _prtree2@t@node_insert_region_list (node, region, config);
+  _prtree2@t@node_insert_region_list (node, region, config, NULL);
 }
 
 static gboolean
@@ -728,7 +734,8 @@ static gboolean _share_region (vsgrloc2 locmask)
 static guint
 _prtree2@t@node_insert_region_list (VsgPRTree2@t@Node *node,
                                     GSList *region_list,
-                                    const VsgPRTree2@t@Config *config)
+                                    const VsgPRTree2@t@Config *config,
+                                    GSList **shared_regions)
 {
   guint len = g_slist_length (region_list);
 
@@ -766,9 +773,12 @@ _prtree2@t@node_insert_region_list (VsgPRTree2@t@Node *node,
               node->region_list =
                 g_slist_concat (current, node->region_list);
 
-              /* PARALLEL TODO: shared regions should be notified to *all* the
+              /* shared regions are stored to be notified to *all* the
                * processors.
                */
+              if (shared_regions != NULL)
+                *shared_regions = g_slist_concat (g_slist_copy (current),
+                                                  *shared_regions);
             }
           else
             {
@@ -781,7 +791,8 @@ _prtree2@t@node_insert_region_list (VsgPRTree2@t@Node *node,
                   if (locmask & ipow)
                     _prtree2@t@node_insert_region_list (PRTREE2@T@NODE_CHILD (node, i),
                                                         current,
-                                                        config);
+                                                        config,
+                                                        shared_regions);
                 }
             }
         }
@@ -794,14 +805,16 @@ _prtree2@t@node_insert_region_list (VsgPRTree2@t@Node *node,
 static void
 _prtree2@t@node_insert_region (VsgPRTree2@t@Node *node,
                                VsgRegion2 region,
-                               const VsgPRTree2@t@Config *config)
+                               const VsgPRTree2@t@Config *config,
+                               GSList **shared_regions)
 {
   GSList *region_list = g_slist_alloc ();
 
   region_list->data = (gpointer) region;
   region_list->next = NULL;
 
-  _prtree2@t@node_insert_region_list (node, region_list, config);
+  _prtree2@t@node_insert_region_list (node, region_list, config,
+                                      shared_regions);
 }
 
 static gboolean
@@ -1835,13 +1848,17 @@ vsg_prtree2@t@_foreach_point_custom (VsgPRTree2@t@ *prtree2@t@,
 void vsg_prtree2@t@_insert_region (VsgPRTree2@t@ *prtree2@t@,
                                    VsgRegion2 region)
 {
+  GSList **shared_regions = NULL;
 #ifdef VSG_CHECK_PARAMS
   g_return_if_fail (prtree2@t@ != NULL);
   g_return_if_fail (region != NULL);
 #endif
 
+  if (prtree2@t@->config.parallel_config.communicator != MPI_COMM_NULL)
+    shared_regions = &prtree2@t@->pending_shared_regions;
+
   _prtree2@t@node_insert_region (prtree2@t@->node, region,
-                                 &prtree2@t@->config);
+                                 &prtree2@t@->config, shared_regions);
 }
 
 /**
