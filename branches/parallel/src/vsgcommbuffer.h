@@ -42,6 +42,8 @@ void vsg_comm_buffer_recv_read (VsgCommBuffer *cb, gint src, gpointer buf,
 
 void vsg_comm_buffer_share (VsgCommBuffer *cb);
 
+void vsg_comm_buffer_set_bcast (VsgCommBuffer *cb, VsgPackedMsg *model);
+
 void vsg_comm_buffer_drop_send_buffer (VsgCommBuffer *cb, gint dst);
 
 void vsg_comm_buffer_drop_recv_buffer (VsgCommBuffer *cb, gint src);

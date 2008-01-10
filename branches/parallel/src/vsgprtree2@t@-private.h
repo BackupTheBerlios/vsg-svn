@@ -67,6 +67,10 @@ typedef struct _VsgPRTree2@t@Node VsgPRTree2@t@Node;
 
 typedef struct _VsgPRTree2@t@Config VsgPRTree2@t@Config;
 
+typedef void (*VsgPRTree2@t@InternalFunc) (VsgPRTree2@t@Node *node,
+                                           VsgPRTree2@t@NodeInfo *info,
+                                           gpointer user_data);
+
 
 /* private structs */
 struct _VsgPRTree2@t@Leaf {
@@ -200,6 +204,12 @@ void _vsg_prtree2@t@node_get_info (VsgPRTree2@t@Node *node,
 VsgPRTree2@t@Node *_vsg_prtree2@t@node_get_child_at (VsgPRTree2@t@Node *node,
                                                      const VsgVector2@t@ *pos,
                                                      gint depth);
+
+void vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
+                                              GTraverseType order,
+                                              VsgRegion2 selector,
+                                              VsgPRTree2@t@InternalFunc func,
+                                              gpointer user_data);
 G_END_DECLS;
 
 #endif /* __VSGPRTREE2@T@_PRIVATE_H__ */

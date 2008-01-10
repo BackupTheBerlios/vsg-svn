@@ -38,11 +38,22 @@ struct _VsgPackedMsg
   gchar *buffer;
   gint position;
   gint size;
+  gboolean own_buffer;
+};
+
+static const VsgPackedMsg VSG_PACKED_MSG_NULL = {
+  MPI_COMM_NULL,
+  NULL,
+  0,
+  0,
+  TRUE
 };
 
 VsgPackedMsg *vsg_packed_msg_new (MPI_Comm comm);
 
 void vsg_packed_msg_init (VsgPackedMsg *pm, MPI_Comm comm);
+
+void vsg_packed_msg_set_reference (VsgPackedMsg *pm, VsgPackedMsg *model);
 
 void vsg_packed_msg_send_append (VsgPackedMsg *pm, gpointer buf,
                                  gint count, MPI_Datatype type);

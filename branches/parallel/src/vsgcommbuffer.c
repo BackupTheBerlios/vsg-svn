@@ -139,6 +139,26 @@ void vsg_comm_buffer_share (VsgCommBuffer *cb)
     }
 }
 
+/**
+ * vsg_comm_buffer_set_bcast:
+ * @cb: A #VsgCommBuffer instance.
+ * @model: the message data to pass to other processors.
+ */
+void vsg_comm_buffer_set_bcast (VsgCommBuffer *cb, VsgPackedMsg *model)
+{
+  gint dst;
+  g_return_if_fail (cb != NULL);
+
+  if (model == NULL) return;
+
+  for (dst=0; dst<cb->numtasks; dst++)
+    {
+      if (dst == cb->mytid) continue;
+
+      vsg_packed_msg_set_reference (&cb->send[dst], model);
+    }
+}
+
 VsgPackedMsg * vsg_comm_buffer_get_send_buffer (VsgCommBuffer *cb, gint dst)
 {
   g_return_val_if_fail (cb != NULL, NULL);

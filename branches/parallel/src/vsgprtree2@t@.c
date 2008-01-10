@@ -958,6 +958,76 @@ static void _copy_region (VsgRegion2 *region, VsgPRTree2@t@ *tree)
 }
 
 static void
+_prtree2@t@node_traverse_custom_internal (VsgPRTree2@t@Node *node,
+                                          VsgPRTree2@t@NodeInfo *father_info,
+                                          GTraverseType order,
+                                          VsgRegion2 selector,
+                                          VsgPRTree2@t@InternalFunc func,
+                                          gpointer user_data,
+                                          VsgPRTree2@t@Config *config,
+                                          gpointer node_key)
+{
+  VsgPRTree2@t@NodeInfo node_info;
+  guint8 i;
+  vsgrloc2 ipow;
+  vsgrloc2 locmask = (selector == NULL) ? VSG_RLOC2_MASK :
+    CALL_REGION2@T@_LOC (config, selector, &node->center);
+
+  gint children[4];
+  gpointer children_keys[4];
+
+  _vsg_prtree2@t@node_get_info (node, &node_info, father_info);
+
+  if (PRTREE2@T@NODE_IS_REMOTE (node))
+    {
+      func (node, &node_info, user_data);
+      return;
+    }
+
+  if (order == G_PRE_ORDER)
+    func (node, &node_info, user_data);
+
+  if (PRTREE2@T@NODE_ISINT (node))
+    {
+      config->children_order (node_key, children, children_keys,
+                              config->children_order_data);
+
+      for (i=0; i<2; i++)
+	{
+          gint ic = children[i];
+
+          ipow = VSG_RLOC2_COMP (ic);
+
+          if (ipow & locmask)
+            _prtree2@t@node_traverse_custom_internal
+              (PRTREE2@T@NODE_CHILD(node, ic), &node_info, order, selector,
+               func, user_data, config, children_keys[i]);
+	}
+    }
+
+  if (order == G_IN_ORDER)
+    func (node, &node_info, user_data);
+
+  if (PRTREE2@T@NODE_ISINT (node))
+    {
+      for (i=2; i<4; i++)
+	{
+          gint ic = children[i];
+
+          ipow = VSG_RLOC2_COMP (ic);
+
+          if (ipow & locmask)
+            _prtree2@t@node_traverse_custom_internal
+              (PRTREE2@T@NODE_CHILD(node, ic), &node_info, order, selector,
+               func, user_data, config, children_keys[i]);
+	}
+    }
+
+  if (order == G_POST_ORDER)
+    func (node, &node_info, user_data);
+}
+
+static void
 _prtree2@t@node_traverse_custom (VsgPRTree2@t@Node *node,
                                  VsgPRTree2@t@NodeInfo *father_info,
                                  GTraverseType order,
@@ -2027,6 +2097,24 @@ void vsg_prtree2@t@_traverse_custom (VsgPRTree2@t@ *prtree2@t@,
                                    order, selector, func,
                                    user_data, &prtree2@t@->config,
                                    prtree2@t@->config.root_key);
+}
+
+void vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
+                                              GTraverseType order,
+                                              VsgRegion2 selector,
+                                              VsgPRTree2@t@InternalFunc func,
+                                              gpointer user_data)
+{
+#ifdef VSG_CHECK_PARAMS
+  g_return_if_fail (prtree2@t@ != NULL);
+  g_return_if_fail (order != G_LEVEL_ORDER);
+  g_return_if_fail (func != NULL);
+#endif
+
+  _prtree2@t@node_traverse_custom_internal (prtree2@t@->node, NULL,
+                                            order, selector, func,
+                                            user_data, &prtree2@t@->config,
+                                            prtree2@t@->config.root_key);
 }
 
 GType vsg_prtree2@t@_node_info_get_type (void)

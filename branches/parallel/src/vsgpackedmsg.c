@@ -1,5 +1,7 @@
 #include "vsgpackedmsg.h"
 
+#include "string.h"
+
 /**
  * VsgPackedMsg:
  * @communicator: the MPI comunicator on which the #VsgPackedMsg is to be used.
@@ -44,6 +46,27 @@ void vsg_packed_msg_init (VsgPackedMsg *pm, MPI_Comm comm)
 }
 
 /**
+ * vsg_packed_msg_set_reference:
+ * @pm: a #VsgPackedMsg.
+ * @model: the message to point to.
+ *
+ * Sets @pm to be a reference to the data contained in @model without data
+ * copy. @model must exist as long as another message points to its data.
+ */
+void vsg_packed_msg_set_reference (VsgPackedMsg *pm, VsgPackedMsg *model)
+{
+  g_return_if_fail (pm != NULL);
+
+  vsg_packed_msg_drop_buffer (pm);
+
+  if (model == NULL) return;
+
+  memcpy (pm, model, sizeof (VsgPackedMsg));
+
+  pm->own_buffer = FALSE;
+}
+
+/**
  * vsg_packed_msg_send_append:
  * @pm: a #VsgPackedMsg.
  * @buf: pointer to the beginning of data to be stored.
@@ -59,6 +82,8 @@ void vsg_packed_msg_send_append (VsgPackedMsg *pm, gpointer buf,
   gint ierr;
 
   g_return_if_fail (pm != NULL);
+
+  g_assert (pm->own_buffer == TRUE);
 
   pos = pm->position;
   size = pm->size;
@@ -149,6 +174,8 @@ void vsg_packed_msg_recv (VsgPackedMsg *pm, gint src, gint tag)
   gint ierr;
   gint rsize = 0;
 
+  g_assert (pm->own_buffer == TRUE);
+
   MPI_Probe (src, tag, pm->communicator, &status);
 
   MPI_Get_count (&status, MPI_PACKED, &rsize);
@@ -200,12 +227,13 @@ void vsg_packed_msg_drop_buffer (VsgPackedMsg *pm)
 {
   g_return_if_fail (pm != NULL);
 
-  if (pm->buffer != NULL)
+  if (pm->buffer != NULL && pm->own_buffer)
     g_free (pm->buffer);
 
   pm->buffer = NULL;
   pm->position = 0;
   pm->size = 0;
+  pm->own_buffer = TRUE;
 }
 
 /**

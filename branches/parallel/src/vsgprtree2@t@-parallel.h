@@ -29,6 +29,8 @@ G_BEGIN_DECLS;
 void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
                                   VsgPRTreeParallelConfig *pconfig);
 
+void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree);
+
 G_END_DECLS;
 
 #endif /* __VSGPRTREE2@T@_PARALLEL_H__ */
