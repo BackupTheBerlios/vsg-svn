@@ -773,10 +773,10 @@ _prtree2@t@node_insert_region_list (VsgPRTree2@t@Node *node,
               node->region_list =
                 g_slist_concat (current, node->region_list);
 
-              /* shared regions are stored to be notified to *all* the
-               * processors.
+              /* shared regions in shared nodes are stored to be notified
+               * to *all* the processors.
                */
-              if (shared_regions != NULL)
+              if (shared_regions != NULL && PRTREE2@T@NODE_IS_SHARED (node))
                 *shared_regions = g_slist_concat (g_slist_copy (current),
                                                   *shared_regions);
             }
