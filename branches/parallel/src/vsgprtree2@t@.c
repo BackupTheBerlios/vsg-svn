@@ -1113,7 +1113,7 @@ static void _foreach_point_custom (const VsgPRTree2@t@NodeInfo *node_info,
 {
   GSList *point_list = node_info->point_list;
 
-  if (PRTREE2@T@NODE_INFO_IS_REMOTE (node_info))
+  if (VSG_PRTREE2@T@_NODE_INFO_IS_REMOTE (node_info))
     return;
 
   while (point_list)
@@ -1132,7 +1132,7 @@ static void _foreach_region_custom (const VsgPRTree2@t@NodeInfo *node_info,
 {
   GSList *region_list = node_info->region_list;
 
-  if (PRTREE2@T@NODE_INFO_IS_REMOTE (node_info))
+  if (VSG_PRTREE2@T@_NODE_INFO_IS_REMOTE (node_info))
     return;
 
   while (region_list)
@@ -1157,7 +1157,7 @@ static void _foreach_point (const VsgPRTree2@t@NodeInfo *node_info,
 {
   GSList *point_list = node_info->point_list;
 
-  if (PRTREE2@T@NODE_INFO_IS_REMOTE (node_info))
+  if (VSG_PRTREE2@T@_NODE_INFO_IS_REMOTE (node_info))
     return;
 
   while (point_list)
@@ -1175,7 +1175,7 @@ static void _foreach_region (const VsgPRTree2@t@NodeInfo *node_info,
 {
   GSList *region_list = node_info->region_list;
 
-  if (PRTREE2@T@NODE_INFO_IS_REMOTE (node_info))
+  if (VSG_PRTREE2@T@_NODE_INFO_IS_REMOTE (node_info))
     return;
 
   while (region_list)
@@ -1200,7 +1200,7 @@ _z_order_data (gpointer key, gint *children, gpointer *children_keys,
 static void _clone_parallel_status (const VsgPRTree2@t@NodeInfo *node_info,
                                     VsgPRTree2@t@Node *cloned)
 {
-  if (! PRTREE2@T@NODE_INFO_IS_LOCAL (node_info))
+  if (! VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL (node_info))
     {
       VsgPRTree2@t@Node *cloned_node;
 

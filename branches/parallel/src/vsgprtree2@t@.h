@@ -35,15 +35,15 @@ G_BEGIN_DECLS;
 #define VSG_TYPE_PRTREE2@T@ (vsg_prtree2@t@_get_type ())
 #define VSG_TYPE_PRTREE2@T@_NODE_INFO (vsg_prtree2@t@_node_info_get_type ())
 
-#define PRTREE2@T@NODE_INFO_IS_REMOTE(node) ( \
+#define VSG_PRTREE2@T@_NODE_INFO_IS_REMOTE(node) ( \
 VSG_PARALLEL_STATUS_IS_REMOTE (node->parallel_status) \
 )
 
-#define PRTREE2@T@NODE_INFO_IS_LOCAL(node) ( \
+#define VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL(node) ( \
 VSG_PARALLEL_STATUS_IS_LOCAL (node->parallel_status) \
 )
 
-#define PRTREE2@T@NODE_INFO_IS_SHARED(node) ( \
+#define VSG_PRTREE2@T@_NODE_INFO_IS_SHARED(node) ( \
 VSG_PARALLEL_STATUS_IS_SHARED (node->parallel_status) \
 )
 
