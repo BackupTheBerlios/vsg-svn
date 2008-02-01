@@ -122,6 +122,8 @@ VsgPRTree3@t@Node *_prtree3@t@node_alloc (const VsgVector3@t@ *lbound,
                                      config->user_data_model);
     }
 
+  ret->variable.isint = FALSE; /* default is a leaf */
+
   return ret;
 }
 

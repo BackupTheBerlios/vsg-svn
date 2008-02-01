@@ -130,6 +130,8 @@ VsgPRTree2@t@Node *vsg_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
                                      config->user_data_model);
     }
 
+  ret->variable.isint = FALSE; /* default is a leaf */
+
   ret->parallel_status.storage = VSG_PARALLEL_LOCAL;
   ret->parallel_status.proc = 0;
 
