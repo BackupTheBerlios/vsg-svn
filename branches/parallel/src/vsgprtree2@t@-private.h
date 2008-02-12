@@ -98,6 +98,7 @@ struct _VsgPRTree2@t@Node {
 
   /* center of the box */
   VsgVector2@t@ center;
+
   /* counts */
   guint point_count;
   guint region_count;
@@ -141,6 +142,10 @@ VSG_PARALLEL_STATUS_IS_LOCAL (node->parallel_status) \
 
 #define PRTREE2@T@NODE_IS_SHARED(node) ( \
 VSG_PARALLEL_STATUS_IS_SHARED (node->parallel_status) \
+)
+
+#define PRTREE2@T@NODE_PROC(node) ( \
+VSG_PARALLEL_STATUS_PROC (node->parallel_status) \
 )
 
 struct _VsgPRTree2@t@Config {
@@ -210,6 +215,10 @@ void vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
                                               VsgRegion2 selector,
                                               VsgPRTree2@t@InternalFunc func,
                                               gpointer user_data);
+
+void vsg_prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
+                                  const VsgPRTree2@t@Config *config);
+
 G_END_DECLS;
 
 #endif /* __VSGPRTREE2@T@_PRIVATE_H__ */

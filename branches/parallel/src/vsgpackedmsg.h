@@ -41,13 +41,11 @@ struct _VsgPackedMsg
   gboolean own_buffer;
 };
 
-static const VsgPackedMsg VSG_PACKED_MSG_NULL = {
-  MPI_COMM_NULL,
-  NULL,
-  0,
-  0,
-  TRUE
-};
+#define VSG_PACKED_MSG_STATIC_INIT(comm) \
+{ (comm), NULL, 0, 0, TRUE};
+
+static const VsgPackedMsg VSG_PACKED_MSG_NULL =
+VSG_PACKED_MSG_STATIC_INIT (MPI_COMM_NULL);
 
 VsgPackedMsg *vsg_packed_msg_new (MPI_Comm comm);
 

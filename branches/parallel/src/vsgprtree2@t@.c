@@ -336,9 +336,6 @@ static GSList *_prtree2@t@node_steal_region (VsgPRTree2@t@Node *node)
   return result;
 }
 
-static void _prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
-                                      const VsgPRTree2@t@Config *config);
-
 static guint
 _prtree2@t@node_insert_point_list(VsgPRTree2@t@Node *node,
                                   GSList *point,
@@ -387,7 +384,7 @@ _prtree2@t@leaf_insert_point_list(VsgPRTree2@t@Node *node,
       if (_check_point_dist (&PRTREE2@T@NODE_LEAF (node),
                              point, config))
         {
-          _prtree2@t@node_make_int (node, config);
+          vsg_prtree2@t@node_make_int (node, config);
           _prtree2@t@node_insert_point_list (node, point, config);
 
         }
@@ -470,8 +467,8 @@ static void _prtree2@t@node_insert_point(VsgPRTree2@t@Node *node,
   _prtree2@t@node_insert_point_list(node, point_list, config);
 }
 
-static void _prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
-                                      const VsgPRTree2@t@Config *config)
+void vsg_prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
+                                  const VsgPRTree2@t@Config *config)
 {
   GSList *stolen_point;
   GSList *stolen_region;
@@ -490,6 +487,8 @@ static void _prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
       _prtree2@t@node_child_get_bounds (node, i, &lbound, &ubound);
 
       children[i] = _leaf_alloc (&lbound, &ubound, config);
+
+      children[i]->parallel_status = node->parallel_status;
     }
 
   /* It is very important that new leaves are inserted once all calls to
@@ -630,8 +629,9 @@ static void _prtree2@t@node_write (const VsgPRTree2@t@Node *node, FILE *file,
     {
       _wtabs (file, tab);
       fprintf (file,
-               "remote[(%@tcode@,%@tcode@) (%@tcode@,%@tcode@)]"
+               "remote%d[(%@tcode@,%@tcode@) (%@tcode@,%@tcode@)]"
                " point=%d region=%d\n",
+               node->parallel_status.proc,
                node->lbound.x, node->lbound.y,
                node->ubound.x, node->ubound.y,
                node->point_count,

@@ -26,11 +26,18 @@
 
 G_BEGIN_DECLS;
 
+typedef
+gint (*VsgPRTree2@t@DistributionFunc) (VsgPRTree2@t@NodeInfo *node_info,
+                                           gpointer user_data);
+
 void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
                                   VsgPRTreeParallelConfig *pconfig);
 
 void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree);
 
+void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
+                                      VsgPRTree2@t@DistributionFunc func,
+                                      gpointer user_data);
 G_END_DECLS;
 
 #endif /* __VSGPRTREE2@T@_PARALLEL_H__ */

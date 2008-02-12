@@ -98,6 +98,11 @@ struct _VsgParallelStatus {
 (status).storage == VSG_PARALLEL_SHARED \
 )
 
+#define VSG_PARALLEL_STATUS_PROC(status) ( \
+(status).proc \
+)
+
+
 G_END_DECLS;
 
 
