@@ -28,6 +28,7 @@ AT_CHECK([mpiexec -n 4 commbuffer], 0)
 AT_CLEANUP
 
 AT_SETUP(2D Parallel tree creation)
+AT_CHECK([mpiexec -n 1 prtree2parallel], 0)
 AT_CHECK([mpiexec -n 2 prtree2parallel], 0)
 AT_CHECK([mpiexec -n 3 prtree2parallel], 0)
 AT_CHECK([mpiexec -n 4 prtree2parallel], 0)

@@ -9,7 +9,7 @@
 #include <math.h>
 #include <glib.h>
 
-static gboolean _do_write = TRUE;
+static gboolean _do_write = FALSE;
 
 static gint rk, sz;
 
@@ -365,6 +365,11 @@ gint main (gint argc, gchar ** argv)
       if (rk == 0)
         g_print ("%s\n", PACKAGE_VERSION);
       return 0;
+    }
+
+  if (argc > 1 && g_strncasecmp (argv[1], "--write", 7) == 0)
+    {
+      _do_write = TRUE;
     }
 
   vsg_init_gdouble ();
