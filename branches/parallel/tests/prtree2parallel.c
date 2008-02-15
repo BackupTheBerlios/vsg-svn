@@ -70,7 +70,7 @@ static vsgrloc2 _circle_loc2 (Circle *circle, VsgVector2d *center)
 {
   VsgVector2d tmp;
   gdouble dist;
-  vsgloc2 centerpos;
+  vsgloc2 centerpos, c_a_x, c_a_y;
   vsgrloc2 ret;
 
   vsg_vector2d_sub (center, &circle->center, &tmp);
@@ -83,19 +83,33 @@ static vsgrloc2 _circle_loc2 (Circle *circle, VsgVector2d *center)
 
   centerpos = vsg_vector2d_vector2d_locfunc (&circle->center, center);
 
+/*   g_printerr ("%d: {c=", rk); */
+/*   vsg_vector2d_write (&circle->center, stderr); */
+/*   g_printerr (" r=%g} ref=", circle->radius); */
+/*   vsg_vector2d_write (center, stderr); */
+
   ret |= VSG_RLOC2_COMP (centerpos);
+
+/*   g_printerr (" / 0x%X", ret); */
+
+  c_a_x = centerpos & VSG_LOC2_X;
+  c_a_y = centerpos & VSG_LOC2_Y;
 
   if (fabs (tmp.x) <= circle->radius)
     {
-      vsgloc2 itmp = centerpos & ~ (VSG_LOC2_X & centerpos);
+      vsgloc2 itmp = ((~ c_a_x) | c_a_y) & VSG_LOC2_MASK;
       ret |= VSG_RLOC2_COMP (itmp);
+/*       g_printerr (" / x<rad 0x%X", itmp); */
     }
 
   if (fabs (tmp.y) <= circle->radius)
     {
-      vsgloc2 itmp = centerpos & ~ (VSG_LOC2_Y & centerpos);
+      vsgloc2 itmp = (c_a_x | (~ c_a_y)) & VSG_LOC2_MASK;
       ret |= VSG_RLOC2_COMP (itmp);
+/*       g_printerr (" / y<rad 0x%X", itmp); */
     }
+
+/*   g_printerr (" => 0x%X\n", ret); */
 
   return ret;
 }
