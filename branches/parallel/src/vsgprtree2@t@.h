@@ -47,6 +47,10 @@ VSG_PARALLEL_STATUS_IS_LOCAL (node->parallel_status) \
 VSG_PARALLEL_STATUS_IS_SHARED (node->parallel_status) \
 )
 
+#define VSG_PRTREE2@T@_NODE_INFO_PROC(node) ( \
+VSG_PARALLEL_STATUS_PROC (node->parallel_status) \
+)
+
 /* typedefs */
 typedef struct _VsgPRTree2@t@ VsgPRTree2@t@;
 
