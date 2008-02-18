@@ -533,20 +533,22 @@ static void _traverse_distribute_nodes (VsgPRTree2@t@Node *node,
 
     }
 
-  if (old_storage == VSG_PARALLEL_SHARED && new_storage == VSG_PARALLEL_REMOTE)
-    {
+  if (old_storage == VSG_PARALLEL_REMOTE) return; /* check migrations later */
 
-      /* free all shared regions */
-      g_slist_foreach (node->region_list, 
-                       (GFunc) dd->config->parallel_config.region.destroy,
-                       dd->config->parallel_config.region.destroy_data);
-      g_slist_free (node->region_list);
-      node->region_list = NULL;
+  if (new_storage == VSG_PARALLEL_REMOTE)
+    {
+      if (old_storage == VSG_PARALLEL_SHARED)
+        {
+          /* free all shared regions */
+          g_slist_foreach (node->region_list, 
+                           (GFunc) dd->config->parallel_config.region.destroy,
+                           dd->config->parallel_config.region.destroy_data);
+          g_slist_free (node->region_list);
+          node->region_list = NULL;
+        }
 
       _destroy_children (node, dd->config);
     }
-
-  if (old_storage == VSG_PARALLEL_REMOTE) return; /* check migrations later */
 
   /* update node's parallel status */
   node->parallel_status.storage = new_storage;
@@ -591,18 +593,8 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
         {
           g_assert (children_proc == dst);
 
-          /* ? */
           if (storage == VSG_PARALLEL_REMOTE)
-            {
-/*               gint rk; */
-
-/*               MPI_Comm_rank (pc->communicator, &rk); */
-/*               g_printerr ("%d: destroy children of ", rk); */
-/*               vsg_vector2@t@_write (&node->center, stderr); */
-/*               g_printerr ("\n"); */
-
-              _destroy_children (node, config);
-            }
+            _destroy_children (node, config);
 
           node->parallel_status.storage = storage;
           node->parallel_status.proc = dst;
@@ -611,7 +603,6 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
       return;
     }
 
-  /* ? */
   if (storage == VSG_PARALLEL_REMOTE) _destroy_children (node, config);
 
   if (user_data != NULL)
