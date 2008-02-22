@@ -475,6 +475,16 @@ static void _destroy_children (VsgPRTree2@t@Node *node,
 
 }
 
+static void _node_remove_regions (VsgPRTree2@t@Node *node,
+                                  const VsgPRTree2@t@Config *config)
+{
+  g_slist_foreach (node->region_list, 
+                   (GFunc) config->parallel_config.region.destroy,
+                   config->parallel_config.region.destroy_data);
+  g_slist_free (node->region_list);
+  node->region_list = NULL;
+}
+
 typedef struct _DistributeData DistributeData;
 struct _DistributeData {
   VsgPRTree2@t@DistributionFunc func;
@@ -538,14 +548,7 @@ static void _traverse_distribute_nodes (VsgPRTree2@t@Node *node,
   if (new_storage == VSG_PARALLEL_REMOTE)
     {
       if (old_storage == VSG_PARALLEL_SHARED)
-        {
-          /* free all shared regions */
-          g_slist_foreach (node->region_list, 
-                           (GFunc) dd->config->parallel_config.region.destroy,
-                           dd->config->parallel_config.region.destroy_data);
-          g_slist_free (node->region_list);
-          node->region_list = NULL;
-        }
+        _node_remove_regions (node, dd->config);
 
       _destroy_children (node, dd->config);
     }
@@ -594,7 +597,10 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
           g_assert (children_proc == dst);
 
           if (storage == VSG_PARALLEL_REMOTE)
-            _destroy_children (node, config);
+            {
+              _node_remove_regions (node, config);
+              _destroy_children (node, config);
+            }
 
           node->parallel_status.storage = storage;
           node->parallel_status.proc = dst;
@@ -603,7 +609,11 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
       return;
     }
 
-  if (storage == VSG_PARALLEL_REMOTE) _destroy_children (node, config);
+  if (storage == VSG_PARALLEL_REMOTE)
+    {
+      _node_remove_regions (node, config);
+      _destroy_children (node, config);
+    }
 
   if (user_data != NULL)
     {
@@ -678,9 +688,12 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
   /* send/receive pending messages */
   vsg_comm_buffer_set_bcast (bcastcb, &bcast);
 
-/*   g_printerr ("%d: before share\n", rk); */
+/*   g_printerr ("%d: before share (bcast = %dBytes)\n", rk, bcast.position); */
 
   vsg_comm_buffer_share (bcastcb);
+
+/*   g_printerr ("%d: bcast ok\n%d: before private msg\n", rk, rk); */
+
   vsg_comm_buffer_share (cb);
 
   vsg_packed_msg_drop_buffer (&bcast);
