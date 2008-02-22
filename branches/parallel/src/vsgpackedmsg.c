@@ -154,7 +154,45 @@ void vsg_packed_msg_send (VsgPackedMsg *pm, gint dst, gint tag)
   gint ierr;
 
   ierr = MPI_Send (pm->buffer, pm->position, MPI_PACKED, dst, tag,
-                   pm->communicator);
+                    pm->communicator);
+
+  if (ierr != MPI_SUCCESS) vsg_mpi_error_output (ierr);
+}
+
+/**
+ * vsg_packed_msg_isend:
+ * @pm: a #VsgPackedMsg.
+ * @dst: the destination task id.
+ * @tag: an integer message tag.
+ * @request: the corresponding request object
+ *
+ * Sends stored message to the specified destination with the specified tag in
+ * a non blocking mode. @request is provided for output.
+ */
+void vsg_packed_msg_isend (VsgPackedMsg *pm, gint dst, gint tag,
+                           MPI_Request *request)
+{
+  gint ierr;
+
+  ierr = MPI_Isend (pm->buffer, pm->position, MPI_PACKED, dst, tag,
+                    pm->communicator, request);
+
+  if (ierr != MPI_SUCCESS) vsg_mpi_error_output (ierr);
+}
+
+/**
+ * vsg_packed_msg_wait:
+ * @pm: a #VsgPackedMsg.
+ * @request: the corresponding request object
+ *
+ * Waits until the message corresponding to @request is completed
+ */
+void vsg_packed_msg_wait (VsgPackedMsg *pm, MPI_Request *request)
+{
+  gint ierr;
+  MPI_Status status;
+
+  ierr = MPI_Wait (request, &status);
 
   if (ierr != MPI_SUCCESS) vsg_mpi_error_output (ierr);
 }
@@ -182,12 +220,6 @@ void vsg_packed_msg_recv (VsgPackedMsg *pm, gint src, gint tag)
 
   pm->buffer = g_realloc (pm->buffer, rsize);
   pm->size = rsize;
-
-/*   { */
-/*     gint mytid; */
-/*     MPI_Comm_rank (pm->communicator, &mytid); */
-/*     g_printerr ("%d: received %d bytes from %d\n", mytid, rsize, src); */
-/*   } */
 
   ierr = MPI_Recv (pm->buffer, rsize, MPI_PACKED, src, tag,
                    pm->communicator, &status);

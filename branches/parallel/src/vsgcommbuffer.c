@@ -80,8 +80,6 @@ void vsg_comm_buffer_send_append (VsgCommBuffer *cb, gint dst, gpointer buf,
 
 }
 
-
-
 /**
  * vsg_comm_buffer_recv_read:
  * @cb: A #VsgCommBuffer instance.
@@ -121,21 +119,29 @@ void vsg_comm_buffer_share (VsgCommBuffer *cb)
 
   for (i=1; i<numtasks; i++)
     {
+      MPI_Request request;
       gint src = (mytid - i + numtasks) % numtasks;
       gint dst = (mytid + i + numtasks) % numtasks;
       gint tag;
 
 /*       g_printerr ("step=%d proc=%d src=%d dst=%d sz=%d\n", i, mytid, src, dst, */
-/* 		  vsg_packed_msg_size (&cb->send[dst])); */
+/* 		  cb->send[dst].position); */
 
       /* send */
       tag = i*numtasks + mytid;
-      vsg_packed_msg_send (&cb->send[dst], dst, tag);
-      vsg_packed_msg_drop_buffer (&cb->send[dst]);
+
+      vsg_packed_msg_isend (&cb->send[dst], dst, tag, &request);
+/*       g_printerr ("step=%d proc=%d src=%d dst=%d send ok\n", i, mytid, src, dst); */
 
       /* recv */
       tag = i*numtasks + src;
+
       vsg_packed_msg_recv (&cb->recv[src], src, tag);
+/*       g_printerr ("step=%d proc=%d src=%d dst=%d recv ok\n", i, mytid, src, dst); */
+
+      vsg_packed_msg_wait (&cb->send[dst], &request);
+      vsg_packed_msg_drop_buffer (&cb->send[dst]);
+
     }
 }
 

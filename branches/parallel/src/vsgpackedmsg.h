@@ -62,6 +62,11 @@ void vsg_packed_msg_recv_read (VsgPackedMsg *pm, gpointer buf,
 
 void vsg_packed_msg_send (VsgPackedMsg *pm, gint dst, gint tag);
 
+void vsg_packed_msg_isend (VsgPackedMsg *pm, gint dst, gint tag,
+                           MPI_Request *request);
+
+void vsg_packed_msg_wait (VsgPackedMsg *pm, MPI_Request *request);
+
 void vsg_packed_msg_recv (VsgPackedMsg *pm, gint src, gint tag);
 
 VsgPackedMsg * vsg_packed_msg_recv_new (MPI_Comm comm, gint src, gint tag);
