@@ -34,4 +34,15 @@ AT_CHECK([mpiexec -n 3 prtree2parallel], 0)
 AT_CHECK([mpiexec -n 4 prtree2parallel], 0)
 AT_CLEANUP
 
+AT_SETUP(2D Parallel tree contiguous distribution)
+AT_CHECK([mpiexec -n 1 prtree2paradist], 0)
+AT_CHECK([mpiexec -n 2 prtree2paradist], 0)
+AT_CHECK([mpiexec -n 2 prtree2paradist --hilbert --np 100], 0)
+AT_CHECK([mpiexec -n 3 prtree2paradist --hilbert --np 100], 0)
+AT_CHECK([mpiexec -n 7 prtree2paradist --hilbert --np 100], 0)
+AT_CHECK([mpiexec -n 4 prtree2paradist --hilbert --scatter --np 40], 0)
+AT_CHECK([mpiexec -n 4 prtree2paradist --hilbert --np 400], 0)
+AT_CLEANUP
+
+
 
