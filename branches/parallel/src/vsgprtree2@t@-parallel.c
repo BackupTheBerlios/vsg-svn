@@ -436,23 +436,26 @@ static gint _prtree2@t@node_get_children_proc (VsgPRTree2@t@Node *node)
 {
   vsgloc2 i;
   gint children_proc;
+  VsgPRTree2@t@Node *children[4];
 
   g_assert (PRTREE2@T@NODE_ISINT (node));
 
-  if (PRTREE2@T@NODE_IS_SHARED (PRTREE2@T@NODE_INT (node).children[0]))
-    children_proc = -1;
+  memcpy (children, PRTREE2@T@NODE_INT (node).children,
+          4 * sizeof (VsgPRTree2@t@Node *));
+
+  if (PRTREE2@T@NODE_IS_SHARED (children[0]))
+    return -1;
   else
     children_proc =
-      PRTREE2@T@NODE_PROC (PRTREE2@T@NODE_INT (node).children[0]);
+      PRTREE2@T@NODE_PROC (children[0]);
 
   for (i=1; i<4; i++)
     {
       gint proc =
-        PRTREE2@T@NODE_PROC (PRTREE2@T@NODE_INT (node).children[i]);
+        PRTREE2@T@NODE_PROC (children[i]);
 
-      if (PRTREE2@T@NODE_IS_SHARED (PRTREE2@T@NODE_INT (node).children[i]) ||
-          proc != children_proc)
-        children_proc = -1;
+      if (PRTREE2@T@NODE_IS_SHARED (children[i]) || proc != children_proc)
+        return -1;
     }
 
   return children_proc;
@@ -547,9 +550,6 @@ static void _traverse_distribute_nodes (VsgPRTree2@t@Node *node,
 
   if (new_storage == VSG_PARALLEL_REMOTE)
     {
-      if (old_storage == VSG_PARALLEL_SHARED)
-        _node_remove_regions (node, dd->config);
-
       _destroy_children (node, dd->config);
     }
 
@@ -643,6 +643,23 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
   node->parallel_status.proc = dst;
 }
 
+static void _traverse_flatten_remote (VsgPRTree2@t@Node *node,
+				      VsgPRTree2@t@NodeInfo *node_info,
+				      const VsgPRTree2@t@Config *config)
+{
+  if (PRTREE2@T@NODE_IS_REMOTE (node))
+    {
+      /* destroy remaining children */
+      _destroy_children (node, config);
+
+      /* remote nodes aren't aware of points and regions stored on another
+       * processor */
+      _node_remove_regions (node, config);
+
+      node->point_count = 0;
+      node->region_count = 0;
+    }
+}
 
 void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
                                       VsgPRTree2@t@DistributionFunc func,
@@ -679,9 +696,9 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
 /*   g_printerr ("%d: before gather\n", rk); */
 
   /* gather all migration messages */
-  vsg_prtree2@t@_traverse_custom_internal
-    (tree, G_POST_ORDER, NULL,
-     (VsgPRTree2@t@InternalFunc) _traverse_distribute_nodes, &dd);
+  vsg_prtree2@t@_traverse_custom_internal (tree, G_POST_ORDER, NULL,
+					   (VsgPRTree2@t@InternalFunc)
+					   _traverse_distribute_nodes, &dd);
 
 /*   g_printerr ("%d: after gather\n", rk); */
 
@@ -799,4 +816,12 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
 
   vsg_comm_buffer_free (bcastcb);
   vsg_comm_buffer_free (cb);
+
+  /* fix all remote nodes: remove remaining subtree and locally stored
+   * regions */
+  vsg_prtree2@t@_traverse_custom_internal (tree, G_POST_ORDER, NULL,
+					   (VsgPRTree2@t@InternalFunc)
+					   _traverse_flatten_remote,
+					   &tree->config);
+
 }
