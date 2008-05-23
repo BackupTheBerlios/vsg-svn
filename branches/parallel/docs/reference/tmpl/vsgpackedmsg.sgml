@@ -67,6 +67,35 @@ vsg_packed_msg_free (msg);
 
 @communicator: 
 
+<!-- ##### STRUCT VsgSendChannel ##### -->
+<para>
+
+</para>
+
+@pm: 
+@dst: 
+@tag: 
+@bsize: 
+
+<!-- ##### MACRO VSG_PACKED_MSG_STATIC_INIT ##### -->
+<para>
+
+</para>
+
+@comm: 
+
+
+<!-- ##### MACRO VSG_SEND_CHANNEL_STATIC_INIT ##### -->
+<para>
+
+</para>
+
+@comm: 
+@dst: 
+@tag: 
+@bsize: 
+
+
 <!-- ##### FUNCTION vsg_packed_msg_init ##### -->
 <para>
 
@@ -104,6 +133,26 @@ vsg_packed_msg_free (msg);
 @pm: 
 @dst: 
 @tag: 
+
+
+<!-- ##### FUNCTION vsg_packed_msg_isend ##### -->
+<para>
+
+</para>
+
+@pm: 
+@dst: 
+@tag: 
+@request: 
+
+
+<!-- ##### FUNCTION vsg_packed_msg_wait ##### -->
+<para>
+
+</para>
+
+@pm: 
+@request: 
 
 
 <!-- ##### FUNCTION vsg_packed_msg_recv ##### -->
@@ -146,11 +195,88 @@ vsg_packed_msg_free (msg);
 @pm: 
 
 
+<!-- ##### FUNCTION vsg_packed_msg_set_reference ##### -->
+<para>
+
+</para>
+
+@pm: 
+@model: 
+
+
 <!-- ##### FUNCTION vsg_packed_msg_free ##### -->
 <para>
 
 </para>
 
 @pm: 
+
+
+<!-- ##### FUNCTION vsg_send_channel_new ##### -->
+<para>
+
+</para>
+
+@comm: 
+@dst: 
+@tag: 
+@bsize: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vsg_send_channel_init ##### -->
+<para>
+
+</para>
+
+@sc: 
+@comm: 
+@dst: 
+@tag: 
+@bsize: 
+
+
+<!-- ##### FUNCTION vsg_send_channel_append ##### -->
+<para>
+
+</para>
+
+@sc: 
+@buf: 
+@count: 
+@type: 
+
+
+<!-- ##### FUNCTION vsg_send_channel_check_send ##### -->
+<para>
+
+</para>
+
+@sc: 
+
+
+<!-- ##### FUNCTION vsg_send_channel_flush ##### -->
+<para>
+
+</para>
+
+@sc: 
+
+
+<!-- ##### FUNCTION vsg_send_channel_get_buffer ##### -->
+<para>
+
+</para>
+
+@sc: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vsg_send_channel_free ##### -->
+<para>
+
+</para>
+
+@sc: 
 
 

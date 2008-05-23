@@ -22,18 +22,34 @@ vsg_mpi_error_output
 <SECTION>
 <FILE>vsgpackedmsg</FILE>
 VsgPackedMsg
+VsgSendChannel
+
+VSG_PACKED_MSG_STATIC_INIT
+VSG_SEND_CHANNEL_STATIC_INIT
 
 vsg_packed_msg_init
 vsg_packed_msg_new
 vsg_packed_msg_recv_new
 
 vsg_packed_msg_send
+vsg_packed_msg_isend
+vsg_packed_msg_wait
 vsg_packed_msg_recv
 vsg_packed_msg_send_append
 vsg_packed_msg_recv_read
 vsg_packed_msg_drop_buffer
 
+vsg_packed_msg_set_reference
+
 vsg_packed_msg_free
+
+vsg_send_channel_new
+vsg_send_channel_init
+vsg_send_channel_append
+vsg_send_channel_check_send
+vsg_send_channel_flush
+vsg_send_channel_get_buffer
+vsg_send_channel_free
 
 <SUBSECTION Standard>
 </SECTION>
@@ -48,6 +64,10 @@ vsg_comm_buffer_send_append
 vsg_comm_buffer_recv_read
 
 vsg_comm_buffer_share
+
+vsg_comm_buffer_get_recv_buffer
+vsg_comm_buffer_get_send_buffer
+vsg_comm_buffer_set_bcast
 
 vsg_comm_buffer_drop_buffers
 vsg_comm_buffer_drop_recv_buffer
@@ -312,6 +332,10 @@ vsg_prtree2d_near_far_traversal
 vsg_prtree2d_traverse_custom
 vsg_prtree2d_traverse
 
+vsg_prtree2d_distribute_nodes
+vsg_prtree2d_migrate_flush
+vsg_prtree2d_set_parallel
+
 <SUBSECTION Standard>
 vsg_prtree2d_get_type
 vsg_prtree2d_node_info_get_type
@@ -373,6 +397,10 @@ vsg_prtree2f_find_point
 vsg_prtree2f_near_far_traversal
 vsg_prtree2f_traverse_custom
 vsg_prtree2f_traverse
+
+vsg_prtree2f_distribute_nodes
+vsg_prtree2f_migrate_flush
+vsg_prtree2f_set_parallel
 
 <SUBSECTION Standard>
 vsg_prtree2f_get_type

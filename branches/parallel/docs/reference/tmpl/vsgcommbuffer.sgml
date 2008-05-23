@@ -64,6 +64,35 @@ vsgcommbuffer
 @cb: 
 
 
+<!-- ##### FUNCTION vsg_comm_buffer_get_recv_buffer ##### -->
+<para>
+
+</para>
+
+@cb: 
+@src: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vsg_comm_buffer_get_send_buffer ##### -->
+<para>
+
+</para>
+
+@cb: 
+@dst: 
+@Returns: 
+
+
+<!-- ##### FUNCTION vsg_comm_buffer_set_bcast ##### -->
+<para>
+
+</para>
+
+@cb: 
+@model: 
+
+
 <!-- ##### FUNCTION vsg_comm_buffer_drop_buffers ##### -->
 <para>
 

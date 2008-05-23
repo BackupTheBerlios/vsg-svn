@@ -28,6 +28,7 @@
 G_BEGIN_DECLS;
 
 typedef struct _VsgPackedMsg VsgPackedMsg;
+typedef struct _VsgSendChannel VsgSendChannel;
 
 struct _VsgPackedMsg
 {
@@ -41,8 +42,16 @@ struct _VsgPackedMsg
   gboolean own_buffer;
 };
 
+struct _VsgSendChannel
+{
+  VsgPackedMsg pm;
+  gint dst;
+  gint tag;
+  guint bsize;
+};
+
 #define VSG_PACKED_MSG_STATIC_INIT(comm) \
-{ (comm), NULL, 0, 0, TRUE};
+{(comm), NULL, 0, 0, TRUE}
 
 static const VsgPackedMsg VSG_PACKED_MSG_NULL =
 VSG_PACKED_MSG_STATIC_INIT (MPI_COMM_NULL);
@@ -74,6 +83,31 @@ VsgPackedMsg * vsg_packed_msg_recv_new (MPI_Comm comm, gint src, gint tag);
 void vsg_packed_msg_drop_buffer (VsgPackedMsg *pm);
 
 void vsg_packed_msg_free (VsgPackedMsg *pm);
+
+#define VSG_SEND_CHANNEL_STATIC_INIT(comm, dst, tag, bsize) \
+{VSG_PACKED_MSG_STATIC_INIT (comm), (dst), (tag), (bsize)}
+
+static const VsgSendChannel VSG_SEND_CHANNEL_NULL =
+  VSG_SEND_CHANNEL_STATIC_INIT (MPI_COMM_NULL, 0, 0, 0);
+
+VsgSendChannel *vsg_send_channel_new (MPI_Comm comm, gint dst, gint tag,
+                                      guint bsize);
+
+void vsg_send_channel_init (VsgSendChannel *sc, MPI_Comm comm, gint dst,
+                            gint tag, guint bsize);
+
+VsgPackedMsg *vsg_send_channel_get_buffer (VsgSendChannel *sc);
+
+void vsg_send_channel_append (VsgSendChannel *sc, gpointer buf,
+                              gint count, MPI_Datatype type);
+
+void vsg_send_channel_check_send (VsgSendChannel *sc);
+
+void vsg_send_channel_flush (VsgSendChannel *sc);
+
+
+void vsg_send_channel_free (VsgSendChannel *sc);
+
 
 G_END_DECLS;
 
