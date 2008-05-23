@@ -1311,14 +1311,12 @@ vsg_prtree2@t@_new_full (const VsgVector2@t@ *lbound,
 
   prtree2@t@->node = _leaf_alloc(lbound, ubound, &prtree2@t@->config);
 
-  prtree2@t@->config.point_loc_marshall = NULL;
-  prtree2@t@->config.point_loc_data = point_locfunc;
+  vsg_prtree2@t@_set_point_loc (prtree2@t@, point_locfunc);
 
-  prtree2@t@->config.point_dist_marshall = NULL;
-  prtree2@t@->config.point_dist_data = point_distfunc;
+  vsg_prtree2@t@_set_point_dist (prtree2@t@, point_distfunc);
 
-  prtree2@t@->config.region_loc_marshall = NULL;
-  prtree2@t@->config.region_loc_data = region_locfunc;
+  vsg_prtree2@t@_set_region_loc (prtree2@t@, region_locfunc);
+
   prtree2@t@->config.tolerance = @epsilon@;
 
   prtree2@t@->config.children_order = _z_order_data;
@@ -1386,14 +1384,14 @@ VsgPRTree2@t@ *vsg_prtree2@t@_clone (VsgPRTree2@t@ *prtree2@t@)
       g_boxed_copy (res->config.user_data_type,
                     prtree2@t@->config.user_data_model);
 
-  res->config.point_loc_marshall = prtree2@t@->config.point_loc_marshall;
+  res->config.point_loc_func = prtree2@t@->config.point_loc_func;
   res->config.point_loc_data = prtree2@t@->config.point_loc_data;
 
-  res->config.point_dist_marshall =
-    prtree2@t@->config.point_dist_marshall;
+  res->config.point_dist_func =
+    prtree2@t@->config.point_dist_func;
   res->config.point_dist_data = prtree2@t@->config.point_dist_data;
 
-  res->config.region_loc_marshall = prtree2@t@->config.region_loc_marshall;
+  res->config.region_loc_func = prtree2@t@->config.region_loc_func;
   res->config.region_loc_data = prtree2@t@->config.region_loc_data;
   res->config.tolerance = prtree2@t@->config.tolerance;
 
@@ -1419,69 +1417,128 @@ VsgPRTree2@t@ *vsg_prtree2@t@_clone (VsgPRTree2@t@ *prtree2@t@)
 }
 
 /**
- * vsg_prtree2@t@_set_point_loc_marshall:
+ * vsg_prtree2@t@_set_point_loc:
  * @prtree2@t@: a #VsgPRTree2@t@.
- * @marshall: the function marshaller or %NULL.
- * @locdata: the data passed to @marshall or the function for direct loc test.
+ * @locfunc: the localization function.
  *
  * Configure @prtree2@t@ for marshalling its VsgPoint2@t@ localization.
  */
 void
-vsg_prtree2@t@_set_point_loc_marshall (VsgPRTree2@t@ *prtree2@t@,
-                                       VsgPoint2@t@LocMarshall marshall,
-                                       gpointer locdata)
+vsg_prtree2@t@_set_point_loc (VsgPRTree2@t@ *prtree2@t@,
+                              VsgPoint2@t@LocFunc locfunc)
+{
+  /*
+   * We force locfunc as a VsgPoint2@t@LocDataFunc as adding NULL as a
+   * dummy argument in the call is (should be?) harmless.
+   */
+  vsg_prtree2@t@_set_point_loc_with_data (prtree2@t@,
+                                          (VsgPoint2@t@LocDataFunc) locfunc,
+                                          NULL);
+}
+
+/**
+ * vsg_prtree2@t@_set_point_loc_with_data:
+ * @prtree2@t@: a #VsgPRTree2@t@.
+ * @locfunc: the localization function.
+ * @locdata: the data passed to @locfunc.
+ *
+ * Configure @prtree2@t@ for marshalling its VsgPoint2@t@ localization.
+ */
+void
+vsg_prtree2@t@_set_point_loc_with_data (VsgPRTree2@t@ *prtree2@t@,
+                                        VsgPoint2@t@LocDataFunc locfunc,
+                                        gpointer locdata)
 {
 #ifdef VSG_CHECK_PARAMS
   g_return_if_fail (prtree2@t@ != NULL);
-  g_return_if_fail (marshall != NULL || locdata != NULL);
+  g_return_if_fail (locfunc != NULL);
 #endif
 
-  prtree2@t@->config.point_loc_marshall = marshall;
+  prtree2@t@->config.point_loc_func = locfunc;
 
   prtree2@t@->config.point_loc_data = locdata;
 }
 
 /**
- * vsg_prtree2@t@_set_point_loc_marshall:
+ * vsg_prtree2@t@_set_region_loc:
  * @prtree2@t@: a #VsgPRTree2@t@.
- * @marshall: the function marshaller or %NULL.
- * @locdata: the data passed to @marshall or the function for direct loc test.
+ * @locfunc: the localization function.
  *
  * Configure @prtree2@t@ for marshalling its VsgRegion2@t@ localization.
  */
-void vsg_prtree2@t@_set_region_loc_marshall (VsgPRTree2@t@ *prtree2@t@,
-                                             VsgRegion2@t@LocMarshall marshall,
-                                             gpointer locdata)
+void vsg_prtree2@t@_set_region_loc (VsgPRTree2@t@ *prtree2@t@,
+                                    VsgRegion2@t@LocFunc locfunc)
+{
+  /*
+   * We force locfunc as a VsgRegion2@t@LocDataFunc as adding NULL as a
+   * dummy argument in the call is (should be?) harmless.
+   */
+  vsg_prtree2@t@_set_region_loc_with_data (prtree2@t@,
+                                           (VsgRegion2@t@LocDataFunc) locfunc,
+                                           NULL);
+}
+
+/**
+ * vsg_prtree2@t@_set_region_loc_with_data:
+ * @prtree2@t@: a #VsgPRTree2@t@.
+ * @locfunc: the localization function.
+ * @locdata: the data passed to @locfunc.
+ *
+ * Configure @prtree2@t@ for marshalling its VsgRegion2@t@ localization.
+ */
+void vsg_prtree2@t@_set_region_loc_with_data (VsgPRTree2@t@ *prtree2@t@,
+                                              VsgRegion2@t@LocDataFunc locfunc,
+                                              gpointer locdata)
 {
 #ifdef VSG_CHECK_PARAMS
   g_return_if_fail (prtree2@t@ != NULL);
-  g_return_if_fail (marshall != NULL || locdata != NULL);
+  g_return_if_fail (locfunc != NULL);
 #endif
 
-  prtree2@t@->config.region_loc_marshall = marshall;
+  prtree2@t@->config.region_loc_func = locfunc;
 
   prtree2@t@->config.region_loc_data = locdata;
 }
 
 /**
- * vsg_prtree2@t@_set_point_loc_marshall:
+ * vsg_prtree2@t@_set_point_dist:
  * @prtree2@t@: a #VsgPRTree2@t@.
- * @marshall: the function marshaller or %NULL.
- * @locdata: the data passed to @marshall or the function for direct dist test.
+ * @distfunc: the distance function.
  *
  * Configure @prtree2@t@ for marshalling its VsgRegion2@t@ distance evaluation.
  */
 void
-vsg_prtree2@t@_set_point_dist_marshall (VsgPRTree2@t@ *prtree2@t@,
-                                        VsgPoint2@t@DistMarshall marshall,
-                                        gpointer distdata)
+vsg_prtree2@t@_set_point_dist (VsgPRTree2@t@ *prtree2@t@,
+                               VsgPoint2@t@DistFunc distfunc)
+{
+  /*
+   * We force distfunc as a VsgPoint2@t@DistDataFunc as adding NULL as a
+   * dummy argument in the call is (should be?) harmless.
+   */
+  vsg_prtree2@t@_set_point_dist_with_data (prtree2@t@,
+                                           (VsgPoint2@t@DistDataFunc) distfunc,
+                                           NULL);
+}
+
+/**
+ * vsg_prtree2@t@_set_point_dist_with_data:
+ * @prtree2@t@: a #VsgPRTree2@t@.
+ * @distfunc: the distance function.
+ * @distdata: the data passed to @distfunc.
+ *
+ * Configure @prtree2@t@ for marshalling its VsgRegion2@t@ distance evaluation.
+ */
+void
+vsg_prtree2@t@_set_point_dist_with_data (VsgPRTree2@t@ *prtree2@t@,
+                                         VsgPoint2@t@DistDataFunc distfunc,
+                                         gpointer distdata)
 {
 #ifdef VSG_CHECK_PARAMS
   g_return_if_fail (prtree2@t@ != NULL);
-  g_return_if_fail (marshall != NULL || distdata != NULL);
+  g_return_if_fail (distfunc != NULL || distdata != NULL);
 #endif
 
-  prtree2@t@->config.point_dist_marshall = marshall;
+  prtree2@t@->config.point_dist_func = distfunc;
 
   prtree2@t@->config.point_dist_data = distdata;
 }

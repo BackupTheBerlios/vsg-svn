@@ -291,9 +291,9 @@ VsgRegion2dLocFunc
 
 VsgPoint2dDistFunc
 
-VsgPoint2dLocMarshall
-VsgRegion2dLocMarshall
-VsgPoint2dDistMarshall
+VsgPoint2dLocDataFunc
+VsgRegion2dLocDataFunc
+VsgPoint2dDistDataFunc
 
 VsgPRTree2dFunc
 VsgPRTree2dFarInteractionFunc
@@ -303,9 +303,12 @@ vsg_prtree2d_new_full
 vsg_prtree2d_new
 vsg_prtree2d_free
 vsg_prtree2d_clone
-vsg_prtree2d_set_point_loc_marshall
-vsg_prtree2d_set_region_loc_marshall
-vsg_prtree2d_set_point_dist_marshall
+vsg_prtree2d_set_point_loc
+vsg_prtree2d_set_point_loc_with_data
+vsg_prtree2d_set_region_loc
+vsg_prtree2d_set_region_loc_with_data
+vsg_prtree2d_set_point_dist
+vsg_prtree2d_set_point_dist_with_data
 vsg_prtree2d_set_children_order_with_data
 vsg_prtree2d_set_children_order
 vsg_prtree2d_get_tolerance
@@ -357,9 +360,9 @@ VsgRegion2fLocFunc
 
 VsgPoint2fDistFunc
 
-VsgPoint2fLocMarshall
-VsgRegion2fLocMarshall
-VsgPoint2fDistMarshall
+VsgPoint2fLocDataFunc
+VsgRegion2fLocDataFunc
+VsgPoint2fDistDataFunc
 
 VsgPRTree2fFunc
 VsgPRTree2fFarInteractionFunc
@@ -369,9 +372,12 @@ vsg_prtree2f_new_full
 vsg_prtree2f_new
 vsg_prtree2f_free
 vsg_prtree2f_clone
-vsg_prtree2f_set_point_loc_marshall
-vsg_prtree2f_set_region_loc_marshall
-vsg_prtree2f_set_point_dist_marshall
+vsg_prtree2f_set_point_loc
+vsg_prtree2f_set_point_loc_with_data
+vsg_prtree2f_set_region_loc
+vsg_prtree2f_set_region_loc_with_data
+vsg_prtree2f_set_point_dist
+vsg_prtree2f_set_point_dist_with_data
 vsg_prtree2f_set_children_order_with_data
 vsg_prtree2f_set_children_order
 vsg_prtree2f_get_tolerance

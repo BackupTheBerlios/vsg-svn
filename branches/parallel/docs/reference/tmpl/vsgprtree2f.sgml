@@ -83,7 +83,7 @@ vsgprtree2f
 @Returns: 
 
 
-<!-- ##### USER_FUNCTION VsgPoint2fLocMarshall ##### -->
+<!-- ##### USER_FUNCTION VsgPoint2fLocDataFunc ##### -->
 <para>
 
 </para>
@@ -94,7 +94,7 @@ vsgprtree2f
 @Returns: 
 
 
-<!-- ##### USER_FUNCTION VsgRegion2fLocMarshall ##### -->
+<!-- ##### USER_FUNCTION VsgRegion2fLocDataFunc ##### -->
 <para>
 
 </para>
@@ -105,7 +105,7 @@ vsgprtree2f
 @Returns: 
 
 
-<!-- ##### USER_FUNCTION VsgPoint2fDistMarshall ##### -->
+<!-- ##### USER_FUNCTION VsgPoint2fDistDataFunc ##### -->
 <para>
 
 </para>
@@ -188,33 +188,60 @@ vsgprtree2f
 @Returns: 
 
 
-<!-- ##### FUNCTION vsg_prtree2f_set_point_loc_marshall ##### -->
+<!-- ##### FUNCTION vsg_prtree2f_set_point_loc ##### -->
 <para>
 
 </para>
 
 @prtree2f: 
-@marshall: 
+@locfunc: 
+
+
+<!-- ##### FUNCTION vsg_prtree2f_set_point_loc_with_data ##### -->
+<para>
+
+</para>
+
+@prtree2f: 
+@locfunc: 
 @locdata: 
 
 
-<!-- ##### FUNCTION vsg_prtree2f_set_region_loc_marshall ##### -->
+<!-- ##### FUNCTION vsg_prtree2f_set_region_loc ##### -->
 <para>
 
 </para>
 
 @prtree2f: 
-@marshall: 
+@locfunc: 
+
+
+<!-- ##### FUNCTION vsg_prtree2f_set_region_loc_with_data ##### -->
+<para>
+
+</para>
+
+@prtree2f: 
+@locfunc: 
 @locdata: 
 
 
-<!-- ##### FUNCTION vsg_prtree2f_set_point_dist_marshall ##### -->
+<!-- ##### FUNCTION vsg_prtree2f_set_point_dist ##### -->
 <para>
 
 </para>
 
 @prtree2f: 
-@marshall: 
+@distfunc: 
+
+
+<!-- ##### FUNCTION vsg_prtree2f_set_point_dist_with_data ##### -->
+<para>
+
+</para>
+
+@prtree2f: 
+@distfunc: 
 @distdata: 
 
 

@@ -67,15 +67,15 @@ typedef vsgrloc2 (*VsgRegion2@t@LocFunc) (const VsgRegion2 region,
 typedef @type@ (*VsgPoint2@t@DistFunc) (const VsgPoint2 one,
                                         const VsgPoint2 other);
 
-typedef vsgloc2 (*VsgPoint2@t@LocMarshall) (const VsgPoint2 candidate,
+typedef vsgloc2 (*VsgPoint2@t@LocDataFunc) (const VsgPoint2 candidate,
                                             const VsgVector2@t@ *center,
                                             gpointer data);
 
-typedef vsgrloc2 (*VsgRegion2@t@LocMarshall) (const VsgRegion2 region,
+typedef vsgrloc2 (*VsgRegion2@t@LocDataFunc) (const VsgRegion2 region,
                                               const VsgVector2@t@ *center,
                                               gpointer data);
 
-typedef @type@ (*VsgPoint2@t@DistMarshall) (const VsgPoint2 one,
+typedef @type@ (*VsgPoint2@t@DistDataFunc) (const VsgPoint2 one,
                                             const VsgPoint2 other,
                                             gpointer data);
 
@@ -134,24 +134,38 @@ void vsg_prtree2@t@_free (VsgPRTree2@t@ *prtree2@t@);
 VsgPRTree2@t@ *vsg_prtree2@t@_clone (VsgPRTree2@t@ *prtree2@t@);
 
 void
-vsg_prtree2@t@_set_point_loc_marshall (VsgPRTree2@t@ *prtree2@t@,
-                                       VsgPoint2@t@LocMarshall marshall,
-                                       gpointer locdata);
-
-void vsg_prtree2@t@_set_region_loc_marshall (VsgPRTree2@t@ *prtree2@t@,
-					     VsgRegion2@t@LocMarshall marshall,
-					     gpointer locdata);
+vsg_prtree2@t@_set_point_loc (VsgPRTree2@t@ *prtree2@t@,
+                              VsgPoint2@t@LocFunc locfunc);
 
 void
-vsg_prtree2@t@_set_point_dist_marshall (VsgPRTree2@t@ *prtree2@t@,
-                                        VsgPoint2@t@DistMarshall marshall,
-                                        gpointer distdata);
+vsg_prtree2@t@_set_point_loc_with_data (VsgPRTree2@t@ *prtree2@t@,
+                                        VsgPoint2@t@LocDataFunc locfunc,
+                                        gpointer locdata);
+
+void
+vsg_prtree2@t@_set_region_loc (VsgPRTree2@t@ *prtree2@t@,
+                               VsgRegion2@t@LocFunc locfunc);
+
+void
+vsg_prtree2@t@_set_region_loc_with_data (VsgPRTree2@t@ *prtree2@t@,
+                                         VsgRegion2@t@LocDataFunc locfunc,
+                                         gpointer locdata);
+
+void
+vsg_prtree2@t@_set_point_dist (VsgPRTree2@t@ *prtree2@t@,
+                               VsgPoint2@t@DistFunc distfunc);
+
+void
+vsg_prtree2@t@_set_point_dist_with_data (VsgPRTree2@t@ *prtree2@t@,
+                                         VsgPoint2@t@DistDataFunc distfunc,
+                                         gpointer distdata);
 
 void
 vsg_prtree2@t@_set_children_order_with_data (VsgPRTree2@t@ *prtree2@t@,
                                              VsgChildrenOrderDataFunc children_order,
                                              gpointer root_key,
                                              gpointer user_data);
+
 void
 vsg_prtree2@t@_set_children_order (VsgPRTree2@t@ *prtree2@t@,
                                    VsgChildrenOrderFunc children_order,
