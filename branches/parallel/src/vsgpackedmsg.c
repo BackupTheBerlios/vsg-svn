@@ -287,7 +287,7 @@ void vsg_packed_msg_free (VsgPackedMsg *pm)
 VsgSendChannel *vsg_send_channel_new (MPI_Comm comm, gint dst, gint tag,
                                       guint bsize)
 {
-  VsgSendChannel *ret = g_malloc (sizeof (VsgSendChannel));
+  VsgSendChannel *ret = g_malloc0 (sizeof (VsgSendChannel));
 
   vsg_send_channel_init (ret, comm, dst, tag, bsize);
 
