@@ -982,32 +982,59 @@
   (return-type "VsgPRTree3@t@*")
 )
 
-(define-method set_point_loc_marshall
+(define-method set_point_loc
   (of-object "VsgPRTree3@t@")
-  (c-name "vsg_prtree3@t@_set_point_loc_marshall")
+  (c-name "vsg_prtree3@t@_set_point_loc")
   (return-type "none")
   (parameters
-    '("VsgPoint3@t@LocMarshall" "marshall")
+    '("VsgPoint3@t@LocFunc" "locfunc")
+  )
+)
+
+(define-method set_point_loc_with_data
+  (of-object "VsgPRTree3@t@")
+  (c-name "vsg_prtree3@t@_set_point_loc_with_data")
+  (return-type "none")
+  (parameters
+    '("VsgPoint3@t@LocDataFunc" "locfunc")
     '("gpointer" "locdata")
   )
 )
 
-(define-method set_region_loc_marshall
+(define-method set_region_loc
   (of-object "VsgPRTree3@t@")
-  (c-name "vsg_prtree3@t@_set_region_loc_marshall")
+  (c-name "vsg_prtree3@t@_set_region_loc")
   (return-type "none")
   (parameters
-    '("VsgRegion3@t@LocMarshall" "marshall")
+    '("VsgRegion3@t@LocFunc" "locfunc")
+  )
+)
+
+(define-method set_region_loc_with_data
+  (of-object "VsgPRTree3@t@")
+  (c-name "vsg_prtree3@t@_set_region_loc_with_data")
+  (return-type "none")
+  (parameters
+    '("VsgRegion3@t@LocDataFunc" "locfunc")
     '("gpointer" "locdata")
   )
 )
 
-(define-method set_point_dist_marshall
+(define-method set_point_dist
   (of-object "VsgPRTree3@t@")
-  (c-name "vsg_prtree3@t@_set_point_dist_marshall")
+  (c-name "vsg_prtree3@t@_set_point_dist")
   (return-type "none")
   (parameters
-    '("VsgPoint3@t@DistMarshall" "marshall")
+    '("VsgPoint3@t@DistFunc" "distfunc")
+  )
+)
+
+(define-method set_point_dist_with_data
+  (of-object "VsgPRTree3@t@")
+  (c-name "vsg_prtree3@t@_set_point_dist_with_data")
+  (return-type "none")
+  (parameters
+    '("VsgPoint3@t@DistDataFunc" "distfunc")
     '("gpointer" "distdata")
   )
 )

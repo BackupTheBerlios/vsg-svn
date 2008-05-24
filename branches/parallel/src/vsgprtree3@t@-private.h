@@ -34,30 +34,18 @@ G_BEGIN_DECLS;
 #define VSG_LOC3_ALONG_Z(loc) ( VSG_LOC3_COMP (loc, VSG_LOC3_Z) )
 
 /* 
- * These macros are used to decide if we have to call a user defined marshaller
- * or directly the provided function. If we tried to write a dummy marshaller
- * for the provided function, we would loose performance on this case. Instead,
- * we rely on compiler efficiency in prefetching to minimize the overhead in
- * the direct case. The marshaller case may be slow down a little but it will
- * hopefully not be noticeable in its natural uses (language wrappers and
- * other special cases).
+ * Convenience macros.
  */
 #define CALL_POINT3@T@_LOC(config, one, other) ( \
-(G_UNLIKELY ((config)->point_loc_marshall != NULL)) ? \
-(config)->point_loc_marshall ((one), (other), (config)->point_loc_data) : \
-((VsgPoint3@t@LocFunc) (config)->point_loc_data) ((one), (other)) \
+(config)->point_loc_func ((one), (other), (config)->point_loc_data) \
 )
 
 #define CALL_REGION3@T@_LOC(config, one, other) ( \
-(G_UNLIKELY ((config)->region_loc_marshall != NULL)) ? \
-(config)->region_loc_marshall ((one), (other), (config)->region_loc_data) : \
-((VsgRegion3@t@LocFunc) (config)->region_loc_data) ((one), (other)) \
+(config)->region_loc_func ((one), (other), (config)->region_loc_data) \
 )
 
 #define CALL_POINT3@T@_DIST(config, one, other) ( \
-(G_UNLIKELY ((config)->point_dist_marshall != NULL)) ? \
-(config)->point_dist_marshall ((one), (other), (config)->point_dist_data) : \
-((VsgPoint3@t@DistFunc) (config)->point_dist_data) ((one), (other)) \
+(config)->point_dist_func ((one), (other), (config)->point_dist_data) \
 )
 
 /* forward typedefs */
@@ -126,14 +114,14 @@ PRTREE3@T@NODE_INT(node).children[i] \
 struct _VsgPRTree3@t@Config {
 
   /* localization methods */
-  VsgPoint3@t@LocMarshall point_loc_marshall;
+  VsgPoint3@t@LocDataFunc point_loc_func;
   gpointer point_loc_data;
 
-  VsgRegion3@t@LocMarshall region_loc_marshall;
+  VsgRegion3@t@LocDataFunc region_loc_func;
   gpointer region_loc_data;
 
   /* point distance func */
-  VsgPoint3@t@DistMarshall point_dist_marshall;
+  VsgPoint3@t@DistDataFunc point_dist_func;
   gpointer point_dist_data;
 
   /* config */

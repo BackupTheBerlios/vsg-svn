@@ -38,6 +38,26 @@
 @data: 
 @Returns: 
 
+<!-- ##### USER_FUNCTION VsgPoint3fDistMarshall ##### -->
+<para>
+
+</para>
+
+@one: 
+@other: 
+@data: 
+@Returns: 
+
+<!-- ##### USER_FUNCTION VsgPoint3fLocMarshall ##### -->
+<para>
+
+</para>
+
+@candidate: 
+@center: 
+@data: 
+@Returns: 
+
 <!-- ##### USER_FUNCTION VsgPrtree2dNodeFunc ##### -->
 <para>
 
@@ -85,6 +105,16 @@
 @Returns: 
 
 <!-- ##### USER_FUNCTION VsgRegion2fLocMarshall ##### -->
+<para>
+
+</para>
+
+@region: 
+@center: 
+@data: 
+@Returns: 
+
+<!-- ##### USER_FUNCTION VsgRegion3fLocMarshall ##### -->
 <para>
 
 </para>
@@ -369,6 +399,33 @@
 @func: 
 @user_data: 
 
+<!-- ##### FUNCTION vsg_prtree3d_set_point_dist_marshall ##### -->
+<para>
+
+</para>
+
+@prtree3d: 
+@marshall: 
+@distdata: 
+
+<!-- ##### FUNCTION vsg_prtree3d_set_point_loc_marshall ##### -->
+<para>
+
+</para>
+
+@prtree3d: 
+@marshall: 
+@locdata: 
+
+<!-- ##### FUNCTION vsg_prtree3d_set_region_loc_marshall ##### -->
+<para>
+
+</para>
+
+@prtree3d: 
+@marshall: 
+@locdata: 
+
 <!-- ##### FUNCTION vsg_prtree3f_foreach_node ##### -->
 <para>
 
@@ -377,6 +434,33 @@
 @prtree3f: 
 @func: 
 @user_data: 
+
+<!-- ##### FUNCTION vsg_prtree3f_set_point_dist_marshall ##### -->
+<para>
+
+</para>
+
+@prtree3f: 
+@marshall: 
+@distdata: 
+
+<!-- ##### FUNCTION vsg_prtree3f_set_point_loc_marshall ##### -->
+<para>
+
+</para>
+
+@prtree3f: 
+@marshall: 
+@locdata: 
+
+<!-- ##### FUNCTION vsg_prtree3f_set_region_loc_marshall ##### -->
+<para>
+
+</para>
+
+@prtree3f: 
+@marshall: 
+@locdata: 
 
 <!-- ##### FUNCTION vsg_prtrtee2d_get_tolerance ##### -->
 <para>
