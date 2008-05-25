@@ -200,7 +200,9 @@ VsgPRTree2@t@Node *_vsg_prtree2@t@node_get_child_at (VsgPRTree2@t@Node *node,
 
 void vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
                                               GTraverseType order,
+                                              VsgRegion2@t@LocDataFunc sel_func,
                                               VsgRegion2 selector,
+                                              gpointer sel_data,
                                               VsgPRTree2@t@InternalFunc func,
                                               gpointer user_data);
 

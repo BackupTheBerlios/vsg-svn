@@ -233,7 +233,7 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
 
   /* send the pending VsgPoint to their remote location */
 
-  vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL,
+  vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL, NULL, NULL,
                                            (VsgPRTree2@t@InternalFunc) _migrate_traverse_point_send,
                                            &md);
 
@@ -295,7 +295,7 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
       md.rk = rk;
       md.cb = cb;
 
-      vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL,
+      vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL, NULL, NULL,
                                                (VsgPRTree2@t@InternalFunc) _migrate_traverse_region_send,
                                                &md);
 
@@ -696,7 +696,7 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
 /*   g_printerr ("%d: before gather\n", rk); */
 
   /* gather all migration messages */
-  vsg_prtree2@t@_traverse_custom_internal (tree, G_POST_ORDER, NULL,
+  vsg_prtree2@t@_traverse_custom_internal (tree, G_POST_ORDER, NULL, NULL, NULL,
 					   (VsgPRTree2@t@InternalFunc)
 					   _traverse_distribute_nodes, &dd);
 
@@ -819,7 +819,7 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
 
   /* fix all remote nodes: remove remaining subtree and locally stored
    * regions */
-  vsg_prtree2@t@_traverse_custom_internal (tree, G_POST_ORDER, NULL,
+  vsg_prtree2@t@_traverse_custom_internal (tree, G_POST_ORDER, NULL, NULL, NULL,
 					   (VsgPRTree2@t@InternalFunc)
 					   _traverse_flatten_remote,
 					   &tree->config);

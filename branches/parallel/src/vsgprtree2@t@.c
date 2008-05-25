@@ -972,8 +972,7 @@ _prtree2@t@node_traverse_custom_internal (VsgPRTree2@t@Node *node,
   VsgPRTree2@t@NodeInfo node_info;
   guint8 i;
   vsgrloc2 ipow;
-  vsgrloc2 locmask = (selector == NULL) ? VSG_RLOC2_MASK :
-    CALL_REGION2@T@_LOC (config, selector, &node->center);
+  vsgrloc2 locmask = CALL_REGION2@T@_LOC (config, selector, &node->center);
 
   gint children[4];
   gpointer children_keys[4];
@@ -2158,9 +2157,19 @@ void vsg_prtree2@t@_traverse_custom (VsgPRTree2@t@ *prtree2@t@,
                                    prtree2@t@->config.root_key);
 }
 
+static vsgrloc2 _region_selector_null (const VsgRegion2 candidate,
+                                       const VsgVector2@t@ *center,
+                                       gpointer data)
+{
+  return VSG_RLOC2_MASK;
+}
+
+
 void vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
                                               GTraverseType order,
+                                              VsgRegion2@t@LocDataFunc sel_func,
                                               VsgRegion2 selector,
+                                              gpointer sel_data,
                                               VsgPRTree2@t@InternalFunc func,
                                               gpointer user_data)
 {
@@ -2170,10 +2179,25 @@ void vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
   g_return_if_fail (func != NULL);
 #endif
 
-  _prtree2@t@node_traverse_custom_internal (prtree2@t@->node, NULL,
-                                            order, selector, func,
-                                            user_data, &prtree2@t@->config,
-                                            prtree2@t@->config.root_key);
+  {
+    VsgPRTree2@t@Config conf = prtree2@t@->config;
+
+    if (sel_func != NULL)
+      {
+        conf.region_loc_func = sel_func;
+        conf.region_loc_data = sel_data;
+      }
+    else if (selector == NULL)
+      {
+        conf.region_loc_func = _region_selector_null;
+        conf.region_loc_data = NULL;
+      }
+
+    _prtree2@t@node_traverse_custom_internal (prtree2@t@->node, NULL,
+                                              order, selector, func,
+                                              user_data, &conf,
+                                              prtree2@t@->config.root_key);
+  }
 }
 
 GType vsg_prtree2@t@_node_info_get_type (void)
