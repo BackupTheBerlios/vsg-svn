@@ -192,7 +192,8 @@ vsg_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
 
 void _vsg_prtree2@t@node_get_info (VsgPRTree2@t@Node *node,
                                    VsgPRTree2@t@NodeInfo *node_info,
-                                   VsgPRTree2@t@NodeInfo *father_info);
+                                   VsgPRTree2@t@NodeInfo *father_info,
+                                   guint8 child_number);
 
 VsgPRTree2@t@Node *_vsg_prtree2@t@node_get_child_at (VsgPRTree2@t@Node *node,
                                                      const VsgVector2@t@ *pos,

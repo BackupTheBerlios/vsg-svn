@@ -24,6 +24,7 @@
 #include "vsgprtree2@t@-private.h"
 
 #include <string.h>
+#include <glib/gprintf.h>
 
 #define VSG_PRTREE2@T@_PREALLOC 32
 #define PRTREE2@T@NODE_PREALLOC 256
@@ -622,18 +623,21 @@ static void _wtabs (FILE *file, guint tab)
     }
 }
 
-static void _prtree2@t@node_write (const VsgPRTree2@t@Node *node, FILE *file,
-                                   guint tab)
+static void _prtree2@t@node_write (VsgPRTree2@t@Node *node,
+                                   VsgPRTree2@t@NodeInfo *node_info,
+                                   FILE *file)
 {
+  _wtabs (file, 2*node_info->depth);
+
   if (PRTREE2@T@NODE_IS_REMOTE (node))
     {
-      _wtabs (file, tab);
       fprintf (file,
-               "remote%d[(%@tcode@,%@tcode@) (%@tcode@,%@tcode@)]"
-               " point=%d region=%d\n",
+               "remote%d[(%@tcode@,%@tcode@) (%@tcode@,%@tcode@) id=(",
                node->parallel_status.proc,
                node->lbound.x, node->lbound.y,
-               node->ubound.x, node->ubound.y,
+               node->ubound.x, node->ubound.y);
+      vsg_prtreekey2@t@_write (&node_info->id, file);
+      fprintf (file, ")] point=%d region=%d\n",
                node->point_count,
                node->region_count);
 
@@ -642,36 +646,29 @@ static void _prtree2@t@node_write (const VsgPRTree2@t@Node *node, FILE *file,
 
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
-      _wtabs (file, tab);
       fprintf (file,
-               "leaf[(%@tcode@,%@tcode@) (%@tcode@,%@tcode@)]"
-               " point=%d region=%d\n",
+               "leaf[(%@tcode@,%@tcode@) (%@tcode@,%@tcode@) "
+               "id=(",
                node->lbound.x, node->lbound.y,
-               node->ubound.x, node->ubound.y,
+               node->ubound.x, node->ubound.y);
+      vsg_prtreekey2@t@_write (&node_info->id, file);
+      fprintf (file, ")] point=%d region=%d\n",
                node->point_count,
                node->region_count);
     }
   else
     {
-      vsgloc2 i;
-
-      _wtabs (file, tab);
       fprintf (file,
-               "int[(%@tcode@,%@tcode@) (%@tcode@,%@tcode@)]"
-               " point=%d region=%d {\n",
+               "int[(%@tcode@,%@tcode@) (%@tcode@,%@tcode@) "
+               "id=(",
                node->lbound.x, node->lbound.y,
-               node->ubound.x, node->ubound.y,
+               node->ubound.x, node->ubound.y);
+      vsg_prtreekey2@t@_write (&node_info->id, file);
+      fprintf (file, ")] point=%d region=%d local_region=%d depth=%u\n",
                node->point_count,
-               node->region_count);
-
-      for (i=0; i<4; i++)
-        {
-          _prtree2@t@node_write (PRTREE2@T@NODE_CHILD (node, i), file,
-                                 tab+1);
-        }
-      _wtabs (file, tab); fprintf (file, "} local region=%d depth=%u\n",
-                                   g_slist_length (node->region_list),
-                                   _prtree2@t@node_depth(node));
+               node->region_count,
+               g_slist_length (node->region_list),
+               _prtree2@t@node_depth (node));
     }
 }
 
@@ -962,6 +959,7 @@ static void _copy_region (VsgRegion2 *region, VsgPRTree2@t@ *tree)
 static void
 _prtree2@t@node_traverse_custom_internal (VsgPRTree2@t@Node *node,
                                           VsgPRTree2@t@NodeInfo *father_info,
+                                          vsgloc2 child_number,
                                           GTraverseType order,
                                           VsgRegion2 selector,
                                           VsgPRTree2@t@InternalFunc func,
@@ -977,7 +975,7 @@ _prtree2@t@node_traverse_custom_internal (VsgPRTree2@t@Node *node,
   gint children[4];
   gpointer children_keys[4];
 
-  _vsg_prtree2@t@node_get_info (node, &node_info, father_info);
+  _vsg_prtree2@t@node_get_info (node, &node_info, father_info, child_number);
 
   if (PRTREE2@T@NODE_IS_REMOTE (node))
     {
@@ -1001,8 +999,8 @@ _prtree2@t@node_traverse_custom_internal (VsgPRTree2@t@Node *node,
 
           if (ipow & locmask)
             _prtree2@t@node_traverse_custom_internal
-              (PRTREE2@T@NODE_CHILD(node, ic), &node_info, order, selector,
-               func, user_data, config, children_keys[i]);
+              (PRTREE2@T@NODE_CHILD(node, ic), &node_info, i,
+               order, selector, func, user_data, config, children_keys[i]);
 	}
     }
 
@@ -1019,8 +1017,8 @@ _prtree2@t@node_traverse_custom_internal (VsgPRTree2@t@Node *node,
 
           if (ipow & locmask)
             _prtree2@t@node_traverse_custom_internal
-              (PRTREE2@T@NODE_CHILD(node, ic), &node_info, order, selector,
-               func, user_data, config, children_keys[i]);
+              (PRTREE2@T@NODE_CHILD(node, ic), &node_info, i,
+               order, selector, func, user_data, config, children_keys[i]);
 	}
     }
 
@@ -1031,6 +1029,7 @@ _prtree2@t@node_traverse_custom_internal (VsgPRTree2@t@Node *node,
 static void
 _prtree2@t@node_traverse_custom (VsgPRTree2@t@Node *node,
                                  VsgPRTree2@t@NodeInfo *father_info,
+                                 vsgloc2 child_number,
                                  GTraverseType order,
                                  VsgRegion2 selector,
                                  VsgPRTree2@t@Func func,
@@ -1047,7 +1046,7 @@ _prtree2@t@node_traverse_custom (VsgPRTree2@t@Node *node,
   gint children[4];
   gpointer children_keys[4];
 
-  _vsg_prtree2@t@node_get_info (node, &node_info, father_info);
+  _vsg_prtree2@t@node_get_info (node, &node_info, father_info, child_number);
 
   if (PRTREE2@T@NODE_IS_REMOTE (node))
     {
@@ -1071,7 +1070,7 @@ _prtree2@t@node_traverse_custom (VsgPRTree2@t@Node *node,
 
           if (ipow & locmask)
             _prtree2@t@node_traverse_custom (PRTREE2@T@NODE_CHILD(node, ic),
-                                             &node_info,
+                                             &node_info, i,
                                              order, selector, func, user_data,
                                              config, children_keys[i]);
 	}
@@ -1090,7 +1089,7 @@ _prtree2@t@node_traverse_custom (VsgPRTree2@t@Node *node,
 
           if (ipow & locmask)
             _prtree2@t@node_traverse_custom (PRTREE2@T@NODE_CHILD(node, ic),
-                                             &node_info,
+                                             &node_info, i,
                                              order, selector, func, user_data,
                                              config, children_keys[i]);
 	}
@@ -1853,14 +1852,17 @@ gboolean vsg_prtree2@t@_remove_point (VsgPRTree2@t@ *prtree2@t@,
  * 
  * Writes a summary of @prtree2@t@ in @file. Mainly used for debugging.
  */
-void vsg_prtree2@t@_write (const VsgPRTree2@t@ *prtree2@t@, FILE *file)
+void vsg_prtree2@t@_write (VsgPRTree2@t@ *prtree2@t@, FILE *file)
 {
 #ifdef VSG_CHECK_PARAMS
   g_return_if_fail (prtree2@t@ != NULL);
   g_return_if_fail (file != NULL);
 #endif
 
-  _prtree2@t@node_write (prtree2@t@->node, file, 0);
+  vsg_prtree2@t@_traverse_custom_internal (prtree2@t@, G_PRE_ORDER, NULL,
+                                           NULL, NULL,
+                                           (VsgPRTree2@t@InternalFunc) _prtree2@t@node_write,
+                                           file);
 }
 
 /**
@@ -1869,7 +1871,7 @@ void vsg_prtree2@t@_write (const VsgPRTree2@t@ *prtree2@t@, FILE *file)
  *
  * Prints a summary of @prtree2@t@ on standard output. Mainly used for debugging.
  */
-void vsg_prtree2@t@_print (const VsgPRTree2@t@ *prtree2@t@)
+void vsg_prtree2@t@_print (VsgPRTree2@t@ *prtree2@t@)
 {
   vsg_prtree2@t@_write (prtree2@t@, stdout);
 }
@@ -2151,7 +2153,7 @@ void vsg_prtree2@t@_traverse_custom (VsgPRTree2@t@ *prtree2@t@,
   g_return_if_fail (func != NULL);
 #endif
 
-  _prtree2@t@node_traverse_custom (prtree2@t@->node, NULL,
+  _prtree2@t@node_traverse_custom (prtree2@t@->node, NULL, 0,
                                    order, selector, func,
                                    user_data, &prtree2@t@->config,
                                    prtree2@t@->config.root_key);
@@ -2193,7 +2195,7 @@ void vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
         conf.region_loc_data = NULL;
       }
 
-    _prtree2@t@node_traverse_custom_internal (prtree2@t@->node, NULL,
+    _prtree2@t@node_traverse_custom_internal (prtree2@t@->node, NULL, 0,
                                               order, selector, func,
                                               user_data, &conf,
                                               prtree2@t@->config.root_key);

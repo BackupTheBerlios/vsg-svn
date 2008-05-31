@@ -29,6 +29,8 @@
 
 #include <vsg/vsgprtree2-common.h>
 
+#include <vsg/vsgprtreekey2@t@.h>
+
 G_BEGIN_DECLS;
 
 /* macros */
@@ -103,8 +105,9 @@ struct _VsgPRTree2@t@NodeInfo {
 
   gboolean isleaf;
 
-  VsgParallelStatus parallel_status;
+  VsgPRTreeKey2@t@ id;
 
+  VsgParallelStatus parallel_status;
 };
 
 /* functions */
@@ -202,9 +205,9 @@ void vsg_prtree2@t@_insert_region (VsgPRTree2@t@ *prtree2@t@,
 gboolean vsg_prtree2@t@_remove_region (VsgPRTree2@t@ *prtree2@t@,
 				       VsgRegion2 region);
 
-void vsg_prtree2@t@_write (const VsgPRTree2@t@ *prtree2@t@,
+void vsg_prtree2@t@_write (VsgPRTree2@t@ *prtree2@t@,
                            FILE *file);
-void vsg_prtree2@t@_print (const VsgPRTree2@t@ *prtree2@t@);
+void vsg_prtree2@t@_print (VsgPRTree2@t@ *prtree2@t@);
 
 VsgPoint2 vsg_prtree2@t@_find_point (VsgPRTree2@t@ *prtree2@t@,
                                      VsgPoint2 selector);

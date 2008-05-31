@@ -457,11 +457,9 @@ VsgRegion3dLocFunc
 
 VsgPoint3dDistFunc
 
-VsgPoint3dLocDataFunc
-
-VsgRegion3dLocDataFunc
-
-VsgPoint3dDistDataFunc
+VsgPoint3dLocMarshall
+VsgRegion3dLocMarshall
+VsgPoint3dDistMarshall
 
 VsgPRTree3dFunc
 VsgPRTree3dFarInteractionFunc
@@ -471,12 +469,9 @@ vsg_prtree3d_new_full
 vsg_prtree3d_new
 vsg_prtree3d_free
 vsg_prtree3d_clone
-vsg_prtree3d_set_point_loc
-vsg_prtree3d_set_point_loc_with_data
-vsg_prtree3d_set_region_loc
-vsg_prtree3d_set_region_loc_with_data
-vsg_prtree3d_set_point_dist
-vsg_prtree3d_set_point_dist_with_data
+vsg_prtree3d_set_point_loc_marshall
+vsg_prtree3d_set_region_loc_marshall
+vsg_prtree3d_set_point_dist_marshall
 vsg_prtree3d_set_children_order_with_data
 vsg_prtree3d_set_children_order
 vsg_prtree3d_get_tolerance
@@ -523,9 +518,9 @@ VsgRegion3fLocFunc
 
 VsgPoint3fDistFunc
 
-VsgPoint3fLocDataFunc
-VsgRegion3fLocDataFunc
-VsgPoint3fDistDataFunc
+VsgPoint3fLocMarshall
+VsgRegion3fLocMarshall
+VsgPoint3fDistMarshall
 
 VsgPRTree3fFunc
 VsgPRTree3fFarInteractionFunc
@@ -535,12 +530,9 @@ vsg_prtree3f_new_full
 vsg_prtree3f_new
 vsg_prtree3f_free
 vsg_prtree3f_clone
-vsg_prtree3f_set_point_loc
-vsg_prtree3f_set_point_loc_with_data
-vsg_prtree3f_set_region_loc
-vsg_prtree3f_set_region_loc_with_data
-vsg_prtree3f_set_point_dist
-vsg_prtree3f_set_point_dist_with_data
+vsg_prtree3f_set_point_loc_marshall
+vsg_prtree3f_set_region_loc_marshall
+vsg_prtree3f_set_point_dist_marshall
 vsg_prtree3f_set_children_order_with_data
 vsg_prtree3f_set_children_order
 vsg_prtree3f_get_tolerance

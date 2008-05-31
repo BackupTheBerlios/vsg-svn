@@ -9,11 +9,13 @@ libvsg_common_noinst_headers = vsgprtree-parallel.h
 
 libvsgd_la_built_headers = vsgmatrix3d.h vsgmatrix4d.h vsgquaterniond.h \
 vsgvector2d.h vsgvector3d.h vsgprtree2d.h vsgprtree3d.h \
-vsgprtree2d-extras.h vsgprtree3d-extras.h vsgd.h vsgprtree2d-parallel.h
+vsgprtree2d-extras.h vsgprtree3d-extras.h vsgd.h vsgprtree2d-parallel.h \
+vsgprtreekey2d.h
 
 libvsgd_la_built_sources = vsgmatrix3d.c vsgmatrix4d.c vsgquaterniond.c \
 vsgvector2d.c vsgvector3d.c vsgprtree2d.c vsgprtree3d.c \
-vsgprtree2d-extras.c vsgprtree3d-extras.c vsgd.c vsgprtree2d-parallel.c
+vsgprtree2d-extras.c vsgprtree3d-extras.c vsgd.c vsgprtree2d-parallel.c \
+vsgprtreekey2d.c
 
 libvsgd_built_noinst_headers = vsgprtree2d-private.h vsgprtree3d-private.h
 
@@ -21,11 +23,13 @@ libvsgd_built_noinst_headers = vsgprtree2d-private.h vsgprtree3d-private.h
 
 libvsgf_la_built_headers = vsgmatrix3f.h vsgmatrix4f.h vsgquaternionf.h \
 vsgvector2f.h vsgvector3f.h vsgprtree2f.h vsgprtree3f.h \
-vsgprtree2f-extras.h vsgprtree3f-extras.h vsgf.h vsgprtree2f-parallel.h
+vsgprtree2f-extras.h vsgprtree3f-extras.h vsgf.h vsgprtree2f-parallel.h \
+vsgprtreekey2f.h
 
 libvsgf_la_built_sources = vsgmatrix3f.c vsgmatrix4f.c vsgquaternionf.c \
 vsgvector2f.c vsgvector3f.c vsgprtree2f.c vsgprtree3f.c \
-vsgprtree2f-extras.c vsgprtree3f-extras.c vsgf.c vsgprtree2f-parallel.c
+vsgprtree2f-extras.c vsgprtree3f-extras.c vsgf.c vsgprtree2f-parallel.c \
+vsgprtreekey2f.c
 
 libvsgf_built_noinst_headers = vsgprtree2f-private.h vsgprtree3f-private.h
 
@@ -38,11 +42,13 @@ libvsg_la_sources = vsg.c vsgcommbuffer.c vsgpackedmsg.c
 
 template_headers = vsgmatrix3@t@.h vsgmatrix4@t@.h vsgquaternion@t@.h \
 vsgvector2@t@.h vsgvector3@t@.h vsgprtree2@t@.h vsgprtree3@t@.h \
-vsgprtree2@t@-extras.h vsgprtree3@t@-extras.h vsg@t@.h vsgprtree2@t@-parallel.h
+vsgprtree2@t@-extras.h vsgprtree3@t@-extras.h vsg@t@.h \
+vsgprtree2@t@-parallel.h vsgprtreekey2@t@.h
 
 template_sources = vsgmatrix3@t@.c vsgmatrix4@t@.c vsgquaternion@t@.c \
 vsgvector2@t@.c vsgvector3@t@.c vsgprtree2@t@.c vsgprtree3@t@.c \
-vsgprtree2@t@-extras.c vsgprtree3@t@-extras.c vsg@t@.c vsgprtree2@t@-parallel.c
+vsgprtree2@t@-extras.c vsgprtree3@t@-extras.c vsg@t@.c \
+vsgprtree2@t@-parallel.c vsgprtreekey2@t@.c
 
 template_noinst_headers = vsgprtree2@t@-private.h vsgprtree3@t@-private.h
 

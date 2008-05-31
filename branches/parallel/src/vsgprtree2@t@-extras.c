@@ -92,8 +92,11 @@ static guint8 n11[4][4] = {
 
 void _vsg_prtree2@t@node_get_info (VsgPRTree2@t@Node *node,
                                    VsgPRTree2@t@NodeInfo *node_info,
-                                   VsgPRTree2@t@NodeInfo *father_info)
+                                   VsgPRTree2@t@NodeInfo *father_info,
+                                   guint8 child_number)
 {
+  VsgPRTreeKey2@t@ *father_id;
+
   vsg_vector2@t@_copy (&node->lbound, &node_info->lbound);
   vsg_vector2@t@_copy (&node->ubound, &node_info->ubound);
   vsg_vector2@t@_copy (&node->center, &node_info->center);
@@ -120,6 +123,11 @@ void _vsg_prtree2@t@node_get_info (VsgPRTree2@t@Node *node,
   else node_info->depth = father_info->depth + 1;
 
   node_info->user_data = node->user_data;
+
+  if (father_info == NULL) father_id = NULL;
+  else father_id = &father_info->id;
+
+  vsg_prtree_key2@t@_build_child (father_id, child_number, &node_info->id);
 
   node_info->parallel_status = node->parallel_status;
 }
@@ -155,8 +163,8 @@ static void recursive_near_func (VsgPRTree2@t@Node *one,
         {
           VsgPRTree2@t@Node *one_child = PRTREE2@T@NODE_CHILD(one, i);
           VsgPRTree2@t@NodeInfo one_child_info;
-          _vsg_prtree2@t@node_get_info (one_child, &one_child_info,
-                                        one_info);
+          _vsg_prtree2@t@node_get_info (one_child, &one_child_info, one_info,
+                                        i);
 
           recursive_near_func (one_child, &one_child_info, other, other_info,
                                near_func, user_data);
@@ -169,7 +177,7 @@ static void recursive_near_func (VsgPRTree2@t@Node *one,
           VsgPRTree2@t@Node *other_child = PRTREE2@T@NODE_CHILD(other, i);
           VsgPRTree2@t@NodeInfo other_child_info;
           _vsg_prtree2@t@node_get_info (other_child, &other_child_info,
-                                        other_info);
+                                        other_info, i);
 
           recursive_near_func (one, one_info, other_child, &other_child_info,
                                near_func, user_data);
@@ -214,7 +222,7 @@ _sub_neighborhood_near_far_traversal (VsgPRTree2@t@Node *one,
           VsgPRTree2@t@Node *one_child = PRTREE2@T@NODE_CHILD(one, i);
           VsgPRTree2@t@NodeInfo one_child_info;
           _vsg_prtree2@t@node_get_info (one_child, &one_child_info,
-                                        one_info);
+                                        one_info, i);
 
           si = sym[i];
 
@@ -228,7 +236,7 @@ _sub_neighborhood_near_far_traversal (VsgPRTree2@t@Node *one,
 
               _vsg_prtree2@t@node_get_info (other_child,
                                             &other_child_info,
-                                            other_info);
+                                            other_info, j);
 
               sj = sym[j];
 
@@ -285,6 +293,7 @@ _sub_neighborhood_near_far_traversal (VsgPRTree2@t@Node *one,
 static void
 vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@Node *node,
                                        VsgPRTree2@t@NodeInfo *father_info,
+                                       vsgloc2 child_number,
                                        VsgPRTree2@t@FarInteractionFunc far_func,
                                        VsgPRTree2@t@InteractionFunc near_func,
                                        gpointer user_data)
@@ -292,7 +301,7 @@ vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@Node *node,
   vsgloc2 i,j;
   VsgPRTree2@t@NodeInfo node_info;
 
-  _vsg_prtree2@t@node_get_info (node, &node_info, father_info);
+  _vsg_prtree2@t@node_get_info (node, &node_info, father_info, child_number);
 
   if (node->point_count==0) return;
 
@@ -312,7 +321,7 @@ vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@Node *node,
           VsgPRTree2@t@Node *one_child = PRTREE2@T@NODE_CHILD(node, i);
           VsgPRTree2@t@NodeInfo one_child_info;
           _vsg_prtree2@t@node_get_info (one_child, &one_child_info,
-                                        &node_info);
+                                        &node_info, i);
           for (j=i+1; j<4; j++)
             {
               VsgPRTree2@t@Node *other_child =
@@ -325,7 +334,7 @@ vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@Node *node,
 
               _vsg_prtree2@t@node_get_info (other_child,
                                             &other_child_info,
-                                            &node_info);
+                                            &node_info, j);
 
 	      _sub_neighborhood_near_far_traversal (one_child,
 						    &one_child_info,
@@ -340,7 +349,7 @@ vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@Node *node,
       /* interactions in node's children descendants */
       for (i=0; i<4; i++)
         vsg_prtree2@t@node_near_far_traversal (PRTREE2@T@NODE_CHILD(node, i),
-                                               &node_info,
+                                               &node_info, i,
                                                far_func, near_func,
                                                user_data);
     }
@@ -441,7 +450,7 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
 #endif
 
   vsg_prtree2@t@node_near_far_traversal (prtree2@t@->node,
-                                         NULL,
+                                         NULL, 0,
                                          far_func, near_func,
                                          user_data);
  
