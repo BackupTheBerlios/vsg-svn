@@ -24,8 +24,8 @@ struct _BitMaskData {
 static guint8 _bitmasks_number = 0;
 static BitMaskData *_bitmasks = NULL;
 
-/* list of immediately greater than a bits number power of 2 */
-static guint8 _greater_power_of_2[KEY_BITS+1];
+/* list of number of sieves for any  */
+static guint8 _number_of_sieves[KEY_BITS+1];
 
 static inline void _set_bitmasks ()
 {
@@ -43,20 +43,20 @@ static inline void _set_bitmasks ()
         {
           ks >>= 1; /* ks = 1 << i */
           mask ^= (mask << ks);
-          _bitmasks[i].mask = mask;
-          _bitmasks[i].base = ks;
-/*           g_printerr ("offset=%u mask num=%u mask=%#@kmod@x\n", */
-/*                       ks, i, mask); */
+          _bitmasks[i].mask = ~ mask;
+          _bitmasks[i].base = 1 << (i);
+/*           g_printerr ("num=%u offset=%u mask mask=%#@kmod@x\n", */
+/*                       i, _bitmasks[i].base, _bitmasks[i].mask); */
         }
 
-      _greater_power_of_2[0] = 0;
-      _greater_power_of_2[1] = 0;
+      _number_of_sieves[0] = 0;
+      _number_of_sieves[1] = 0;
       for (i=0; i<_bitmasks_number; i++)
         {
-          for (j=_bitmasks[i].base+1; j<=2*_bitmasks[i].base; j ++)
+          for (j=_bitmasks[i].base/2+1; j<=_bitmasks[i].base; j ++)
             {
-              _greater_power_of_2[j] = i+1;
-/*               g_printerr ("powers %d %d\n", j,  _greater_power_of_2[j]); */
+              _number_of_sieves[j] = i+1;
+/*               g_printerr ("powers %d %d\n", j,  _number_of_sieves[j]); */
             }
         }
    }
@@ -68,35 +68,59 @@ void vsg_prtreekey2@t@_write (VsgPRTreeKey2@t@ *key, FILE *file)
              key->x, key->y, key->depth);
 }
 
-static guint8 _single_key_first_true_bit (@key_type@ one, guint8 maxdepth)
+static void _key_scale_up (VsgPRTreeKey2@t@ *key, guint8 offset,
+                        VsgPRTreeKey2@t@ *result)
 {
-  gint8 i, ret = 0;
+  result->x = key->x << offset;
+  result->y = key->y << offset;
+  result->depth = key->depth + offset;
+}
+
+static guint8 _single_key_first_true_bit (@key_type@ key, guint8 maxdepth)
+{
+  gint8 sieves_number;
+  gint8 i, ret;
 
   _set_bitmasks ();
 
-/*   for (i=0; i<_bitmasks_number && _bitmasks[i].base<maxdepth; i++) */
-/*   for (i=_bitmasks_number-1; i >= 0; i--) */
-    for (i=_greater_power_of_2[maxdepth]-1; i >= 0; i--)
+  if (!key) return 0;
+
+  sieves_number = _number_of_sieves[maxdepth]-1;
+  ret = INDEX_MASK (sieves_number);
+
+  for (i=sieves_number; i >= 0; i--)
     {
-      @key_type@ masked = one & _bitmasks[i].mask;
-      if (!masked) ret += _bitmasks[i].base;
-      else one = masked;
-/*       g_printerr ("%d, %#@kmod@x, %#@kmod@x, %#@kmod@x, %u\n", i, _bitmasks[i].mask, one, masked, ret); */
+      @key_type@ masked = key & _bitmasks[i].mask;
+      if (!masked) ret -= _bitmasks[i].base;
+      else key = masked;
+/*       g_printerr ("%d, %#@kmod@x, %#@kmod@x, %#@kmod@x, %u\n", i, _bitmasks[i].mask, key, masked, ret); */
 /*       g_printerr ("%d, %u %u\n", i, _bitmasks[i].base, maxdepth); */
     }
 
-/*   g_printerr ("size:%d\n", sizeof (@key_type@)); */
-
-  return ret;
+  return ret + 1;
 }
 
 void vsg_prtree_key2@t@_xor (VsgPRTreeKey2@t@ *one,
                              VsgPRTreeKey2@t@ *other,
                              VsgPRTreeKey2@t@ *result)
 {
-  result->x = one->x ^ other->x;
-  result->y = one->y ^ other->y;
-  result->depth = MAX (one->depth, other->depth);
+
+  guint8 d;
+
+  if (one->depth >= other->depth)
+    {
+      d = one->depth - other->depth;
+      result->x = one->x ^ (other->x << d);
+      result->y = one->y ^ (other->y << d);
+      result->depth = one->depth;
+    }
+  else
+    {
+      d = other->depth - one->depth;
+      result->x = (one->x << d) ^ other->x;
+      result->y = (one->y << d) ^ other->y;
+      result->depth = other->depth;
+    }
 }
 
 static guint8
@@ -111,7 +135,7 @@ vsg_prtree_key2@t@_first_different_index_internal (VsgPRTreeKey2@t@ *one,
   x = _single_key_first_true_bit (xor->x, xor->depth);
   y = _single_key_first_true_bit (xor->y, xor->depth);
 
-  return MIN (x, y);
+  return MAX (x, y);
 }
 
 guint8 vsg_prtree_key2@t@_first_different_index (VsgPRTreeKey2@t@ *one,
@@ -126,23 +150,17 @@ void vsg_prtree_key2@t@_deepest_common_ancestor (VsgPRTreeKey2@t@ *one,
                                                  VsgPRTreeKey2@t@ *other,
                                                  VsgPRTreeKey2@t@ *result)
 {
-  guint8 index = vsg_prtree_key2@t@_first_different_index (one, other);
+  VsgPRTreeKey2@t@ *max = one;
+  guint8 index;
 
-  if (index > MIN (one->depth, other->depth))
-    {
-      memcpy (result, one, sizeof (VsgPRTreeKey2@t@));
+  if (one->depth < other->depth) max = other;
 
-      result->depth = MIN (one->depth, other->depth);
-    }
-  else
-    {
-      @key_type@ mask = INDEX_MASK (index-1);
+  index = vsg_prtree_key2@t@_first_different_index (one, other);
 
-      result->x = one->x & mask;
-      result->y = one->y & mask;
+  result->x = max->x >> index;
+  result->y = max->y >> index;
 
-      result->depth = index;
-    }
+  result->depth = max->depth - index;
 }
 
 void vsg_prtree_key2@t@_build_child (VsgPRTreeKey2@t@ *father,
@@ -157,10 +175,9 @@ void vsg_prtree_key2@t@_build_child (VsgPRTreeKey2@t@ *father,
     }
   else
     {
-      result->x = father->x |
-        ((child_num & VSG_LOC2_X)<<father->depth);
-      result->y = father->y |
-        (((child_num & VSG_LOC2_Y)>>1)<<father->depth);
+      result->x = (father->x << 1) | (child_num & VSG_LOC2_X);
+      result->y = (father->y << 1) | ((child_num & VSG_LOC2_Y)>>1);
+
       result->depth = father->depth+1;
     }
 }
@@ -168,24 +185,24 @@ void vsg_prtree_key2@t@_build_child (VsgPRTreeKey2@t@ *father,
 vsgloc2 vsg_prtree_key2@t@_loc2 (VsgPRTreeKey2@t@ *key,
                                  VsgPRTreeKey2@t@ *center)
 {
+  VsgPRTreeKey2@t@ tmp;
+  VsgPRTreeKey2@t@ *k = key;
+  VsgPRTreeKey2@t@ *c = center;
   vsgloc2 loc = 0;
-  VsgPRTreeKey2@t@ xor;
-  @key_type@ x, y;
-  guint8 xi, yi;
 
-  vsg_prtree_key2@t@_xor (key, center, &xor);
+  if (k->depth > c->depth)
+    {
+      _key_scale_up (c, k->depth - c->depth, &tmp);
+      c = &tmp;
+    }
+  else if (k->depth < c->depth)
+    {
+      _key_scale_up (k, c->depth - k->depth, &tmp);
+      k = &tmp;
+    }
 
-  xi = _single_key_first_true_bit (xor.x, xor.depth);
-  yi = _single_key_first_true_bit (xor.y, xor.depth);
-
-
-  x = key->x >> (xi);
-  y = key->y >> (yi);
-
-/*   g_printerr ("%#@kmod@x, %#@kmod@x\n", x, y); */
-
-  if (x & 1) loc |= VSG_LOC2_X;
-  if (y & 1) loc |= VSG_LOC2_Y;
+  if (k->x > c->x) loc |= VSG_LOC2_X;
+  if (k->y > c->y) loc |= VSG_LOC2_Y;
 
   return loc;
 }
