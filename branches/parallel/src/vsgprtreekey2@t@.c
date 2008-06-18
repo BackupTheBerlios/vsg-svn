@@ -275,3 +275,42 @@ vsgloc2 vsg_prtree_key2@t@_loc2 (VsgPRTreeKey2@t@ *key,
 
   return loc;
 }
+
+/**
+ * vsg_prtree_key2@t@_distance:
+ * @one : a VsgPRTreeKey2@t@.
+ * @other : a VsgPRTreeKey2@t@.
+ *
+ * Computes the maximum distance (on both x and y coordinates) between two
+ * keys @one and other. The result is set in the scale of the shallowest key.
+ * For example if @one is shallower than @other and
+ * vsg_prtree_key2@t@_distance() returns "d", the two nodes are separated by "d"
+ * nodes of the level of @one in one direction in a tree.
+ *
+ * Returns: the distance between @one and @other.
+ */
+@key_type@ vsg_prtree_key2@t@_distance (VsgPRTreeKey2@t@ *one,
+                                        VsgPRTreeKey2@t@ *other)
+{
+  VsgPRTreeKey2@t@ tmp;
+  @key_type@ dx, dy;
+
+  if (one->depth < other->depth)
+    {
+      _key_scale_down (other, other->depth - one->depth, &tmp);
+      other = &tmp;
+    }
+  else if (one->depth > other->depth)
+    {
+      _key_scale_down (one, one->depth - other->depth, &tmp);
+      one = &tmp;
+    }
+
+  if (one->x < other->x) dx = other->x - one->x;
+  else dx = one->x - other->x;
+
+  if (one->y < other->y) dy = other->y - one->y;
+  else dy = one->y - other->y;
+
+  return MAX (dx, dy);
+}

@@ -59,7 +59,8 @@ void vsg_prtree_key2@t@_build_child (VsgPRTreeKey2@t@ *ancestor,
 vsgloc2 vsg_prtree_key2@t@_loc2 (VsgPRTreeKey2@t@ *key,
                                  VsgPRTreeKey2@t@ *center);
 
-
+@key_type@ vsg_prtree_key2@t@_distance (VsgPRTreeKey2@t@ *one,
+                                        VsgPRTreeKey2@t@ *other);
 
 G_END_DECLS;
 
