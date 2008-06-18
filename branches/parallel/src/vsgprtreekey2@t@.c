@@ -4,6 +4,16 @@
 
 #include <glib/gprintf.h>
 
+/**
+ * VsgPRTreeKey2@t@:
+ * @x : A @key_type@ for storing x binary coordinate
+ * @y : A @key_type@ for storing y binary coordinate
+ * @depth : the depth of the key. It's the number of bits to take in account
+ * for @x and @y.
+ *
+ * A structure for manupilating VsgPRTree2@t@ nodes coordinates.
+ */
+
 /* number of bytes in a key */
 #define KEY_SIZE (sizeof (@key_type@))
 /* number of bits in a key */
@@ -62,18 +72,20 @@ static inline void _set_bitmasks ()
    }
 }
 
-void vsg_prtreekey2@t@_write (VsgPRTreeKey2@t@ *key, FILE *file)
-{
-  g_fprintf (file, "x=%#@kmod@x, y=%#@kmod@x, d=%d",
-             key->x, key->y, key->depth);
-}
-
 static void _key_scale_up (VsgPRTreeKey2@t@ *key, guint8 offset,
                         VsgPRTreeKey2@t@ *result)
 {
   result->x = key->x << offset;
   result->y = key->y << offset;
   result->depth = key->depth + offset;
+}
+
+static void _key_scale_down (VsgPRTreeKey2@t@ *key, guint8 offset,
+                             VsgPRTreeKey2@t@ *result)
+{
+  result->x = key->x >> offset;
+  result->y = key->y >> offset;
+  result->depth = (guint8) MAX (0, ((gint8) key->depth) - offset);
 }
 
 static guint8 _single_key_first_true_bit (@key_type@ key, guint8 maxdepth)
@@ -100,6 +112,28 @@ static guint8 _single_key_first_true_bit (@key_type@ key, guint8 maxdepth)
   return ret + 1;
 }
 
+/**
+ * vsg_prtreekey2@t@_write:
+ * @key : the VsgPRTreeKey2@t@ to write.
+ * @file : the file to write to.
+ *
+ * Displays @key into @file.
+ */
+void vsg_prtreekey2@t@_write (VsgPRTreeKey2@t@ *key, FILE *file)
+{
+  g_fprintf (file, "x=%#@kmod@x, y=%#@kmod@x, d=%d",
+             key->x, key->y, key->depth);
+}
+
+/**
+ * vsg_prtree_key2@t@_xor:
+ * @one : a VsgPRTreeKey2@t@.
+ * @other : a VsgPRTreeKey2@t@.
+ * @result : resulting VsgPRTreeKey2@t@.
+ *
+ * Computes bitwise (@one XOR @other) and stores the result into @result.
+ * Argument aliasing is allowed.
+ */
 void vsg_prtree_key2@t@_xor (VsgPRTreeKey2@t@ *one,
                              VsgPRTreeKey2@t@ *other,
                              VsgPRTreeKey2@t@ *result)
@@ -138,6 +172,16 @@ vsg_prtree_key2@t@_first_different_index_internal (VsgPRTreeKey2@t@ *one,
   return MAX (x, y);
 }
 
+/**
+ * vsg_prtree_key2@t@_first_different_index:
+ * @one : a VsgPRTreeKey2@t@.
+ * @other : a VsgPRTreeKey2@t@.
+ *
+ * Computes the index of the more significant different bit between @one and
+ * @other). 
+ *
+ * Returns: 1 + index of the heavier different bit. 0 means identical keys
+ */
 guint8 vsg_prtree_key2@t@_first_different_index (VsgPRTreeKey2@t@ *one,
                                                  VsgPRTreeKey2@t@ *other)
 {
@@ -146,6 +190,15 @@ guint8 vsg_prtree_key2@t@_first_different_index (VsgPRTreeKey2@t@ *one,
   return vsg_prtree_key2@t@_first_different_index_internal (one, other, &xor);
 }
 
+/**
+ * vsg_prtree_key2@t@_deepest_common_ancestor:
+ * @one : a VsgPRTreeKey2@t@.
+ * @other : a VsgPRTreeKey2@t@.
+ * @result : resulting VsgPRTreeKey2@t@.
+ *
+ * Computes the longest VsgPRTreeKey2@t@ that can be considered as an
+ * ancestor of both @one and @other.
+ */
 void vsg_prtree_key2@t@_deepest_common_ancestor (VsgPRTreeKey2@t@ *one,
                                                  VsgPRTreeKey2@t@ *other,
                                                  VsgPRTreeKey2@t@ *result)
@@ -163,6 +216,14 @@ void vsg_prtree_key2@t@_deepest_common_ancestor (VsgPRTreeKey2@t@ *one,
   result->depth = max->depth - index;
 }
 
+/**
+ * vsg_prtree_key2@t@_build_child:
+ * @father : resulting VsgPRTreeKey2@t@.
+ * @child_num : a vsgloc2.
+ * @result : resulting VsgPRTreeKey2@t@.
+ *
+ * Builds a new key from @father and the child number @child_num.
+ */
 void vsg_prtree_key2@t@_build_child (VsgPRTreeKey2@t@ *father,
                                      vsgloc2 child_num,
                                      VsgPRTreeKey2@t@ *result)
@@ -182,27 +243,35 @@ void vsg_prtree_key2@t@_build_child (VsgPRTreeKey2@t@ *father,
     }
 }
 
+/**
+ * vsg_prtree_key2@t@_loc2:
+ * @key : a VsgPRTreeKey2@t@.
+ * @center : a VsgPRTreeKey2@t@.
+ *
+ * Computes the localization index of @key from the point of view of
+ * @center.
+ *
+ * Returns: the vsgloc2 of the position og @key.
+ */
 vsgloc2 vsg_prtree_key2@t@_loc2 (VsgPRTreeKey2@t@ *key,
                                  VsgPRTreeKey2@t@ *center)
 {
   VsgPRTreeKey2@t@ tmp;
-  VsgPRTreeKey2@t@ *k = key;
-  VsgPRTreeKey2@t@ *c = center;
   vsgloc2 loc = 0;
 
-  if (k->depth > c->depth)
+  if (key->depth > center->depth)
     {
-      _key_scale_up (c, k->depth - c->depth, &tmp);
-      c = &tmp;
+      _key_scale_up (center, key->depth - center->depth, &tmp);
+      center = &tmp;
     }
-  else if (k->depth < c->depth)
+  else if (key->depth < center->depth)
     {
-      _key_scale_up (k, c->depth - k->depth, &tmp);
-      k = &tmp;
+      _key_scale_up (key, center->depth - key->depth, &tmp);
+      key = &tmp;
     }
 
-  if (k->x > c->x) loc |= VSG_LOC2_X;
-  if (k->y > c->y) loc |= VSG_LOC2_Y;
+  if (key->x > center->x) loc |= VSG_LOC2_X;
+  if (key->y > center->y) loc |= VSG_LOC2_Y;
 
   return loc;
 }
