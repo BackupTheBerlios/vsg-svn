@@ -121,8 +121,18 @@ static guint8 _single_key_first_true_bit (@key_type@ key, guint8 maxdepth)
  */
 void vsg_prtree_key2@t@_write (VsgPRTreeKey2@t@ *key, FILE *file)
 {
-  g_fprintf (file, "x=%#@kmod@x, y=%#@kmod@x, d=%d",
-             key->x, key->y, key->depth);
+  if (key->depth == 0)
+    {
+      g_fprintf (file, "x=0x0, y=0x0, d=0");
+    }
+  else
+    {
+      @key_type@ x = key->x & INDEX_MASK (key->depth-1);
+      @key_type@ y = key->y & INDEX_MASK (key->depth-1);
+
+      g_fprintf (file, "x=%#@kmod@x, y=%#@kmod@x, d=%d",
+                 x, y, key->depth);
+    }
 }
 
 /**
