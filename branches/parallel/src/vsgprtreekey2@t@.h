@@ -66,6 +66,8 @@ vsgloc2 vsg_prtree_key2@t@_loc2 (VsgPRTreeKey2@t@ *key,
 @key_type@ vsg_prtree_key2@t@_distance (VsgPRTreeKey2@t@ *one,
                                         VsgPRTreeKey2@t@ *other);
 
+vsgloc2 vsg_prtree_key2@t@_child (VsgPRTreeKey2@t@ *key);
+
 G_END_DECLS;
 
 #endif /* __VSG_PRTREE_KEY2@T@_H__ */
