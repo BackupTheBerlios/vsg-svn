@@ -24,10 +24,12 @@
 #include <glib.h>
 
 #include <vsg/vsgprtree2-common.h>
+#include <vsg/vsgmpi.h>
 
 G_BEGIN_DECLS;
 
 /* macros */
+#define VSG_MPI_TYPE_PRTREE_KEY2@T@ vsg_prtree_key2@t@_get_mpi_type ()
 
 /* typedefs */
 typedef struct _VsgPRTreeKey2@t@ VsgPRTreeKey2@t@;
@@ -43,6 +45,8 @@ struct _VsgPRTreeKey2@t@ {
 static const VsgPRTreeKey2@t@ vsg_prtree_key2@t@_root = {0, 0, 0};
 
 /* functions */
+MPI_Datatype vsg_prtree_key2@t@_get_mpi_type (void) G_GNUC_CONST;
+
 void vsg_prtree_key2@t@_write (VsgPRTreeKey2@t@ *key, FILE *file);
 
 guint8 vsg_prtree_key2@t@_first_different_index (VsgPRTreeKey2@t@ *one,

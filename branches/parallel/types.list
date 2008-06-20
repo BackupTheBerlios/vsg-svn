@@ -17,6 +17,7 @@ types_list = [
      'key_type':'guint32',
      'kcode':'\"G_GUINT32_FORMAT\"',
      'kmod':'\"G_GINT32_MODIFIER\"',
+     'KEY_MPI_DATATYPE':'MPI_UNSIGNED_LONG',
      },
     {'type':'gdouble',
      't':'d',
@@ -35,5 +36,6 @@ types_list = [
      'key_type':'guint64',
      'kcode':'\"G_GUINT64_FORMAT\"',
      'kmod':'\"G_GINT64_MODIFIER\"',
+     'KEY_MPI_DATATYPE':'MPI_UNSIGNED_LONG_LONG',
      }
     ]

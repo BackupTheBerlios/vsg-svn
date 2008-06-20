@@ -72,6 +72,37 @@ static inline void _set_bitmasks ()
    }
 }
 
+/**
+ * VSG_MPI_TYPE_PRTREE_KEY2@T@:
+ *
+ * The #MPI_Datatype associated to #VsgPrtreeKey2@t@.
+ */
+
+MPI_Datatype vsg_prtree_key2@t@_get_mpi_type (void)
+{
+  static MPI_Datatype prtree_key2@t@_mpi_type = MPI_DATATYPE_NULL;
+
+  if (prtree_key2@t@_mpi_type == MPI_DATATYPE_NULL)
+    {
+      gint blocks = 3;
+      gint lens[] = {1, 1, 1};
+      MPI_Aint indices[] = {
+        G_STRUCT_OFFSET (VsgPRTreeKey2@t@, x),
+        G_STRUCT_OFFSET (VsgPRTreeKey2@t@, y),
+        G_STRUCT_OFFSET (VsgPRTreeKey2@t@, depth),
+      };
+      MPI_Datatype types[] = {
+        @KEY_MPI_DATATYPE@,
+        @KEY_MPI_DATATYPE@,
+        MPI_BYTE,
+      };
+
+      MPI_Type_struct (blocks, lens, indices, types, &prtree_key2@t@_mpi_type);
+      MPI_Type_commit (&prtree_key2@t@_mpi_type);
+    }
+
+  return prtree_key2@t@_mpi_type;
+}
 static void _key_scale_up (VsgPRTreeKey2@t@ *key, guint8 offset,
                         VsgPRTreeKey2@t@ *result)
 {
@@ -323,4 +354,26 @@ vsgloc2 vsg_prtree_key2@t@_loc2 (VsgPRTreeKey2@t@ *key,
   else dy = one->y - other->y;
 
   return MAX (dx, dy);
+}
+
+/**
+ * vsg_prtree_key2@t@_child:
+ * @key : a VsgPRTreeKey2@t@.
+ *
+ * Computes the child index (#vsgloc2) of the first level of @key.
+ *
+ * Returns: the first child index of @key or 0 if @key->depth == 0.
+ */
+vsgloc2 vsg_prtree_key2@t@_child (VsgPRTreeKey2@t@ *key)
+{
+  gint8 locx, locy;
+  vsgloc2 loc;
+
+  g_return_val_if_fail (key->depth > 0, 0);
+
+  locx = (key->x >> (key->depth-1)) & 1;
+  locy = (key->y >> (key->depth-1)) & 1;
+  loc = locx | (locy << 1);
+
+  return loc;
 }
