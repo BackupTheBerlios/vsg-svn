@@ -999,7 +999,7 @@ _prtree2@t@node_traverse_custom_internal (VsgPRTree2@t@Node *node,
 
           if (ipow & locmask)
             _prtree2@t@node_traverse_custom_internal
-              (PRTREE2@T@NODE_CHILD(node, ic), &node_info, i,
+              (PRTREE2@T@NODE_CHILD(node, ic), &node_info, ic,
                order, selector, func, user_data, config, children_keys[i]);
 	}
     }
@@ -1017,7 +1017,7 @@ _prtree2@t@node_traverse_custom_internal (VsgPRTree2@t@Node *node,
 
           if (ipow & locmask)
             _prtree2@t@node_traverse_custom_internal
-              (PRTREE2@T@NODE_CHILD(node, ic), &node_info, i,
+              (PRTREE2@T@NODE_CHILD(node, ic), &node_info, ic,
                order, selector, func, user_data, config, children_keys[i]);
 	}
     }
@@ -1070,7 +1070,7 @@ _prtree2@t@node_traverse_custom (VsgPRTree2@t@Node *node,
 
           if (ipow & locmask)
             _prtree2@t@node_traverse_custom (PRTREE2@T@NODE_CHILD(node, ic),
-                                             &node_info, i,
+                                             &node_info, ic,
                                              order, selector, func, user_data,
                                              config, children_keys[i]);
 	}
@@ -1089,7 +1089,7 @@ _prtree2@t@node_traverse_custom (VsgPRTree2@t@Node *node,
 
           if (ipow & locmask)
             _prtree2@t@node_traverse_custom (PRTREE2@T@NODE_CHILD(node, ic),
-                                             &node_info, i,
+                                             &node_info, ic,
                                              order, selector, func, user_data,
                                              config, children_keys[i]);
 	}
