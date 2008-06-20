@@ -43,7 +43,7 @@ struct _VsgPRTreeKey2@t@ {
 static const VsgPRTreeKey2@t@ vsg_prtree_key2@t@_root = {0, 0, 0};
 
 /* functions */
-void vsg_prtreekey2@t@_write (VsgPRTreeKey2@t@ *key, FILE *file);
+void vsg_prtree_key2@t@_write (VsgPRTreeKey2@t@ *key, FILE *file);
 
 guint8 vsg_prtree_key2@t@_first_different_index (VsgPRTreeKey2@t@ *one,
                                                  VsgPRTreeKey2@t@ *other);

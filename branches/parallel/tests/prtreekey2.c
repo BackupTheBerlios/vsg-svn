@@ -63,9 +63,9 @@ static gboolean _check_test_data (TestData *data)
     {
       g_printerr ("Error on first_different_index:\n");
       g_printerr ("k1: ");
-      vsg_prtreekey2d_write (&data->k1, stderr);
+      vsg_prtree_key2d_write (&data->k1, stderr);
       g_printerr ("\nk2: ");
-      vsg_prtreekey2d_write (&data->k2, stderr);
+      vsg_prtree_key2d_write (&data->k2, stderr);
 
       g_printerr ("\ngot %d, should be %d\n\n", ldi, data->ldi_ref);
     }
@@ -76,14 +76,14 @@ static gboolean _check_test_data (TestData *data)
     {
       g_printerr ("Error on deepest_common_ancestor:\n");
       g_printerr ("k1: ");
-      vsg_prtreekey2d_write (&data->k1, stderr);
+      vsg_prtree_key2d_write (&data->k1, stderr);
       g_printerr ("\nk2: ");
-      vsg_prtreekey2d_write (&data->k2, stderr);
+      vsg_prtree_key2d_write (&data->k2, stderr);
 
       g_printerr ("\ngot (");
-      vsg_prtreekey2d_write (&dpa, stderr);
+      vsg_prtree_key2d_write (&dpa, stderr);
       g_printerr (")\nshould be (");
-      vsg_prtreekey2d_write (&data->dpa_ref, stderr);
+      vsg_prtree_key2d_write (&data->dpa_ref, stderr);
       g_printerr (")\n\n");
     }
 
@@ -92,9 +92,9 @@ static gboolean _check_test_data (TestData *data)
     {
       g_printerr ("Error on loc2 (k1, k2):\n");
       g_printerr ("k1: ");
-      vsg_prtreekey2d_write (&data->k1, stderr);
+      vsg_prtree_key2d_write (&data->k1, stderr);
       g_printerr ("\nk2: ");
-      vsg_prtreekey2d_write (&data->k2, stderr);
+      vsg_prtree_key2d_write (&data->k2, stderr);
 
       g_printerr ("\ngot %d, should be %d\n\n", loc1, data->loc1_ref);
     }
@@ -104,9 +104,9 @@ static gboolean _check_test_data (TestData *data)
     {
       g_printerr ("Error on loc2 (k2, k1):\n");
       g_printerr ("k1: ");
-      vsg_prtreekey2d_write (&data->k1, stderr);
+      vsg_prtree_key2d_write (&data->k1, stderr);
       g_printerr ("\nk2: ");
-      vsg_prtreekey2d_write (&data->k2, stderr);
+      vsg_prtree_key2d_write (&data->k2, stderr);
 
       g_printerr ("\ngot %d, should be %d\n\n", loc2, data->loc2_ref);
     }
@@ -116,9 +116,9 @@ static gboolean _check_test_data (TestData *data)
     {
       g_printerr ("Error on dist (k1, k2):\n");
       g_printerr ("k1: ");
-      vsg_prtreekey2d_write (&data->k1, stderr);
+      vsg_prtree_key2d_write (&data->k1, stderr);
       g_printerr ("\nk2: ");
-      vsg_prtreekey2d_write (&data->k2, stderr);
+      vsg_prtree_key2d_write (&data->k2, stderr);
 
       g_printerr ("\ngot %#"G_GINT64_MODIFIER"x, should be %#"G_GINT64_MODIFIER"x\n\n", dist, data->dist_ref);
 

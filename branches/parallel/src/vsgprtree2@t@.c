@@ -636,7 +636,7 @@ static void _prtree2@t@node_write (VsgPRTree2@t@Node *node,
                node->parallel_status.proc,
                node->lbound.x, node->lbound.y,
                node->ubound.x, node->ubound.y);
-      vsg_prtreekey2@t@_write (&node_info->id, file);
+      vsg_prtree_key2@t@_write (&node_info->id, file);
       fprintf (file, ")] point=%d region=%d\n",
                node->point_count,
                node->region_count);
@@ -651,7 +651,7 @@ static void _prtree2@t@node_write (VsgPRTree2@t@Node *node,
                "id=(",
                node->lbound.x, node->lbound.y,
                node->ubound.x, node->ubound.y);
-      vsg_prtreekey2@t@_write (&node_info->id, file);
+      vsg_prtree_key2@t@_write (&node_info->id, file);
       fprintf (file, ")] point=%d region=%d\n",
                node->point_count,
                node->region_count);
@@ -663,7 +663,7 @@ static void _prtree2@t@node_write (VsgPRTree2@t@Node *node,
                "id=(",
                node->lbound.x, node->lbound.y,
                node->ubound.x, node->ubound.y);
-      vsg_prtreekey2@t@_write (&node_info->id, file);
+      vsg_prtree_key2@t@_write (&node_info->id, file);
       fprintf (file, ")] point=%d region=%d local_region=%d depth=%u\n",
                node->point_count,
                node->region_count,

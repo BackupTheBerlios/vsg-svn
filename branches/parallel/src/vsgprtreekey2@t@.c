@@ -113,13 +113,13 @@ static guint8 _single_key_first_true_bit (@key_type@ key, guint8 maxdepth)
 }
 
 /**
- * vsg_prtreekey2@t@_write:
+ * vsg_prtree_key2@t@_write:
  * @key : the VsgPRTreeKey2@t@ to write.
  * @file : the file to write to.
  *
  * Displays @key into @file.
  */
-void vsg_prtreekey2@t@_write (VsgPRTreeKey2@t@ *key, FILE *file)
+void vsg_prtree_key2@t@_write (VsgPRTreeKey2@t@ *key, FILE *file)
 {
   g_fprintf (file, "x=%#@kmod@x, y=%#@kmod@x, d=%d",
              key->x, key->y, key->depth);
