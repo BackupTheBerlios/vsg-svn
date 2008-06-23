@@ -356,11 +356,11 @@ static void _prtree2@t@node_fix_counts_local (VsgPRTree2@t@Node *node)
   node->region_count = rcnt + g_slist_length (node->region_list);
 }
 
-static void _migrate_pack_node_header (VsgPRTree2@t@Node *node,
+static void _migrate_pack_node_header (VsgPRTree2@t@NodeInfo *info,
                                        VsgPackedMsg *msg, gint dst,
                                        VsgPRTree2@t@Config *config)
 {
-  vsg_packed_msg_send_append (msg, &node->center, 1, VSG_MPI_TYPE_VECTOR2@T@);
+  vsg_packed_msg_send_append (msg, &info->id, 1, VSG_MPI_TYPE_PRTREE_KEY2@T@);
   vsg_packed_msg_send_append (msg, &dst, 1, MPI_INT);
 }
 
@@ -532,7 +532,7 @@ static void _traverse_distribute_nodes (VsgPRTree2@t@Node *node,
           VsgPackedMsg *msg;
 
           /* tell all processors about the migration. */
-          _migrate_pack_node_header (node, dd->bcast, dst, dd->config);
+          _migrate_pack_node_header (node_info, dd->bcast, dst, dd->config);
 
           /* choose between ptp communication or bcast */
           if (new_storage == VSG_PARALLEL_REMOTE)
@@ -562,16 +562,16 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
                                       const VsgPRTree2@t@Config *config,
                                       VsgParallelStorage storage,
                                       gint dst,
-                                      VsgVector2@t@ *center,
+                                      VsgPRTreeKey2@t@ key,
                                       gpointer user_data,
                                       GSList *points,
                                       GSList *regions)
 {
   const VsgPRTreeParallelConfig *pc = &config->parallel_config;
 
-  if (vsg_vector2@t@_dist (&node->center, center) > @epsilon@)
+  if (key.depth > 0)
     {
-      vsgloc2 child = CALL_POINT2@T@_LOC (config, center, &node->center);
+      vsgloc2 child = vsg_prtree_key2@t@_child (&key);
       gint children_proc;
 
       if (PRTREE2@T@NODE_ISLEAF (node))
@@ -579,8 +579,10 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
           vsg_prtree2@t@node_make_int (node, config);
         }
 
+      key.depth --;
+
       vsg_prtree2@t@node_insert_child (PRTREE2@T@NODE_CHILD (node, child),
-                                       config, storage, dst, center, user_data,
+                                       config, storage, dst, key, user_data,
                                        points, regions);
 
       _prtree2@t@node_fix_counts_local (node);
@@ -729,17 +731,17 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
 
       while (hdrmsg->position < hdrmsg->size)
         {
-          VsgVector2@t@ center;
+          VsgPRTreeKey2@t@ id;
           gint dst;
 
           /* unpack the header */
-          vsg_packed_msg_recv_read (hdrmsg, &center, 1,
-                                    VSG_MPI_TYPE_VECTOR2@T@);
+          vsg_packed_msg_recv_read (hdrmsg, &id, 1,
+                                    VSG_MPI_TYPE_PRTREE_KEY2@T@);
           vsg_packed_msg_recv_read (hdrmsg, &dst, 1, MPI_INT);
 
-/*           g_printerr ("%d: unpacking src=%d center=", rk, src); */
-/*           vsg_vector2@t@_write (&center, stderr);  */
-/*           g_printerr (" dst=%d\n", dst); */
+/*           g_printerr ("%d: unpacking src=%d id=[", rk, src); */
+/*           vsg_prtree_key2@t@_write (&id, stderr); */
+/*           g_printerr ("] dst=%d\n", dst); */
 
           if (dst == rk || dst < 0)
             { /* we are destination of thi message (bcast or not) */
@@ -794,7 +796,7 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
 
               /* insert the node in the tree */
               vsg_prtree2@t@node_insert_child (tree->node, &tree->config,
-                                               storage, dst, &center, data,
+                                               storage, dst, id, data,
                                                points, regions);
             }
           else
@@ -806,7 +808,7 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
               /* insert the node in remote mode */
               vsg_prtree2@t@node_insert_child (tree->node, &tree->config,
                                                VSG_PARALLEL_REMOTE, dst,
-                                               &center, NULL, NULL, NULL);
+                                               id, NULL, NULL, NULL);
               
             }
 
