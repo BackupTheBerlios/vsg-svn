@@ -199,6 +199,9 @@ VsgPRTree2@t@Node *_vsg_prtree2@t@node_get_child_at (VsgPRTree2@t@Node *node,
                                                      const VsgVector2@t@ *pos,
                                                      gint depth);
 
+VsgPRTree2@t@Node *vsg_prtree2@t@node_key_lookup (VsgPRTree2@t@Node *node,
+                                                  VsgPRTreeKey2@t@ key);
+
 void vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
                                               GTraverseType order,
                                               VsgRegion2@t@LocDataFunc sel_func,

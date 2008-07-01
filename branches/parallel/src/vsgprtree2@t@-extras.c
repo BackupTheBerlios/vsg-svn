@@ -148,6 +148,23 @@ VsgPRTree2@t@Node *_vsg_prtree2@t@node_get_child_at (VsgPRTree2@t@Node *node,
   return _vsg_prtree2@t@node_get_child_at (child, pos, depth - 1);
 }
 
+VsgPRTree2@t@Node *vsg_prtree2@t@node_key_lookup (VsgPRTree2@t@Node *node,
+                                                  VsgPRTreeKey2@t@ key)
+{
+  vsgloc2 i;
+  VsgPRTree2@t@Node *child = NULL;
+
+  if (key.depth == 0 || PRTREE2@T@NODE_ISLEAF(node)) return node;
+
+  i = vsg_prtree_key2@t@_child (&key);
+
+  child = PRTREE2@T@NODE_CHILD(node, i);
+
+  key.depth --;
+
+  return vsg_prtree2@t@node_key_lookup (child, key);
+}
+
 static void recursive_near_func (VsgPRTree2@t@Node *one,
                                  VsgPRTree2@t@NodeInfo *one_info,
                                  VsgPRTree2@t@Node *other,
