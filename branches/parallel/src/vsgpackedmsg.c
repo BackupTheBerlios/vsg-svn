@@ -334,7 +334,8 @@ void vsg_send_channel_flush (VsgSendChannel *sc)
 {
   g_return_if_fail (sc != NULL);
 
-  vsg_packed_msg_send (&sc->pm, sc->dst, sc->tag);
+  if (sc->pm.position > 0)
+    vsg_packed_msg_send (&sc->pm, sc->dst, sc->tag);
 
   sc->pm.position = 0;
 }
