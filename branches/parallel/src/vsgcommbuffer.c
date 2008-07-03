@@ -140,7 +140,7 @@ void vsg_comm_buffer_share (VsgCommBuffer *cb)
 /*       g_printerr ("step=%d proc=%d src=%d dst=%d recv ok\n", i, mytid, src, dst); */
 
       vsg_packed_msg_wait (&cb->send[dst], &request);
-      MPI_Request_free (&request);
+
       vsg_packed_msg_drop_buffer (&cb->send[dst]);
 
     }
