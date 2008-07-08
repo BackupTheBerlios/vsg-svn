@@ -121,6 +121,10 @@ VsgPRTree3@t@Node *_prtree3@t@node_alloc (const VsgVector3@t@ *lbound,
       ret->user_data = g_boxed_copy (config->user_data_type,
                                      config->user_data_model);
     }
+  else
+    {
+      ret->user_data = NULL;
+    }
 
   ret->variable.isint = FALSE; /* default is a leaf */
 
