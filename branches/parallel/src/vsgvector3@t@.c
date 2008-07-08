@@ -226,7 +226,7 @@ VsgVector3@t@ *vsg_vector3@t@_clone (const VsgVector3@t@ *src)
  *
  * Computes square of Euclidean norm of @vec: x*x+y*y+z*z.
  *
- * Returns square of @vec norm.
+ * Returns: square of @vec norm.
  */
 @type@ vsg_vector3@t@_square_norm(const VsgVector3@t@ *vec)
 {
@@ -243,7 +243,7 @@ VsgVector3@t@ *vsg_vector3@t@_clone (const VsgVector3@t@ *src)
  *
  * Computes Euclidean norm of @vec sqrt(x*x+y*y+z*z).
  *
- * Returns square of @vec norm.
+ * Returns: @vec norm.
  */
 @type@ vsg_vector3@t@_norm(const VsgVector3@t@ *vec)
 {
@@ -261,7 +261,7 @@ VsgVector3@t@ *vsg_vector3@t@_clone (const VsgVector3@t@ *src)
  *
  * Computes Euclidean norm of the substraction between @vec and @other.
  *
- * Returns square of @vec-@other norm.
+ * Returns: square of @vec-@other norm.
  */
 @type@ vsg_vector3@t@_dist (const VsgVector3@t@ *vec,
                             const VsgVector3@t@ *other)
@@ -480,7 +480,7 @@ void vsg_vector3@t@_copy@alt_t@ (const VsgVector3@t@ *src,
  *
  * Tests if @vec is at the origin.
  *
- * Returns %true if @vec is origin, %false otherwise
+ * Returns: %true if @vec is origin, %false otherwise
  */
 gboolean vsg_vector3@t@_is_zero(const VsgVector3@t@ *vec)
 {
