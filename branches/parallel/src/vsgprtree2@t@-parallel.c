@@ -390,13 +390,16 @@ static void _migrate_pack_node (VsgPRTree2@t@Node *node, VsgPackedMsg *msg,
       pc->node_data.migrate_pack (node->user_data, msg,
                                   pc->node_data.migrate_pack_data);
 
-      if (pc->node_data.destroy)
-        pc->node_data.destroy (node->user_data, TRUE,
-                               pc->node_data.destroy_data);
-      else
-        g_boxed_free (config->user_data_type, node->user_data);
+      if (! shared)
+        {
+          if (pc->node_data.destroy)
+            pc->node_data.destroy (node->user_data, TRUE,
+                                   pc->node_data.destroy_data);
+          else
+            g_boxed_free (config->user_data_type, node->user_data);
 
-      node->user_data = NULL;
+          node->user_data = NULL;
+        }
     }
 
   /* pack the points */
