@@ -42,7 +42,10 @@ void vsg_packed_msg_init (VsgPackedMsg *pm, MPI_Comm comm)
 
   pm->communicator = comm;
 
-  vsg_packed_msg_drop_buffer (pm);
+  pm->buffer = NULL;
+  pm->position = 0;
+  pm->size = 0;
+  pm->own_buffer = TRUE;
 }
 
 /**
