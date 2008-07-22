@@ -134,7 +134,7 @@ static gpointer rg_alloc (gboolean resident, gpointer user_data)
 static void rg_destroy (gpointer data, gboolean resident,
                         gpointer user_data)
 {
-  Circle *rg = data;
+/*   Circle *rg = data; */
 /*   g_printerr ("%d: destroy 1 Circle (%p)\n", rk, data); */
 /*   g_printerr ("%d: destroy circle {c=", rk); */
 /*   vsg_vector2d_write (&rg->center, stderr); */
@@ -170,25 +170,17 @@ static VsgPRTreeParallelConfig pconfig = {
   MPI_COMM_WORLD,
   {pt_alloc, NULL,
    pt_destroy, NULL,
-   (VsgMigrablePackDataFunc) pt_migrate_pack, NULL,
-   (VsgMigrablePackDataFunc) pt_migrate_unpack, NULL,
+   {(VsgMigrablePackDataFunc) pt_migrate_pack, NULL,
+    (VsgMigrablePackDataFunc) pt_migrate_unpack, NULL
+   },
   },
   {rg_alloc, NULL,
    rg_destroy, NULL,
-   (VsgMigrablePackDataFunc) rg_migrate_pack, NULL,
+   {(VsgMigrablePackDataFunc) rg_migrate_pack, NULL,
    (VsgMigrablePackDataFunc) rg_migrate_unpack, NULL,
+   },
   },
 };
-
-
-static gint concentrate_dist (VsgPRTree2dNodeInfo *node_info, gint *dst)
-{
-/*   g_printerr ("%d: dist node center ", rk); */
-/*   vsg_vector2d_write (&node_info->center, stderr); */
-/*   g_printerr (" dst=%d\n", *dst); */
-
-  return *dst;
-}
 
 static gint scatter_dist (VsgPRTree2dNodeInfo *node_info, gint *cptr)
 {
@@ -225,17 +217,34 @@ static void _rg_write (Circle *c, FILE *file)
 
 static void _traverse_bg_write (VsgPRTree2dNodeInfo *node_info, FILE *file)
 {
+  /* ugly colormap */
+  static const gchar *colors[] = {
+    "#800000",
+    "#FF0000",
+    "#808000",
+    "#008000",
+    "#00FF00",
+    "#008080",
+    "#00FFFF",
+    "#000080",
+    "#0000FF",
+    "#800080",
+  };
+
   gdouble x = node_info->lbound.x;
   gdouble y = -node_info->ubound.y;
   gdouble w = node_info->ubound.x - x;
   gdouble h = -node_info->lbound.y - y;
-  gchar *fill = "none";
+  const gchar *fill = "none";
 
   if (!node_info->isleaf) return;
 
   if (VSG_PRTREE2D_NODE_INFO_IS_REMOTE (node_info))
-    fill = "#ff0000";
-
+    {
+      gint proc = VSG_PRTREE2D_NODE_INFO_PROC (node_info) %
+        (sizeof (colors) / sizeof (gchar *));
+      fill = colors[proc];
+    }
   fprintf (file, "<rect x=\"%g\" y=\"%g\" width=\"%g\" height=\"%g\" " \
            "rx=\"0\" style=\"stroke:#000000; " \
            "stroke-linejoin:miter; stroke-linecap:butt; fill:%s;\"/>\n",
@@ -573,7 +582,7 @@ void parse_args (int argc, char **argv)
 	  if (sscanf (arg, "%u", &tmp) == 1)
             _np = tmp;
 	  else
-	    g_printerr ("Invalid particles number (-np %s)\n", arg);
+	    g_printerr ("Invalid particles number (--np %s)\n", arg);
 	}
       else if (g_ascii_strncasecmp (arg, "--seed", 6) == 0)
 	{
@@ -666,9 +675,6 @@ gint main (gint argc, gchar ** argv)
   MPI_Comm_size (MPI_COMM_WORLD, &sz);
   MPI_Comm_rank (MPI_COMM_WORLD, &rk);
 
-/* #define BUFSIZE 1024*1024*64 */
-/*   MPI_Buffer_attach (malloc (BUFSIZE), BUFSIZE); */
-
   vsg_init_gdouble ();
 
   parse_args (argc, argv);
@@ -693,15 +699,33 @@ gint main (gint argc, gchar ** argv)
                                        GINT_TO_POINTER (HK2_0_1));
     }
 
-/*   MPI_Barrier (MPI_COMM_WORLD); */
-/*   g_printerr ("%d: set_parallel begin\n", rk); */
+  if (_verbose)
+    {
+      MPI_Barrier (MPI_COMM_WORLD);
+      g_printerr ("%d: set_parallel begin\n", rk);
+    }
 
   vsg_prtree2d_set_parallel (tree, &pconfig);
 
-/*   MPI_Barrier (MPI_COMM_WORLD); */
-/*   g_printerr ("%d: set_parallel ok\n", rk); */
+  if (_verbose)
+    {
+      MPI_Barrier (MPI_COMM_WORLD);
+      g_printerr ("%d: set_parallel ok\n", rk);
+    }
+
+  if (_verbose)
+    {
+      MPI_Barrier (MPI_COMM_WORLD);
+      g_printerr ("%d: fill begin\n", rk);
+    }
 
   _fill (tree, _np);
+
+  if (_verbose)
+    {
+      MPI_Barrier (MPI_COMM_WORLD);
+      g_printerr ("%d: fill ok\n", rk);
+    }
 
   /* update total points and regions count */
   init_total_points_count ();

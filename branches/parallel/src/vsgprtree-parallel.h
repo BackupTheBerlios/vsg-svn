@@ -30,6 +30,7 @@ G_BEGIN_DECLS;
 /* typedefs */
 
 typedef struct _VsgPRTreeParallelConfig VsgPRTreeParallelConfig;
+typedef struct _VsgParallelMigrateVTable VsgParallelMigrateVTable;
 typedef struct _VsgParallelVTable VsgParallelVTable;
 
 typedef gpointer (*VsgMigrableAllocDataFunc) (gboolean resident,
@@ -46,6 +47,14 @@ typedef void (*VsgMigrableUnpackDataFunc) (gpointer var, VsgPackedMsg *pm,
 
 
 /* structs */
+struct _VsgParallelMigrateVTable {
+  VsgMigrablePackDataFunc pack;
+  gpointer pack_data;
+
+  VsgMigrableUnpackDataFunc unpack;
+  gpointer unpack_data;
+};
+
 struct _VsgParallelVTable {
 
   /* memory management functions */
@@ -56,24 +65,11 @@ struct _VsgParallelVTable {
   gpointer destroy_data;
 
   /* migration functions */
-  VsgMigrablePackDataFunc migrate_pack;
-  gpointer migrate_pack_data;
-
-  VsgMigrableUnpackDataFunc migrate_unpack;
-  gpointer migrate_unpack_data;
+  VsgParallelMigrateVTable migrate;
 
   /* functions for volatile migrations (visits) */
-  VsgMigrablePackDataFunc visit_forward_pack;
-  gpointer visit_forward_pack_data;
-
-  VsgMigrableUnpackDataFunc visit_forward_unpack;
-  gpointer visit_forward_unpack_data;
-
-  VsgMigrablePackDataFunc visit_backward_pack;
-  gpointer visit_backward_pack_data;
-
-  VsgMigrableUnpackDataFunc visit_backward_unpack;
-  gpointer visit_backward_unpack_data;
+  VsgParallelMigrateVTable visit_forward;
+  VsgParallelMigrateVTable visit_backward;
 
 };
 

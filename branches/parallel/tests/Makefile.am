@@ -3,7 +3,7 @@ noinst_PROGRAMS = vec2add vec2sub vec2dotp vec2scalp vec2norm vec2vecp \
 vec2pred vec3add vec3sub vec3dotp vec3scalp vec3vecp vec3norm vec3pred \
 mat3add mat4add prtree2pt prtree2nftrav prtree2nftrave prtree3pt \
 prtree3nftrav prtree3nftrave prtree2hilb prtree3hilb commbuffer prtree2clone \
-prtree2parallel prtreekey2 prtree2paradist sendchannel
+prtree2parallel prtreekey2 prtree2paradist prtree2paranftrav sendchannel
 
 AM_CFLAGS = -I$(top_srcdir)/build $(MPI_CFLAGS)
 LDADD = $(top_srcdir)/build/vsg/libvsg.la $(MPI_LIBS)

@@ -180,6 +180,9 @@ static void recursive_near_func (VsgPRTree2@t@Node *one,
         {
           VsgPRTree2@t@Node *one_child = PRTREE2@T@NODE_CHILD(one, i);
           VsgPRTree2@t@NodeInfo one_child_info;
+
+          if (PRTREE2@T@NODE_IS_REMOTE (one_child)) continue;
+
           _vsg_prtree2@t@node_get_info (one_child, &one_child_info, one_info,
                                         i);
 
@@ -193,6 +196,9 @@ static void recursive_near_func (VsgPRTree2@t@Node *one,
         {
           VsgPRTree2@t@Node *other_child = PRTREE2@T@NODE_CHILD(other, i);
           VsgPRTree2@t@NodeInfo other_child_info;
+
+          if (PRTREE2@T@NODE_IS_REMOTE (other_child)) continue;
+
           _vsg_prtree2@t@node_get_info (other_child, &other_child_info,
                                         other_info, i);
 
@@ -203,21 +209,24 @@ static void recursive_near_func (VsgPRTree2@t@Node *one,
   else
     {
       /* near interaction between one and other */
-      near_func (one_info, other_info, user_data);
+      if (one->point_count != 0 && other->point_count != 0)
+        near_func (one_info, other_info, user_data);
     }
 
 
 }
 
+#define _NODE_IS_EMPTY(node) ( \
+ (node)->point_count == 0 && PRTREE2@T@NODE_IS_LOCAL (node)     \
+)
+
 static void
-_sub_neighborhood_near_far_traversal (VsgPRTree2@t@Node *one,
+_sub_neighborhood_near_far_traversal (VsgNFConfig2@t@ *nfc,
+                                      VsgPRTree2@t@Node *one,
                                       VsgPRTree2@t@NodeInfo *one_info,
 				      VsgPRTree2@t@Node *other,
                                       VsgPRTree2@t@NodeInfo *other_info,
-				      gint8 x, gint8 y,
-				      VsgPRTree2@t@FarInteractionFunc far_func,
-				      VsgPRTree2@t@InteractionFunc near_func,
-				      gpointer user_data)
+				      gint8 x, gint8 y)
 {
   vsgloc2 i, j, si, sj;
   vsgloc2 sym[4] = {
@@ -227,7 +236,11 @@ _sub_neighborhood_near_far_traversal (VsgPRTree2@t@Node *one,
     _SYMMETRY (3, x, y),
   };
 
-  if (one->point_count==0 || other->point_count==0)
+  if (PRTREE2@T@NODE_IS_REMOTE (one) ||
+      PRTREE2@T@NODE_IS_REMOTE (other))
+    return;
+
+  if (_NODE_IS_EMPTY(one) || _NODE_IS_EMPTY(other))
     return;
 
   if (PRTREE2@T@NODE_ISINT (one) && PRTREE2@T@NODE_ISINT (other))
@@ -238,6 +251,9 @@ _sub_neighborhood_near_far_traversal (VsgPRTree2@t@Node *one,
         {
           VsgPRTree2@t@Node *one_child = PRTREE2@T@NODE_CHILD(one, i);
           VsgPRTree2@t@NodeInfo one_child_info;
+
+          if (PRTREE2@T@NODE_IS_REMOTE (one_child)) continue;
+
           _vsg_prtree2@t@node_get_info (one_child, &one_child_info,
                                         one_info, i);
 
@@ -251,6 +267,8 @@ _sub_neighborhood_near_far_traversal (VsgPRTree2@t@Node *one,
               VsgPRTree2@t@NodeInfo other_child_info;
 	      gboolean far_done = TRUE;
 
+              if (PRTREE2@T@NODE_IS_REMOTE (other_child)) continue;
+
               _vsg_prtree2@t@node_get_info (other_child,
                                             &other_child_info,
                                             other_info, j);
@@ -262,19 +280,35 @@ _sub_neighborhood_near_far_traversal (VsgPRTree2@t@Node *one,
 	      if (far)
                 {
                   /* far interaction between one and other */
-                  if (far_func &&
-                      one_child_info.point_count != 0 &&
-                      other_child_info.point_count != 0)
+                  if (nfc->far_func &&
+                      ! (_NODE_IS_EMPTY (one_child) ||
+                         _NODE_IS_EMPTY (other_child)))
                     {
-                      far_done = far_func (&one_child_info, &other_child_info,
-					   user_data);
+                      /* in parallel, only one of the processors has to do a
+                         shared/shared far interaction */
+                      if (PRTREE2@T@NODE_IS_SHARED (one_child) &&
+                          PRTREE2@T@NODE_IS_SHARED (other_child) &&
+                          vsg_nf_config2@t@_shared_far_interaction_skip (nfc))
+                        continue;
+
+                      far_done = nfc->far_func (&one_child_info, &other_child_info,
+                                                nfc->user_data);
 		      if (!far_done)
 			{
+                          if (PRTREE2@T@NODE_IS_SHARED (one_child) ||
+                              PRTREE2@T@NODE_IS_SHARED (other_child))
+                            {
+                              g_critical ("far_func() -> FALSE not handled " \
+                                          "for shared nodes in \"%s\"",
+                                          __PRETTY_FUNCTION__);
+
+                            }
+
 			  /* near interaction between one and other */
 			  recursive_near_func (one_child, &one_child_info,
 					       other_child, &other_child_info,
-					       near_func,
-					       user_data);
+					       nfc->near_func,
+					       nfc->user_data);
 			}
                     }
                 }
@@ -283,14 +317,11 @@ _sub_neighborhood_near_far_traversal (VsgPRTree2@t@Node *one,
 		  gint8 newx = _SUB_INTERACTION (i, j, x, _X);
 		  gint8 newy = _SUB_INTERACTION (i, j, y, _Y);
 
-		  _sub_neighborhood_near_far_traversal (one_child,
+		  _sub_neighborhood_near_far_traversal (nfc, one_child,
 							&one_child_info,
 							other_child,
 							&other_child_info,
-							newx, newy,
-							far_func,
-							near_func,
-							user_data);
+							newx, newy);
 		}
 	    }
         }
@@ -298,36 +329,38 @@ _sub_neighborhood_near_far_traversal (VsgPRTree2@t@Node *one,
     }
   else
     {
-      if (near_func)
+      if (nfc->near_func)
         {
           /* near interaction between one and other */
-          recursive_near_func (one, one_info, other, other_info, near_func,
-                               user_data);
+          recursive_near_func (one, one_info, other, other_info, nfc->near_func,
+                               nfc->user_data);
         }
     }
 }
 
 static void
-vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@Node *node,
+vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@ *tree,
+                                       VsgNFConfig2@t@ *nfc,
+                                       VsgPRTree2@t@Node *node,
                                        VsgPRTree2@t@NodeInfo *father_info,
-                                       vsgloc2 child_number,
-                                       VsgPRTree2@t@FarInteractionFunc far_func,
-                                       VsgPRTree2@t@InteractionFunc near_func,
-                                       gpointer user_data)
+                                       vsgloc2 child_number)
 {
   vsgloc2 i,j;
   VsgPRTree2@t@NodeInfo node_info;
 
+  if (PRTREE2@T@NODE_IS_REMOTE (node)) return;
+  if (_NODE_IS_EMPTY (node)) return;
+
   _vsg_prtree2@t@node_get_info (node, &node_info, father_info, child_number);
 
-  if (node->point_count==0) return;
+  vsg_prtree2@t@_node_check_parallel_near_far (tree, nfc, node, &node_info);
 
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
-      if (near_func)
+      if (nfc->near_func)
 	{
 	  /* reflexive near interaction on node */
-	  near_func (&node_info, &node_info, user_data);
+	  nfc->near_func (&node_info, &node_info, nfc->user_data);
 	}
     }
   else
@@ -337,6 +370,9 @@ vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@Node *node,
         {
           VsgPRTree2@t@Node *one_child = PRTREE2@T@NODE_CHILD(node, i);
           VsgPRTree2@t@NodeInfo one_child_info;
+
+          if (PRTREE2@T@NODE_IS_REMOTE (one_child)) continue;
+
           _vsg_prtree2@t@node_get_info (one_child, &one_child_info,
                                         &node_info, i);
           for (j=i+1; j<4; j++)
@@ -345,30 +381,29 @@ vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@Node *node,
                 PRTREE2@T@NODE_CHILD(node, j);
               VsgPRTree2@t@NodeInfo other_child_info;
 	      gint8 x, y;
+
+              if (PRTREE2@T@NODE_IS_REMOTE (other_child)) continue;
+
 	      x = _AXIS_DIFF (i, j, _X);
 	      y = _AXIS_DIFF (i, j, _Y);
-
 
               _vsg_prtree2@t@node_get_info (other_child,
                                             &other_child_info,
                                             &node_info, j);
 
-	      _sub_neighborhood_near_far_traversal (one_child,
+	      _sub_neighborhood_near_far_traversal (nfc, one_child,
 						    &one_child_info,
 						    other_child,
 						    &other_child_info,
-						    x, y,
-						    far_func, near_func,
-						    user_data); 
+						    x, y); 
             }
         }
 
       /* interactions in node's children descendants */
       for (i=0; i<4; i++)
-        vsg_prtree2@t@node_near_far_traversal (PRTREE2@T@NODE_CHILD(node, i),
-                                               &node_info, i,
-                                               far_func, near_func,
-                                               user_data);
+        vsg_prtree2@t@node_near_far_traversal (tree, nfc,
+                                               PRTREE2@T@NODE_CHILD(node, i),
+                                               &node_info, i);
     }
 }
 
@@ -462,13 +497,23 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
                                    VsgPRTree2@t@InteractionFunc near_func,
                                    gpointer user_data)
 {
+  MPI_Comm comm = prtree2@t@->config.parallel_config.communicator;
+  VsgNFConfig2@t@ nfc;
+
 #ifdef VSG_CHECK_PARAMS
   g_return_if_fail (prtree2@t@ != NULL);
 #endif
 
-  vsg_prtree2@t@node_near_far_traversal (prtree2@t@->node,
-                                         NULL, 0,
-                                         far_func, near_func,
-                                         user_data);
- 
+  vsg_nf_config2@t@_init (&nfc, comm, far_func, near_func, user_data);
+
+  vsg_prtree2@t@node_near_far_traversal (prtree2@t@, &nfc,
+                                         prtree2@t@->node,
+                                         NULL, 0);
+
+  if (comm != MPI_COMM_NULL)
+    {
+      vsg_prtree2@t@_nf_check_parallel_end (prtree2@t@, &nfc);
+    }
+
+  vsg_nf_config2@t@_clean (&nfc);
 }

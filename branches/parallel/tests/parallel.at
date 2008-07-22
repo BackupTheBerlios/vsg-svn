@@ -29,6 +29,7 @@ AT_CHECK([mpiexec -n 2 sendchannel], 0)
 AT_CLEANUP
 
 AT_SETUP(2D Parallel tree creation)
+AT_KEYWORDS (parallel)
 AT_CHECK([mpiexec -n 1 prtree2parallel], 0)
 AT_CHECK([mpiexec -n 2 prtree2parallel], 0)
 AT_CHECK([mpiexec -n 3 prtree2parallel], 0)
@@ -36,6 +37,7 @@ AT_CHECK([mpiexec -n 4 prtree2parallel], 0)
 AT_CLEANUP
 
 AT_SETUP(2D Parallel tree contiguous distribution)
+AT_KEYWORDS (parallel)
 AT_CHECK([mpiexec -n 1 prtree2paradist], 0)
 AT_CHECK([mpiexec -n 2 prtree2paradist], 0)
 AT_CHECK([mpiexec -n 2 prtree2paradist --hilbert --np 100], 0)
@@ -46,4 +48,15 @@ AT_CHECK([mpiexec -n 4 prtree2paradist --hilbert --np 400], 0)
 AT_CLEANUP
 
 
+AT_TESTED([prtree2paranftrav])
 
+AT_SETUP(2D Parallel tree near/far traversal)
+AT_KEYWORDS (parallel)
+AT_CHECK([mpiexec -n 1 prtree2paranftrav], 0)
+AT_CHECK([mpiexec -n 2 prtree2paranftrav], 0)
+AT_CHECK([mpiexec -n 2 prtree2paranftrav --hilbert --np 20], 0)
+AT_CHECK([mpiexec -n 3 prtree2paranftrav --hilbert --np 20], 0)
+AT_CHECK([mpiexec -n 4 prtree2paranftrav --hilbert --np 20], 0)
+AT_CHECK([mpiexec -n 5 prtree2paranftrav --hilbert --np 20], 0)
+AT_CHECK([mpiexec -n 8 prtree2paranftrav --hilbert --np 100], 0)
+AT_CLEANUP

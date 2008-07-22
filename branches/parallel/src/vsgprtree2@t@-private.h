@@ -22,6 +22,7 @@
 
 #include "vsgprtree-parallel.h"
 #include "vsgprtree2@t@.h"
+#include "vsgprtree2@t@-extras.h"
 
 G_BEGIN_DECLS;
 
@@ -54,6 +55,8 @@ typedef struct _VsgPRTree2@t@Int VsgPRTree2@t@Int;
 typedef struct _VsgPRTree2@t@Node VsgPRTree2@t@Node;
 
 typedef struct _VsgPRTree2@t@Config VsgPRTree2@t@Config;
+
+typedef struct _VsgNFConfig2@t@ VsgNFConfig2@t@;
 
 typedef void (*VsgPRTree2@t@InternalFunc) (VsgPRTree2@t@Node *node,
                                            VsgPRTree2@t@NodeInfo *info,
@@ -180,6 +183,24 @@ struct _VsgPRTree2@t@ {
   GSList *pending_shared_regions;
 };
 
+struct _VsgNFConfig2@t@
+{
+  VsgPRTree2@t@FarInteractionFunc far_func;
+  VsgPRTree2@t@InteractionFunc near_func;
+  gpointer user_data;
+
+  /* parallel data */
+  gint rk, sz;
+  VsgPackedMsg recv;
+  GHashTable *procs_msgs;
+  GSList *waiting_visitors;
+  GSList *done_visitors;
+  gint pending_end_forward;
+  gint pending_backward_msgs;
+
+  gint shared_far_interaction_counter;
+};
+
 /* private functions */
 
 void vsg_prtree2@t@node_free (VsgPRTree2@t@Node *node,
@@ -212,6 +233,29 @@ void vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
 
 void vsg_prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
                                   const VsgPRTree2@t@Config *config);
+
+void vsg_nf_config2@t@_init (VsgNFConfig2@t@ *nfc,
+                             MPI_Comm comm,
+                             VsgPRTree2@t@FarInteractionFunc far_func,
+                             VsgPRTree2@t@InteractionFunc near_func,
+                             gpointer user_data);
+
+void vsg_nf_config2@t@_clean (VsgNFConfig2@t@ *nfc);
+
+gboolean vsg_nf_config2@t@_shared_far_interaction_skip (VsgNFConfig2@t@ *nfc);
+
+void
+vsg_prtree2@t@_node_check_parallel_near_far (VsgPRTree2@t@ *tree,
+                                             VsgNFConfig2@t@ *nfc,
+                                             VsgPRTree2@t@Node *node,
+                                             VsgPRTree2@t@NodeInfo *info);
+
+gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
+                                          VsgNFConfig2@t@ *nfc, gint tag,
+                                          gboolean blocking);
+void
+vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
+                                      VsgNFConfig2@t@ *nfc);
 
 G_END_DECLS;
 

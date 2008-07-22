@@ -125,7 +125,7 @@ VsgPRTree2@t@Node *vsg_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
 
   vsg_vector2@t@_lerp (lbound, ubound, 0.5, &ret->center);
 
-  if (config->user_data_type != G_TYPE_NONE)
+  if (config != NULL && config->user_data_type != G_TYPE_NONE)
     {
       ret->user_data = g_boxed_copy (config->user_data_type,
                                      config->user_data_model);
@@ -146,7 +146,7 @@ VsgPRTree2@t@Node *vsg_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
 static void _prtree2@t@node_dealloc (VsgPRTree2@t@Node *prtree2@t@node,
                                      const VsgPRTree2@t@Config *config)
 {
-  if (config->user_data_type != G_TYPE_NONE &&
+  if (config != NULL && config->user_data_type != G_TYPE_NONE &&
       prtree2@t@node->user_data != NULL)
     {
       g_boxed_free (config->user_data_type,

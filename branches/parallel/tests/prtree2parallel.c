@@ -157,13 +157,13 @@ static VsgPRTreeParallelConfig pconfig = {
   MPI_COMM_WORLD,
   {pt_alloc, NULL,
    pt_destroy, NULL,
-   (VsgMigrablePackDataFunc) pt_migrate_pack, NULL,
-   (VsgMigrablePackDataFunc) pt_migrate_unpack, NULL,
+   {(VsgMigrablePackDataFunc) pt_migrate_pack, NULL, (VsgMigrablePackDataFunc) pt_migrate_unpack, NULL},
   },
   {rg_alloc, NULL,
    rg_destroy, NULL,
-   (VsgMigrablePackDataFunc) rg_migrate_pack, NULL,
-   (VsgMigrablePackDataFunc) rg_migrate_unpack, NULL,
+   {(VsgMigrablePackDataFunc) rg_migrate_pack, NULL,
+    (VsgMigrablePackDataFunc) rg_migrate_unpack, NULL,
+   },
   },
 };
 

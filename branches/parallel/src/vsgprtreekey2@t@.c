@@ -198,21 +198,6 @@ void vsg_prtree_key2@t@_xor (VsgPRTreeKey2@t@ *one,
     }
 }
 
-static guint8
-vsg_prtree_key2@t@_first_different_index_internal (VsgPRTreeKey2@t@ *one,
-                                                   VsgPRTreeKey2@t@ *other,
-                                                   VsgPRTreeKey2@t@ *xor)
-{
-  guint8 x, y;
-
-  vsg_prtree_key2@t@_xor (one, other, xor);
-
-  x = _single_key_first_true_bit (xor->x, xor->depth);
-  y = _single_key_first_true_bit (xor->y, xor->depth);
-
-  return MAX (x, y);
-}
-
 /**
  * vsg_prtree_key2@t@_first_different_index:
  * @one : a VsgPRTreeKey2@t@.
@@ -227,8 +212,15 @@ guint8 vsg_prtree_key2@t@_first_different_index (VsgPRTreeKey2@t@ *one,
                                                  VsgPRTreeKey2@t@ *other)
 {
   VsgPRTreeKey2@t@ xor;
+  guint8 x, y;
 
-  return vsg_prtree_key2@t@_first_different_index_internal (one, other, &xor);
+  vsg_prtree_key2@t@_xor (one, other, &xor);
+
+  x = _single_key_first_true_bit (xor.x, xor.depth);
+  y = _single_key_first_true_bit (xor.y, xor.depth);
+
+  return MAX (x, y);
+
 }
 
 /**
@@ -310,11 +302,24 @@ vsgloc2 vsg_prtree_key2@t@_loc2 (VsgPRTreeKey2@t@ *key,
       _key_scale_up (key, center->depth - key->depth, &tmp);
       key = &tmp;
     }
-
   if (key->x > center->x) loc |= VSG_LOC2_X;
   if (key->y > center->y) loc |= VSG_LOC2_Y;
 
   return loc;
+}
+
+static inline @key_type@ _key2@t@_distance (VsgPRTreeKey2@t@ *one,
+                                            VsgPRTreeKey2@t@ *other)
+{
+  @key_type@ dx, dy;
+
+  if (one->x < other->x) dx = other->x - one->x;
+  else dx = one->x - other->x;
+
+  if (one->y < other->y) dy = other->y - one->y;
+  else dy = one->y - other->y;
+
+  return MAX (dx, dy);
 }
 
 /**
@@ -334,7 +339,6 @@ vsgloc2 vsg_prtree_key2@t@_loc2 (VsgPRTreeKey2@t@ *key,
                                         VsgPRTreeKey2@t@ *other)
 {
   VsgPRTreeKey2@t@ tmp;
-  @key_type@ dx, dy;
 
   if (one->depth < other->depth)
     {
@@ -347,13 +351,7 @@ vsgloc2 vsg_prtree_key2@t@_loc2 (VsgPRTreeKey2@t@ *key,
       one = &tmp;
     }
 
-  if (one->x < other->x) dx = other->x - one->x;
-  else dx = one->x - other->x;
-
-  if (one->y < other->y) dy = other->y - one->y;
-  else dy = one->y - other->y;
-
-  return MAX (dx, dy);
+  return _key2@t@_distance (one, other);
 }
 
 /**
@@ -376,4 +374,81 @@ vsgloc2 vsg_prtree_key2@t@_child (VsgPRTreeKey2@t@ *key)
   loc = locx | (locy << 1);
 
   return loc;
+}
+
+static gboolean _ancestor_order (VsgPRTreeKey2@t@ *key,
+                                 VsgPRTreeKey2@t@ *center)
+{
+  VsgPRTreeKey2@t@ ktmp, ctmp;
+  guint8 index;
+  vsgloc2 cloc, kloc;
+
+  index = vsg_prtree_key2@t@_first_different_index (key, center);
+
+  _key_scale_down (key, index - 1, &ktmp);
+  _key_scale_down (center, index - 1, &ctmp);
+
+  kloc = (ktmp.x & 1) | ((ktmp.y & 1) << 1);
+  cloc = (ctmp.x & 1) | ((ctmp.y & 1) << 1);
+
+  return kloc <= cloc;
+}
+
+/**
+ * vsg_prtree_key2@t@_compare_near_far:
+ * @one : a VsgPRTreeKey2@t@.
+ * @other : a VsgPRTreeKey2@t@.
+ *
+ * Compares two keys in the meaning of near/far interactions (see
+ * vsg_prtree2@t@_near_far_traversal()). Result is to be interpreted as follow:
+ * 0: @one and @other are identical.
+ * 1: neighbours (near interaction).
+ * 2: far interaction.
+ * 3: no interaction.
+ * 
+ *
+ * Returns: the near/far relation between @ine andf @other.
+ */
+guint8 vsg_prtree_key2@t@_compare_near_far (VsgPRTreeKey2@t@ *one,
+                                            VsgPRTreeKey2@t@ *other)
+{
+  VsgPRTreeKey2@t@ _one;
+  VsgPRTreeKey2@t@ _other;
+  @key_type@ d;
+
+   if (one->depth < other->depth)
+    {
+      _key_scale_down (other, other->depth - one->depth, &_other);
+      memcpy (&_one, one, sizeof (VsgPRTreeKey2@t@));
+    }
+  else if (one->depth > other->depth)
+    {
+      _key_scale_down (one, one->depth - other->depth, &_one);
+      memcpy (&_other, other, sizeof (VsgPRTreeKey2@t@));
+    }
+  else
+    {
+      memcpy (&_one, one, sizeof (VsgPRTreeKey2@t@));
+      memcpy (&_other, other, sizeof (VsgPRTreeKey2@t@));
+    }
+
+   if (! _ancestor_order (&_one, &_other)) return 3;
+
+   d = _key2@t@_distance (&_one, &_other);
+
+   if (d < 3) return d;
+
+   if (d == 3)
+     {
+       /* compare fathers distance */
+       _key_scale_down (&_one, 1, &_one);
+       _key_scale_down (&_other, 1, &_other);
+
+       d = _key2@t@_distance (&_one, &_other);
+
+       /* if fathers are neighbours, then promote nodes to far interaction */
+       if (d < 2) return 2;
+     }
+
+   return 3;
 }
