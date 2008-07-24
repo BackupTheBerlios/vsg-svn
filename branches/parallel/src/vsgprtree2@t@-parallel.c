@@ -570,8 +570,6 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
                                       GSList *points,
                                       GSList *regions)
 {
-  const VsgPRTreeParallelConfig *pc = &config->parallel_config;
-
   if (key.depth > 0)
     {
       vsgloc2 child = vsg_prtree_key2@t@_child (&key);
@@ -579,6 +577,24 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
 
       if (PRTREE2@T@NODE_ISLEAF (node))
         {
+          /* formerly remote nodes need a new user_data to be allocated */
+          if (PRTREE2@T@NODE_IS_REMOTE (node))
+            {
+              const VsgPRTreeParallelConfig *pc = &config->parallel_config;
+
+              if (pc->node_data.alloc != NULL)
+                {
+                  node->user_data =
+                    pc->node_data.alloc (TRUE, pc->node_data.alloc_data);
+                }
+              else if (config->user_data_type != G_TYPE_NONE)
+                {
+                  node->user_data = g_boxed_copy (config->user_data_type,
+                                                  config->user_data_model);
+                }
+            }
+
+          /* transform into interior node */
           vsg_prtree2@t@node_make_int (node, config);
         }
 
@@ -622,11 +638,21 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
 
   if (user_data != NULL)
     {
-      if (pc->node_data.destroy)
-        pc->node_data.destroy (node->user_data, TRUE,
-                               pc->node_data.destroy_data);
+      if (node->user_data != NULL)
+        {
+          const VsgPRTreeParallelConfig *pc = &config->parallel_config;
+
+          /* destroy precedent user_data */
+          if (pc->node_data.destroy)
+            pc->node_data.destroy (node->user_data, TRUE,
+                                   pc->node_data.destroy_data);
+          else
+            g_boxed_free (config->user_data_type, node->user_data);
+        }
       else
-        g_boxed_free (config->user_data_type, node->user_data);
+        {
+          g_assert (node->parallel_status.storage == VSG_PARALLEL_REMOTE);
+        }
 
       node->user_data = user_data;
     }
