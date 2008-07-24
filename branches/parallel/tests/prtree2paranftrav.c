@@ -11,13 +11,11 @@
 #include <glib.h>
 
 /* option variables */
-static gboolean _do_contiguous = TRUE;
 static gboolean _do_write = FALSE;
 static gint _np = 12;
 static guint32 _random_seed = 0;
 static gint _flush_interval = 100;
 static gboolean _hilbert = FALSE;
-static gboolean _scatter_before = FALSE;
 static gboolean _verbose = FALSE;
 static gint _maxbox = 2;
 
@@ -83,6 +81,7 @@ gpointer node_counter_alloc (gboolean resident, gpointer user_data)
 void node_counter_destroy (gpointer data, gboolean resident,
                            gpointer user_data)
 {
+  g_assert (data != NULL);
   g_boxed_free (TYPE_NODE_COUNTER, data);
 }
 
@@ -247,6 +246,15 @@ gint scatter_dist (VsgPRTree2dNodeInfo *node_info, gint *cptr)
     }
 
   return -1;
+}
+void scatter_distribute_nodes (VsgPRTree2d *tree)
+{
+  gint i = 0;
+
+  vsg_prtree2d_distribute_nodes (tree,
+                                 (VsgPRTree2dDistributionFunc)
+                                 scatter_dist,
+                                 &i);
 }
 
 void _pt_write (Pt *pt, FILE *file)
@@ -628,6 +636,8 @@ void contiguous_distribute_nodes (VsgPRTree2d *tree)
 
 }
 
+static void (*_distribute) (VsgPRTree2d *tree) = contiguous_distribute_nodes;
+
 typedef enum _Hilbert2Key Hilbert2Key;
 enum _Hilbert2Key {
   HK2_0_1,
@@ -695,7 +705,16 @@ void _random_fill (VsgPRTree2d *tree, guint np)
 
       _ref_count += c;
 
-      if (i%_flush_interval == 0) vsg_prtree2d_migrate_flush (tree);
+      if (i%_flush_interval == 0)
+        {
+          vsg_prtree2d_migrate_flush (tree);
+          if (i%(_flush_interval*100) == 0)
+            {
+              if (_verbose)
+                g_printerr ("%d: contiguous dist before %dth point\n", rk, i);
+              _distribute (tree);
+            }
+        }
 
       if (i%sz != rk) continue;
 
@@ -711,6 +730,8 @@ void _random_fill (VsgPRTree2d *tree, guint np)
     }
 
   vsg_prtree2d_migrate_flush (tree);
+
+  _distribute (tree);
 
   g_rand_free (rand);
 }
@@ -801,17 +822,28 @@ void parse_args (int argc, char **argv)
               g_printerr ("Invalid fill function name \"%s\"\n", arg);
             }
 	}
-      else if (g_strncasecmp (arg, "--no-dist", 9) == 0)
-        {
-          _do_contiguous = FALSE;
-        }
+      else if (g_ascii_strncasecmp (arg, "--dist", 6) == 0)
+	{
+	  iarg ++;
+
+	  arg = (iarg<argc) ? argv[iarg] : NULL;
+
+	  if (g_ascii_strncasecmp (arg, "contiguous", 11) == 0)
+            {
+              _distribute = contiguous_distribute_nodes;
+            }
+          else if (g_ascii_strncasecmp (arg, "scatter", 7) == 0)
+            {
+              _distribute = scatter_distribute_nodes;
+            }
+          else
+            {
+              g_printerr ("Invalid distribution function name \"%s\"\n", arg);
+            }
+	}
       else if (g_strncasecmp (arg, "--hilbert", 9) == 0)
         {
           _hilbert = TRUE;
-        }
-      else if (g_strncasecmp (arg, "--scatter", 9) == 0)
-        {
-          _scatter_before = TRUE;
         }
       else if (g_strncasecmp (arg, "--write", 7) == 0)
         {
@@ -1155,48 +1187,6 @@ gint main (gint argc, gchar ** argv)
     {
       MPI_Barrier (MPI_COMM_WORLD);
       g_printerr ("%d: fill ok\n", rk);
-    }
-
-  if (_scatter_before)
-    {
-      gint i = 0;
-
-      if (_verbose)
-        {
-          MPI_Barrier (MPI_COMM_WORLD);
-          g_printerr ("%d: scatter nodes begin\n", rk);
-        }
-
-      vsg_prtree2d_distribute_nodes (tree,
-                                     (VsgPRTree2dDistributionFunc)
-                                     scatter_dist,
-                                     &i);
-
-      if (_verbose)
-        {
-          MPI_Barrier (MPI_COMM_WORLD);
-          g_printerr ("%d: scatter nodes ok\n", rk);
-        }
-
-      _tree_write (tree, "scatter-");
-    }
-
-  if (_do_contiguous)
-    {
-      if (_verbose)
-        {
-          MPI_Barrier (MPI_COMM_WORLD);
-          g_printerr ("%d: contiguous distribute begin\n", rk);
-        }
-
-      contiguous_distribute_nodes (tree);
-
-      if (_verbose)
-        {
-          MPI_Barrier (MPI_COMM_WORLD);
-          g_printerr ("%d: contiguous distribute ok\n", rk);
-        }
-
     }
 
   if (_do_write)
