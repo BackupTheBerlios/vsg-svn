@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" 
+               "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
+
+<book xmlns:xi="http://www.w3.org/2001/XInclude">
+  <!-- short description -->
+  <para>
+    <phrase>
+      <type>@type@</type>-based 3D vectors.
+    </phrase>
+  </para>
+
+  <!-- long description -->
+  <para>
+    Many of these functions have an inlined counterpart that one can reach in the "vsgvector3@t@-inline.h" or "vsg@t@-inline.h" header file. Inlining of vsg_vector3@t@_* functions will be automatically done when including this header unless you define VSG_NO_IMPLICIT_INLINE before the corresponding include directive. In such case, one can always use the inline functions by appending "_inline" to the desired function name.
+  </para>
+</book>
