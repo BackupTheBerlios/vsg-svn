@@ -5,9 +5,9 @@ AC_ARG_WITH(mpi,
             [  --with-mpi=MPIPATH        Build against MPI library (enabled)], ,
             with_mpi="yes")
 
-MPI_CFLAGS=
-MPI_CXXFLAGS=
-MPI_LIBS=
+#MPI_CFLAGS=
+#MPI_CXXFLAGS=
+#MPI_LIBS=
 MPI_ENABLED=0
 
 if test "${with_mpi}" != "no"
@@ -22,6 +22,9 @@ then
        MPIPATH="${PATH}"
     else
        MPIPATH="${with_mpi}/bin"
+       MPI_CFLAGS="-I${with_mpi}/include ${MPI_CFLAGS}"
+       MPI_CXXFLAGS="-I${with_mpi}/include ${MPI_CXXFLAGS}"
+       MPI_LIBS="-L${with_mpi}/lib ${MPI_LIBS}"
     fi
 
     AC_PATH_PROGS(MPICC, mpicc hcc mpcc mpcc_r mpxlc, none, ${MPIPATH})
@@ -99,12 +102,12 @@ then
     if test "${MPI_STATUS}" = ""
     then
        # try -lmpi
-       AC_CHECK_LIB(mpi, MPI_Init, [MPI_LIBS="-lmpi" ; MPI_STATUS="-lmpi"])
+       AC_CHECK_LIB(mpi, MPI_Init, [MPI_LIBS="${MPI_LIBS} -lmpi" ; MPI_STATUS="-lmpi"])
     fi
     if test "${MPI_STATUS}" = ""
     then
        # try -lmpich
-       AC_CHECK_LIB(mpich, MPI_Init, [MPI_LIBS="-lmpich" ; MPI_STATUS="-lmpich"])
+       AC_CHECK_LIB(mpich, MPI_Init, [MPI_LIBS="${MPI_LIBS} -lmpich" ; MPI_STATUS="-lmpich"])
     fi
 
     AC_MSG_CHECKING([for mpi.h])
