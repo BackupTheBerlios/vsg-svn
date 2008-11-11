@@ -6,7 +6,7 @@ prtree3nftrav prtree3nftrave prtree2hilb prtree3hilb commbuffer prtree2clone \
 prtree2parallel prtreekey2 prtree2paradist prtree2paranftrav sendchannel
 
 AM_CFLAGS = -I$(top_srcdir)/build $(MPI_CFLAGS)
-LDADD = $(top_srcdir)/build/vsg/libvsg.la $(MPI_LIBS)
+LDADD = $(top_srcdir)/build/vsg/libvsg.la $(top_srcdir)/build/vsg/libvsgd.la $(MPI_LIBS)
 
 
 $(srcdir)/package.m4: $(top_srcdir)/configure.ac
