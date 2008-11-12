@@ -1390,6 +1390,11 @@ static void _propose_node_forward (VsgPRTree2@t@ *tree,
 
           msg = &nfpms[index]->send_pm;
 
+/*           g_printerr ("%d : sending fw to %d - ", nfc->rk, procs[index]); */
+/*           vsg_prtree_key2@t@_write (id, stderr); */
+/*           g_printerr ("\n"); */
+/*           fflush (stderr); */
+
           msg->position = 0;
 
           vsg_packed_msg_send_append (msg, id, 1, VSG_MPI_TYPE_PRTREE_KEY2@T@);
@@ -1413,7 +1418,16 @@ static void _propose_node_forward (VsgPRTree2@t@ *tree,
         {
           if (!vsg_prtree2@t@_nf_check_receive (tree, nfc, MPI_ANY_TAG, FALSE))
             {
-              if (! _propose_backward_send (tree, nfc))
+              if (_propose_backward_send (tree, nfc))
+                {
+                  /*
+                   * since we have sent a backward message, we need to
+                   * refresh the list of actual requests.
+                   */
+                  for (i=0; i<nprocs; i ++)
+                    requests[i] = nfpms[i]->request;
+                }
+              else
                 {
                   if (! _compute_one_visit (tree, nfc))
                     g_usleep (1);
@@ -1596,9 +1610,10 @@ static gboolean _propose_backward_send (VsgPRTree2@t@ *tree,
         {
           VsgPackedMsg *msg = &nfpm->send_pm;
 
-/*           g_printerr ("%d : sending bw to %d ", nfc->rk, wv->src); */
+/*           g_printerr ("%d : sending bw to %d - ", nfc->rk, wv->src); */
 /*           vsg_prtree_key2@t@_write (&wv->id, stderr); */
 /*           g_printerr ("\n"); */
+/*           fflush (stderr); */
 
           msg->position = 0;
 
@@ -1620,6 +1635,8 @@ static gboolean _propose_backward_send (VsgPRTree2@t@ *tree,
 
           g_slist_free_1 (current);
 
+          sent = TRUE;
+
           /* stop once we have send _one_ backward visitor to avoid
            * entanglement (because we can be called by a function that waits
            * for sending a message).
@@ -1636,6 +1653,9 @@ static gboolean _propose_backward_send (VsgPRTree2@t@ *tree,
 
   return sent;
 }
+
+/* #include <sys/types.h> */
+/* #include <unistd.h> */
 
 /*
  * Probes for incoing messages. When called with @blocking == TRUE, will wait
@@ -1692,6 +1712,12 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
         vsg_packed_msg_recv_read (&nfc->recv, &id, 1,
                                   VSG_MPI_TYPE_PRTREE_KEY2@T@);
 
+/*         g_printerr ("%d(%d) : fw recv from %d - ", nfc->rk, getpid (), */
+/*                     status.MPI_SOURCE); */
+/*         vsg_prtree_key2@t@_write (&id, stderr); */
+/*         g_printerr ("\n"); */
+/*         fflush (stderr); */
+
         node = _new_visiting_node (tree, &id);
 
         wv = _waiting_visitor_new (node, &id, status.MPI_SOURCE);
@@ -1706,10 +1732,13 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
 
         node = vsg_prtree2@t@node_key_lookup (tree->node, id);
 
-/*             g_printerr ("%d : bw recv from %d - ", nfc->rk, status.MPI_SOURCE); */
-/*             vsg_prtree_key2@t@_write (&id, stderr); */
-/*             g_printerr (" "); */
-/*             fflush (stderr); */
+/*         g_printerr ("%d(%d) : bw recv from %d - ", nfc->rk, getpid (), */
+/*                     status.MPI_SOURCE); */
+/*         vsg_prtree_key2@t@_write (&id, stderr); */
+/*         g_printerr ("\n"); */
+/*         fflush (stderr); */
+
+        g_assert (PRTREE2@T@NODE_IS_LOCAL (node));
 
         _visit_unpack_node (config, node, &nfc->recv, DIRECTION_BACKWARD);
 
