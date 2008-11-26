@@ -272,5 +272,11 @@ void vsg_comm_buffer_free (VsgCommBuffer *cb)
 {
   vsg_comm_buffer_drop_buffers (cb);
 
+  if (cb->numtasks > 0)
+    {
+      g_free (cb->send);
+      g_free (cb->recv);
+    }
+
   g_free (cb);
 }
