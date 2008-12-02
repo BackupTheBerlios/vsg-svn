@@ -937,6 +937,8 @@ static VsgNFProcMsg *vsg_nf_proc_msg_new (MPI_Comm comm)
 
 static void vsg_nf_proc_msg_free (VsgNFProcMsg *nfpm)
 {
+  vsg_packed_msg_drop_buffer (&nfpm->send_pm);
+
   g_slice_free (VsgNFProcMsg, nfpm);
 }
 
