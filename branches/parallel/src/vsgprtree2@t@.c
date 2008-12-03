@@ -108,9 +108,10 @@ static void _prtree2@t@_dealloc (VsgPRTree2@t@ *prtree2@t@)
     }
 }
 
-VsgPRTree2@t@Node *vsg_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
-                                             const VsgVector2@t@ *ubound,
-                                             const VsgPRTree2@t@Config *config)
+VsgPRTree2@t@Node *
+vsg_prtree2@t@node_alloc_no_data (const VsgVector2@t@ *lbound,
+                                  const VsgVector2@t@ *ubound,
+                                  const VsgPRTree2@t@Config *config)
 {
   VsgPRTree2@t@Node *ret;
   ret = g_chunk_new (VsgPRTree2@t@Node, vsg_prtree2@t@node_mem_chunk);
@@ -125,20 +126,34 @@ VsgPRTree2@t@Node *vsg_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
 
   vsg_vector2@t@_lerp (lbound, ubound, 0.5, &ret->center);
 
-  if (config != NULL && config->user_data_type != G_TYPE_NONE)
-    {
-      ret->user_data = g_boxed_copy (config->user_data_type,
-                                     config->user_data_model);
-    }
-  else
-    {
-      ret->user_data = NULL;
-    }
-
   ret->variable.isint = FALSE; /* default is a leaf */
+
+  ret->user_data = NULL;
 
   ret->parallel_status.storage = VSG_PARALLEL_LOCAL;
   ret->parallel_status.proc = 0;
+
+  return ret;
+}
+
+static void _node_alloc_data (VsgPRTree2@t@Node *node,
+                              const VsgPRTree2@t@Config *config)
+{
+  if (config != NULL && config->user_data_type != G_TYPE_NONE)
+    {
+      node->user_data = g_boxed_copy (config->user_data_type,
+                                     config->user_data_model);
+    }
+}
+
+VsgPRTree2@t@Node *vsg_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
+                                             const VsgVector2@t@ *ubound,
+                                             const VsgPRTree2@t@Config *config)
+{
+  VsgPRTree2@t@Node *ret = vsg_prtree2@t@node_alloc_no_data (lbound, ubound,
+                                                             config);
+
+  _node_alloc_data (ret, config);
 
   return ret;
 }
@@ -158,13 +173,20 @@ static void _prtree2@t@node_dealloc (VsgPRTree2@t@Node *prtree2@t@node,
 
 static VsgPRTree2@t@Node *_leaf_alloc (const VsgVector2@t@ *lbound,
                                        const VsgVector2@t@ *ubound,
+                                       const VsgParallelStatus parallel_status,
                                        const VsgPRTree2@t@Config *config)
 {
-  VsgPRTree2@t@Node *node = vsg_prtree2@t@node_alloc (lbound, ubound, config);
+  VsgPRTree2@t@Node *node = vsg_prtree2@t@node_alloc_no_data (lbound, ubound,
+                                                              config);
+
+  if (!VSG_PARALLEL_STATUS_IS_REMOTE (parallel_status))
+    _node_alloc_data (node, config);
 
   node->variable.isint = 0;
 
   PRTREE2@T@NODE_LEAF(node).point = 0;
+
+  node->parallel_status = parallel_status;
 
   return node;
 }
@@ -218,7 +240,8 @@ static VsgPRTree2@t@Node *_int_alloc (const VsgVector2@t@ *lbound,
       if ((child == NULL) || (i != loc))
         {
           _prtree2@t@node_child_get_bounds (node, i, &lbound, &ubound);
-          children[i] = _leaf_alloc (&lbound, &ubound, config);
+          children[i] = _leaf_alloc (&lbound, &ubound, child->parallel_status,
+                                     config);
         }
       else
         {
@@ -492,7 +515,8 @@ void vsg_prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
 
       _prtree2@t@node_child_get_bounds (node, i, &lbound, &ubound);
 
-      children[i] = _leaf_alloc (&lbound, &ubound, config);
+      children[i] = _leaf_alloc (&lbound, &ubound, node->parallel_status,
+                                 config);
 
       children[i]->parallel_status = node->parallel_status;
     }
@@ -1305,6 +1329,7 @@ vsg_prtree2@t@_new_full (const VsgVector2@t@ *lbound,
                          guint max_point)
 {
   VsgPRTree2@t@ *prtree2@t@;
+  VsgParallelStatus parallel_status = {VSG_PARALLEL_LOCAL, 0};
 
   g_return_val_if_fail (lbound != NULL, NULL);
   g_return_val_if_fail (ubound != NULL, NULL);
@@ -1312,7 +1337,8 @@ vsg_prtree2@t@_new_full (const VsgVector2@t@ *lbound,
 
   prtree2@t@ = _prtree2@t@_alloc ();
 
-  prtree2@t@->node = _leaf_alloc(lbound, ubound, &prtree2@t@->config);
+  prtree2@t@->node = _leaf_alloc(lbound, ubound, parallel_status,
+                                 &prtree2@t@->config);
 
   vsg_prtree2@t@_set_point_loc (prtree2@t@, point_locfunc);
 
@@ -1406,6 +1432,7 @@ VsgPRTree2@t@ *vsg_prtree2@t@_clone (VsgPRTree2@t@ *prtree2@t@)
 
   res->node = _leaf_alloc(&prtree2@t@->node->lbound,
                           &prtree2@t@->node->ubound,
+                          prtree2@t@->node->parallel_status,
                           &res->config);
 
   vsg_prtree2@t@_foreach_point (prtree2@t@, (GFunc) _copy_point, res);

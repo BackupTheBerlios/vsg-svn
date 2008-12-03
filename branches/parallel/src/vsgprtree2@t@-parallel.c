@@ -91,8 +91,8 @@ void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
       /* Transform root node to an empty remote */
       vsg_prtree2@t@node_free (tree->node, &tree->config);
 
-      tree->node = vsg_prtree2@t@node_alloc (&bounds[0], &bounds[1],
-                                             &tree->config);
+      tree->node = vsg_prtree2@t@node_alloc_no_data (&bounds[0], &bounds[1],
+                                                     &tree->config);
 
       tree->node->parallel_status.storage = VSG_PARALLEL_REMOTE;
       tree->node->parallel_status.proc = 0;
@@ -581,6 +581,8 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
           if (PRTREE2@T@NODE_IS_REMOTE (node))
             {
               const VsgPRTreeParallelConfig *pc = &config->parallel_config;
+
+              g_assert (node->user_data == NULL);
 
               if (pc->node_data.alloc != NULL)
                 {

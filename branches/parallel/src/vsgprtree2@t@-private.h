@@ -207,6 +207,11 @@ void vsg_prtree2@t@node_free (VsgPRTree2@t@Node *node,
                               const VsgPRTree2@t@Config *config);
 
 VsgPRTree2@t@Node *
+vsg_prtree2@t@node_alloc_no_data (const VsgVector2@t@ *lbound,
+                                  const VsgVector2@t@ *ubound,
+                                  const VsgPRTree2@t@Config *config);
+
+VsgPRTree2@t@Node *
 vsg_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
                           const VsgVector2@t@ *ubound,
                           const VsgPRTree2@t@Config *config);
