@@ -467,46 +467,44 @@ static gint _prtree2@t@node_get_children_proc (VsgPRTree2@t@Node *node)
 static void _flatten_remote (VsgPRTree2@t@Node *node,
                              const VsgPRTree2@t@Config *config)
 {
-  if (PRTREE2@T@NODE_IS_REMOTE (node))
+  /* destroy remaining children */
+  if (PRTREE2@T@NODE_ISINT (node))
     {
-      /* destroy remaining children */
-      if (PRTREE2@T@NODE_ISINT (node))
+      gint i;
+
+      for (i=0; i<4; i++)
         {
-          gint i;
-
-          for (i=0; i<4; i++)
-            {
-              vsg_prtree2@t@node_free (PRTREE2@T@NODE_CHILD (node, i), config);
-              PRTREE2@T@NODE_CHILD (node, i) = NULL;
-            }
+          vsg_prtree2@t@node_free (PRTREE2@T@NODE_CHILD (node, i), config);
+          PRTREE2@T@NODE_CHILD (node, i) = NULL;
         }
-
-      /* remote nodes aren't aware of points and regions stored on another
-       * processor */
-      g_slist_foreach (node->region_list, 
-                       (GFunc) config->parallel_config.region.destroy,
-                       config->parallel_config.region.destroy_data);
-      g_slist_free (node->region_list);
-      node->region_list = NULL;
-
-      /* remove precedent user_data: not needed for a remote node */
-      if (node->user_data != NULL)
-        {
-          const VsgPRTreeParallelConfig *pc = &config->parallel_config;
-
-          if (pc->node_data.destroy)
-            pc->node_data.destroy (node->user_data, TRUE,
-                                   pc->node_data.destroy_data);
-          else
-            g_boxed_free (config->user_data_type, node->user_data);
-
-          node->user_data = NULL;
-        }
-
-      node->point_count = 0;
-      node->region_count = 0;
     }
+
+  /* remote nodes aren't aware of points and regions stored on another
+   * processor */
+  g_slist_foreach (node->region_list, 
+                   (GFunc) config->parallel_config.region.destroy,
+                   config->parallel_config.region.destroy_data);
+  g_slist_free (node->region_list);
+  node->region_list = NULL;
+
+  /* remove precedent user_data: not needed for a remote node */
+  if (node->user_data != NULL)
+    {
+      const VsgPRTreeParallelConfig *pc = &config->parallel_config;
+
+      if (pc->node_data.destroy)
+        pc->node_data.destroy (node->user_data, TRUE,
+                               pc->node_data.destroy_data);
+      else
+        g_boxed_free (config->user_data_type, node->user_data);
+
+      node->user_data = NULL;
+    }
+
+  node->point_count = 0;
+  node->region_count = 0;
 }
+
 static void _traverse_flatten_remote (VsgPRTree2@t@Node *node,
 				      VsgPRTree2@t@NodeInfo *node_info,
 				      const VsgPRTree2@t@Config *config)
