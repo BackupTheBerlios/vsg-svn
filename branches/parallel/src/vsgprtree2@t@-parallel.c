@@ -464,31 +464,57 @@ static gint _prtree2@t@node_get_children_proc (VsgPRTree2@t@Node *node)
   return children_proc;
 }
 
-static void _destroy_children (VsgPRTree2@t@Node *node,
-                               const VsgPRTree2@t@Config *config)
+static void _flatten_remote (VsgPRTree2@t@Node *node,
+                             const VsgPRTree2@t@Config *config)
 {
-  if (PRTREE2@T@NODE_ISINT (node))
+  if (PRTREE2@T@NODE_IS_REMOTE (node))
     {
-      gint i;
-
-      /* destroy children */
-      for (i=0; i<4; i++)
+      /* destroy remaining children */
+      if (PRTREE2@T@NODE_ISINT (node))
         {
-          vsg_prtree2@t@node_free (PRTREE2@T@NODE_CHILD (node, i), config);
-          PRTREE2@T@NODE_CHILD (node, i) = NULL;
+          gint i;
+
+          for (i=0; i<4; i++)
+            {
+              vsg_prtree2@t@node_free (PRTREE2@T@NODE_CHILD (node, i), config);
+              PRTREE2@T@NODE_CHILD (node, i) = NULL;
+            }
         }
+
+      /* remote nodes aren't aware of points and regions stored on another
+       * processor */
+      g_slist_foreach (node->region_list, 
+                       (GFunc) config->parallel_config.region.destroy,
+                       config->parallel_config.region.destroy_data);
+      g_slist_free (node->region_list);
+      node->region_list = NULL;
+
+      /* remove precedent user_data: not needed for a remote node */
+      if (node->user_data != NULL)
+        {
+          const VsgPRTreeParallelConfig *pc = &config->parallel_config;
+
+          if (pc->node_data.destroy)
+            pc->node_data.destroy (node->user_data, TRUE,
+                                   pc->node_data.destroy_data);
+          else
+            g_boxed_free (config->user_data_type, node->user_data);
+
+          node->user_data = NULL;
+        }
+
+      node->point_count = 0;
+      node->region_count = 0;
     }
-
 }
-
-static void _node_remove_regions (VsgPRTree2@t@Node *node,
-                                  const VsgPRTree2@t@Config *config)
+static void _traverse_flatten_remote (VsgPRTree2@t@Node *node,
+				      VsgPRTree2@t@NodeInfo *node_info,
+				      const VsgPRTree2@t@Config *config)
 {
-  g_slist_foreach (node->region_list, 
-                   (GFunc) config->parallel_config.region.destroy,
-                   config->parallel_config.region.destroy_data);
-  g_slist_free (node->region_list);
-  node->region_list = NULL;
+  if (PRTREE2@T@NODE_IS_REMOTE (node))
+    {
+      _flatten_remote (node, config);
+    }
 }
 
 typedef struct _DistributeData DistributeData;
@@ -553,7 +579,7 @@ static void _traverse_distribute_nodes (VsgPRTree2@t@Node *node,
 
   if (new_storage == VSG_PARALLEL_REMOTE)
     {
-      _destroy_children (node, dd->config);
+     _flatten_remote (node, dd->config);
     }
 
   /* update node's parallel status */
@@ -621,8 +647,7 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
 
           if (storage == VSG_PARALLEL_REMOTE)
             {
-              _node_remove_regions (node, config);
-              _destroy_children (node, config);
+              _flatten_remote (node, config);
             }
 
           node->parallel_status.storage = storage;
@@ -634,8 +659,7 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
 
   if (storage == VSG_PARALLEL_REMOTE)
     {
-      _node_remove_regions (node, config);
-      _destroy_children (node, config);
+      _flatten_remote (node, config);
     }
 
   if (user_data != NULL)
@@ -674,24 +698,6 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
 
   node->parallel_status.storage = storage;
   node->parallel_status.proc = dst;
-}
-
-static void _traverse_flatten_remote (VsgPRTree2@t@Node *node,
-				      VsgPRTree2@t@NodeInfo *node_info,
-				      const VsgPRTree2@t@Config *config)
-{
-  if (PRTREE2@T@NODE_IS_REMOTE (node))
-    {
-      /* destroy remaining children */
-      _destroy_children (node, config);
-
-      /* remote nodes aren't aware of points and regions stored on another
-       * processor */
-      _node_remove_regions (node, config);
-
-      node->point_count = 0;
-      node->region_count = 0;
-    }
 }
 
 void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
