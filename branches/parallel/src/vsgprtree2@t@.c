@@ -126,7 +126,8 @@ vsg_prtree2@t@node_alloc_no_data (const VsgVector2@t@ *lbound,
 
   vsg_vector2@t@_lerp (lbound, ubound, 0.5, &ret->center);
 
-  ret->variable.isint = FALSE; /* default is a leaf */
+  ret->variable.leaf.isint = FALSE; /* default is an empty leaf */
+  ret->variable.leaf.point = NULL;
 
   ret->user_data = NULL;
 
