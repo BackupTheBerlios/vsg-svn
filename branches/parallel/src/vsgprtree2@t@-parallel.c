@@ -2023,8 +2023,11 @@ vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
   /* check all remaining messages */
   while (vsg_prtree2@t@_nf_check_receive (tree, nfc, MPI_ANY_TAG, FALSE) ||
          nfc->pending_end_forward > 0)
+    {
 /*     g_printerr ("%d : check %d\n", nfc->rk,  nfc->end_forward_received); */
-    /* pass */;
+      g_usleep (1);
+    }
+
 /*   g_printerr ("%d(%d) : end fw received\n", nfc->rk, getpid ()); */
 
   /* now, no forward visitor should be left incoming */
