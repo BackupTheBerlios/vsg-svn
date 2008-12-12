@@ -518,9 +518,9 @@ void _tree_write (VsgPRTree2d *tree, gchar *prefix)
                          (VsgPRTree2dFunc) _traverse_bg_write,
                          f);
 
-  vsg_prtree2d_traverse (tree, G_PRE_ORDER,
-                         (VsgPRTree2dFunc) _traverse_fg_write,
-                         f);
+/*   vsg_prtree2d_traverse (tree, G_PRE_ORDER, */
+/*                          (VsgPRTree2dFunc) _traverse_fg_write, */
+/*                          f); */
   fprintf (f, "<xi:include xmlns:xi=\"http://www.w3.org/2001/XInclude\" " \
            "href=\"comm-%03d.svg\" xpointer=\"/1\" " \
            "parse=\"xml\" />\n", rk);
@@ -1212,6 +1212,12 @@ gint main (gint argc, gchar ** argv)
       timer = g_timer_new ();
     }
 
+  if (_do_write)
+    {
+      MPI_Barrier (MPI_COMM_WORLD);
+      _tree_write (tree, "prtree2parallel-");
+    }
+
   /* accumulate the point counts across the tree */
   _do_upward_pass (tree);
 
@@ -1230,12 +1236,6 @@ gint main (gint argc, gchar ** argv)
                   g_timer_elapsed (timer, NULL));
 
       g_timer_destroy (timer);
-    }
-
-  if (_do_write)
-    {
-      MPI_Barrier (MPI_COMM_WORLD);
-      _tree_write (tree, "prtree2parallel-");
     }
 
   if (_do_write)
