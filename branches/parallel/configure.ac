@@ -219,6 +219,22 @@ fi
 
 AM_CONDITIONAL(HAVE_MPI, test x$have_mpi=xyes)
 
+# check for MPI_UNSIGNED_LONG_LONG
+if test x$have_mpi = xyes; then
+  AC_LANG_PUSH(C)
+  orig_CFLAGS="${CFLAGS}"
+  CFLAGS="${MPI_CFLAGS} ${CFLAGS}"
+  AC_MSG_CHECKING(MPI have MPI_UNSIGNED_LONG_LONG)
+  AC_TRY_COMPILE([#include <mpi.h>],
+                 [MPI_Datatype type; type = MPI_UNSIGNED_LONG_LONG; ],
+                 [AC_MSG_RESULT(yes)],
+                 [AC_MSG_RESULT([no. Replacing with MPI_LONG_LONG_INT.])
+                  AC_DEFINE(MPI_UNSIGNED_LONG_LONG,MPI_LONG_LONG_INT,
+                            [Replace missing MPI_UNSIGNED_LONG_LONG])])
+  CFLAGS="${orig_CFLAGS}"
+  AC_LANG_POP()
+fi
+
 dnl Checks for header files.
 AC_HEADER_STDC
 dnl 

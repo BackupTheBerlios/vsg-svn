@@ -1,3 +1,5 @@
+#include <vsg-config.h>
+
 #include "vsgprtreekey2@t@.h"
 
 #include <string.h>
