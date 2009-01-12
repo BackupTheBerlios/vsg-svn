@@ -2159,20 +2159,6 @@ void vsg_prtree2@t@_update_remote_depths (VsgPRTree2@t@ *tree)
                                            _remote_depths_store,
                                            &reduced->data);
 
-  {
-    gint i;
-    gint rk;
-
-    MPI_Comm_rank (tree->config.parallel_config.communicator, &rk);
-    g_printerr ("%d : remote depths [", rk);
-    for (i=0; i< reduced->len; i++)
-      {
-        g_printerr ("%d ", g_array_index (reduced, gint, i));
-      }
-    g_printerr ("]\n");
-    fflush (stderr);
-  }
-
   g_array_free (reduced, TRUE);
 
   tree->config.remote_depth_dirty = FALSE;
