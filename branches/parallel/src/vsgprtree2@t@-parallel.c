@@ -329,6 +329,9 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
     }
 
   vsg_comm_buffer_free (cb);
+
+  /* remote trees depth may have changed */
+  tree->config.remote_depth_dirty = TRUE;
 }
 
 static void _prtree2@t@node_fix_counts_local (VsgPRTree2@t@Node *node)
@@ -861,6 +864,8 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
 					   _traverse_flatten_remote,
 					   &tree->config);
 
+  /* remote trees depth may have changed */
+  tree->config.remote_depth_dirty = TRUE;
 }
 
 /* #include <sys/types.h> */
@@ -1792,12 +1797,15 @@ static void _traverse_check_remote_neighbours (VsgPRTree2@t@Node *node,
     {
       gint proc = PRTREE2@T@NODE_PROC (node);
       guint8 nf;
-
+      guint8 mindepth = node_info->depth +
+        PRTREE2@T@NODE_LEAF (node).remote_depth;
       if (data->procs[proc]) return;
 
-      nf = vsg_prtree_key2@t@_compare_near_far (&data->ref_info->id,
-                                                &node_info->id);
-
+/*       nf = vsg_prtree_key2@t@_compare_near_far (&data->ref_info->id, */
+/*                                                 &node_info->id); */
+      nf = vsg_prtree_key2@t@_compare_near_far_mindepth (&data->ref_info->id,
+                                                         &node_info->id,
+                                                         mindepth);
       if (nf < 3 && nf > 0)
         {
           g_array_append_val (data->procnums, proc);
@@ -1817,10 +1825,13 @@ vsg_prtree2@t@_node_check_parallel_near_far (VsgPRTree2@t@ *tree,
                                              VsgPRTree2@t@Node *node,
                                              VsgPRTree2@t@NodeInfo *info)
 {
-  gint rk;
+  gint rk, sz;
 
   if (tree->config.parallel_config.communicator == MPI_COMM_NULL)
     return;
+
+  MPI_Comm_size (tree->config.parallel_config.communicator, &sz);
+  if (sz < 2) return;
 
   MPI_Comm_rank (tree->config.parallel_config.communicator, &rk);
 
@@ -2065,3 +2076,105 @@ vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
               g_timer_elapsed (timer, NULL));
   g_timer_destroy (timer);
 }
+
+static guint _prtree2@t@node_mindepth (const VsgPRTree2@t@Node *node)
+{
+  guint res = G_MAXUINT;
+  vsgloc2 i;
+
+  if (PRTREE2@T@NODE_ISLEAF (node) ||
+      PRTREE2@T@NODE_IS_REMOTE (node)) return 0;
+
+  for (i=0; i<4; i++)
+    {
+      guint tmp = _prtree2@t@node_mindepth (PRTREE2@T@NODE_CHILD (node, i));
+      if (tmp < res) res = tmp;
+    }
+
+  return res + 1;
+}
+
+static void _remote_depths_array_build (VsgPRTree2@t@Node *node,
+                                        VsgPRTree2@t@NodeInfo *node_info,
+                                        GArray *array)
+{
+  if (! PRTREE2@T@NODE_IS_SHARED (node))
+    {
+      /* detect root of local (remote) subtrees */
+      if (node_info->father_info == NULL ||
+          VSG_PRTREE2@T@_NODE_INFO_IS_SHARED (node_info->father_info))
+        {
+          gint i = 0;
+
+          if (PRTREE2@T@NODE_IS_LOCAL (node))
+            i = _prtree2@t@node_mindepth (node);
+
+          g_array_append_val (array, i);
+        }
+    }
+}
+
+
+
+static void _remote_depths_store (VsgPRTree2@t@Node *node,
+                                  VsgPRTree2@t@NodeInfo *node_info,
+                                  gint ** depths)
+{
+  if (! PRTREE2@T@NODE_IS_SHARED (node))
+    {
+      /* detect root of local (remote) subtrees */
+      if (node_info->father_info == NULL ||
+          VSG_PRTREE2@T@_NODE_INFO_IS_SHARED (node_info->father_info))
+        {
+          if (PRTREE2@T@NODE_IS_REMOTE (node))
+            PRTREE2@T@NODE_LEAF (node).remote_depth = **depths;
+
+          /* go to the next depth entry */
+          depths ++;
+        }
+    }
+}
+
+void vsg_prtree2@t@_update_remote_depths (VsgPRTree2@t@ *tree)
+{
+  GArray *array = g_array_sized_new (FALSE, FALSE, sizeof (gint), 1024);
+  GArray *reduced;
+
+  vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL, NULL, NULL,
+                                           (VsgPRTree2@t@InternalFunc)
+                                           _remote_depths_array_build,
+                                           array);
+
+  /* prepare reduced for storing the results of the Allreduce */
+  reduced = g_array_sized_new (FALSE, TRUE, sizeof (gint), array->len);
+  reduced = g_array_set_size (reduced, array->len);
+
+  MPI_Allreduce (array->data, reduced->data, array->len, MPI_INT, MPI_MAX,
+                 tree->config.parallel_config.communicator);
+
+  g_array_free (array, TRUE);
+
+  vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL, NULL, NULL,
+                                           (VsgPRTree2@t@InternalFunc)
+                                           _remote_depths_store,
+                                           &reduced->data);
+
+  {
+    gint i;
+    gint rk;
+
+    MPI_Comm_rank (tree->config.parallel_config.communicator, &rk);
+    g_printerr ("%d : remote depths [", rk);
+    for (i=0; i< reduced->len; i++)
+      {
+        g_printerr ("%d ", g_array_index (reduced, gint, i));
+      }
+    g_printerr ("]\n");
+    fflush (stderr);
+  }
+
+  g_array_free (reduced, TRUE);
+
+  tree->config.remote_depth_dirty = FALSE;
+}
+

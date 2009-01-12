@@ -1357,6 +1357,8 @@ vsg_prtree2@t@_new_full (const VsgVector2@t@ *lbound,
     max_point = PRTREE2@T@LEAF_MAXSIZE;
   prtree2@t@->config.max_point = max_point;
 
+  prtree2@t@->config.remote_depth_dirty = TRUE;
+
   return prtree2@t@;
 }
 

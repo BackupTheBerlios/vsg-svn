@@ -127,6 +127,65 @@ static gboolean _check_test_data (TestData *data)
   return memcmp (data, &_test_data_sentinel, sizeof (TestData)) == 0;
 }
 
+typedef struct _NFTestData NFTestData;
+
+struct _NFTestData {
+  VsgPRTreeKey2d k1;
+  VsgPRTreeKey2d k2;
+  guint8 mindepth;
+  guint8 cmp_ref;
+  guint8 cmp_mindepth_ref;
+};
+
+static NFTestData _nf_test_data[] = {
+  {{0x04, 0x0, 3}, {0x19, 0x0, 5}, 4, 2, 3},
+  {{0x1, 0x1, 2}, {0x0, 0x1, 1}, 1, 1, 1},
+  {{0x1, 0x1, 2}, {0x0, 0x1, 1}, 2, 1, 1},
+  {{0x1, 0x0, 2}, {0x0, 0x1, 1}, 2, 1, 2},
+  {{0x1, 0x1, 3}, {0x0, 0x2, 2}, 3, 2, 3},
+  {{0x0}, {0x0}, 0, 0, 0},
+};
+
+static NFTestData _nf_test_data_sentinel = {{0x0}, {0x0}, 0, 0, 0};
+
+gboolean _check_nf_mindepth (NFTestData *data)
+{
+  guint8 cmp, cmp_mindepth;
+
+  if (memcmp (data, &_nf_test_data_sentinel, sizeof (NFTestData)) == 0)
+    return TRUE;
+
+  cmp = vsg_prtree_key2d_compare_near_far (&data->k1, &data->k2);
+  if (cmp != data->cmp_ref)
+    {
+      g_printerr ("Error on compare_near_far (k1, k2):\n");
+      g_printerr ("k1: ");
+      vsg_prtree_key2d_write (&data->k1, stderr);
+      g_printerr ("\nk2: ");
+      vsg_prtree_key2d_write (&data->k2, stderr);
+
+      g_printerr ("\ngot %u, should be %u\n\n", cmp, data->cmp_ref);
+    }
+
+  cmp_mindepth = vsg_prtree_key2d_compare_near_far_mindepth (&data->k1,
+                                                             &data->k2,
+                                                             data->mindepth);
+  if (cmp_mindepth != data->cmp_mindepth_ref)
+    {
+      g_printerr ("Error on compare_near_far_mindepth (k1, k2, mindepth):\n");
+      g_printerr ("k1: ");
+      vsg_prtree_key2d_write (&data->k1, stderr);
+      g_printerr ("\nk2: ");
+      vsg_prtree_key2d_write (&data->k2, stderr);
+
+      g_printerr ("\nmindepth: %u\ngot %u, should be %u\n\n", data->mindepth,
+                  cmp_mindepth,
+                  data->cmp_mindepth_ref);
+    }
+
+  return FALSE;
+}
+
 gint main (gint argc, gchar ** argv)
 {
   gint ret = 0;
@@ -140,6 +199,10 @@ gint main (gint argc, gchar ** argv)
     }
 
   while (! _check_test_data (&_test_data[i]))
+    i ++;
+
+  i = 0;
+  while (! _check_nf_mindepth (&_nf_test_data[i]))
     i ++;
 
   return ret;

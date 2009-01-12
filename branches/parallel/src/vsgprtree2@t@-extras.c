@@ -506,6 +506,11 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
 
   vsg_nf_config2@t@_init (&nfc, comm, far_func, near_func, user_data);
 
+  if (comm != MPI_COMM_NULL && prtree2@t@->config.remote_depth_dirty)
+    {
+      vsg_prtree2@t@_update_remote_depths (prtree2@t@);
+    }
+
   vsg_prtree2@t@node_near_far_traversal (prtree2@t@, &nfc,
                                          prtree2@t@->node,
                                          NULL, 0);

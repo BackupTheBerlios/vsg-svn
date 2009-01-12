@@ -68,6 +68,8 @@ struct _VsgPRTree2@t@Leaf {
 
   gpointer isint;
   GSList *point;
+  gint8 remote_depth; /* depth of the subtree in case this node is
+                         remote */
 };
 
 struct _VsgPRTree2@t@Int {
@@ -169,6 +171,9 @@ struct _VsgPRTree2@t@Config {
 
   /* parallel tree configuration */
   VsgPRTreeParallelConfig parallel_config;
+
+  gboolean remote_depth_dirty; /* flag indicating if remote depths
+                                  are up-to-date */
 };
 
 struct _VsgPRTree2@t@ {
@@ -261,6 +266,8 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
 void
 vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
                                       VsgNFConfig2@t@ *nfc);
+
+void vsg_prtree2@t@_update_remote_depths (VsgPRTree2@t@ *tree);
 
 G_END_DECLS;
 

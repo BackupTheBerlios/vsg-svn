@@ -105,8 +105,14 @@ MPI_Datatype vsg_prtree_key2@t@_get_mpi_type (void)
 
   return prtree_key2@t@_mpi_type;
 }
+
+static void _key_copy (VsgPRTreeKey2@t@ *dst, VsgPRTreeKey2@t@ *src)
+{
+  memcpy (dst, src, sizeof (VsgPRTreeKey2@t@));
+}
+
 static void _key_scale_up (VsgPRTreeKey2@t@ *key, guint8 offset,
-                        VsgPRTreeKey2@t@ *result)
+                           VsgPRTreeKey2@t@ *result)
 {
   result->x = key->x << offset;
   result->y = key->y << offset;
@@ -421,20 +427,166 @@ guint8 vsg_prtree_key2@t@_compare_near_far (VsgPRTreeKey2@t@ *one,
    if (one->depth < other->depth)
     {
       _key_scale_down (other, other->depth - one->depth, &_other);
-      memcpy (&_one, one, sizeof (VsgPRTreeKey2@t@));
+      _key_copy (&_one, one);
     }
   else if (one->depth > other->depth)
     {
       _key_scale_down (one, one->depth - other->depth, &_one);
-      memcpy (&_other, other, sizeof (VsgPRTreeKey2@t@));
+      _key_copy (&_other, other);
     }
   else
     {
-      memcpy (&_one, one, sizeof (VsgPRTreeKey2@t@));
-      memcpy (&_other, other, sizeof (VsgPRTreeKey2@t@));
+      _key_copy (&_one, one);
+      _key_copy (&_other, other);
     }
 
    if (! _ancestor_order (&_one, &_other)) return 3;
+
+   d = _key2@t@_distance (&_one, &_other);
+
+   if (d < 3) return d;
+
+   if (d == 3)
+     {
+       /* compare fathers distance */
+       _key_scale_down (&_one, 1, &_one);
+       _key_scale_down (&_other, 1, &_other);
+
+       d = _key2@t@_distance (&_one, &_other);
+
+       /* if fathers are neighbours, then promote nodes to far interaction */
+       if (d < 2) return 2;
+     }
+
+   return 3;
+}
+
+static vsgloc2 _first_difference_coord (VsgPRTreeKey2@t@ *one,
+                                        VsgPRTreeKey2@t@ *other,
+                                        guint8 *index)
+{
+  VsgPRTreeKey2@t@ xor;
+  guint8 x, y;
+
+  vsg_prtree_key2@t@_xor (one, other, &xor);
+
+  x = _single_key_first_true_bit (xor.x, xor.depth);
+  y = _single_key_first_true_bit (xor.y, xor.depth);
+
+  *index = MAX (x, y);
+
+  if (*index == 0) return 0;
+
+  _key_scale_down (&xor, *index-1, &xor);
+
+  return (xor.x & 1) | ((xor.y & 1) << 1);
+}
+
+static void _expand_to_closest (VsgPRTreeKey2@t@ *key,
+                                VsgPRTreeKey2@t@ *reference,
+                                guint8 index, vsgloc2 coord,
+                                guint8 free_depth)
+{
+  if (index > 1 && free_depth > 0)
+    {
+      @key_type@ ref_mask = (1 << free_depth) - 1;
+      @key_type@ key_mask = ~ref_mask;
+
+/*       g_printerr ("ref_mask 0x%x - key_mask 0x%x\n", ref_mask, key_mask); */
+
+      if (coord & VSG_LOC2_X)
+        {
+          @key_type@ ref_bit = reference->x & (1 << (index-1));
+          if (ref_bit != 0) ref_bit = ~0 & ref_mask;
+
+/*           g_printerr ("coord 0x%x --- ref_bit 0x%x\n", coord, ref_bit); */
+/*           g_printerr ("key->x & key_mask 0x%x\n", (key->x & key_mask)); */
+
+          key->x = (key->x & key_mask) | ref_bit;
+        }
+      else
+        {
+          memcpy (&key->x, &reference->x, sizeof (@key_type@));
+        }
+
+      if (coord & VSG_LOC2_Y)
+        {
+          @key_type@ ref_bit = reference->y & (1 << (index-1));
+          if (ref_bit != 0) ref_bit = ~0 & ref_mask;
+
+          key->y = (key->y & key_mask) | ref_bit;
+        }
+      else
+        {
+          memcpy (&key->y, &reference->y, sizeof (@key_type@));
+        }
+    }
+
+
+}
+
+guint8 vsg_prtree_key2@t@_compare_near_far_mindepth (VsgPRTreeKey2@t@ *one,
+                                                     VsgPRTreeKey2@t@ *other,
+                                                     guint8 mindepth)
+{
+  VsgPRTreeKey2@t@ _one;
+  VsgPRTreeKey2@t@ _other;
+  @key_type@ d;
+  vsgloc2 fdc;
+  guint8 fdi;
+
+  mindepth = MIN (mindepth, MAX (one->depth, other->depth));
+
+  /* set one to the desired scale */ 
+  if (one->depth > mindepth)
+    {
+      _key_scale_down (one, one->depth - mindepth, &_one);
+    }
+  else if (one->depth < mindepth)
+    {
+      _key_scale_up (one, mindepth - one->depth, &_one);
+    }
+  else
+    {
+      _key_copy (&_one, one);
+    }
+
+  if (other->depth > mindepth)
+    {
+      _key_scale_down (other, other->depth - mindepth, &_other);
+    }
+  else if (other->depth < mindepth)
+    {
+      _key_scale_up (other, mindepth - other->depth, &_other);
+    }
+  else
+    {
+      _key_copy (&_other, other);
+    }
+
+   if (! _ancestor_order (&_one, &_other)) return 3;
+
+   fdc = _first_difference_coord (&_one, &_other, &fdi);
+
+   if (fdc == 0) return 0;
+
+/*    g_printerr ("fdi %d\n", fdi); */
+
+/*    vsg_prtree_key2@t@_write (&_one, stderr); */
+/*    g_printerr (" "); */
+/*    vsg_prtree_key2@t@_write (&_other, stderr); */
+/*    g_printerr (" --- %d %d", one->depth, _one.depth); */
+/*    g_printerr ("\n"); */
+
+   if (one->depth < _one.depth)
+     _expand_to_closest (&_one, &_other, fdi, fdc, _one.depth-one->depth);
+   else
+     _expand_to_closest (&_other, &_one, fdi, fdc, _other.depth-other->depth);
+
+/*    vsg_prtree_key2@t@_write (&_one, stderr); */
+/*    g_printerr (" "); */
+/*    vsg_prtree_key2@t@_write (&_other, stderr); */
+/*    g_printerr ("\n"); */
 
    d = _key2@t@_distance (&_one, &_other);
 

@@ -21,9 +21,13 @@ static gint _maxbox = 2;
 
 /* global variables */
 static gint rk, sz;
+
+/* statistics counters */
 static gint _near_count = 0;
 static gint _far_count = 0;
 static glong _ref_count = 0;
+static gint _fw_count = 0;
+static gint _bw_count = 0;
 
 typedef struct _Pt Pt;
 typedef struct _NodeCounter NodeCounter;
@@ -104,6 +108,7 @@ void nc_visit_fw_pack (NodeCounter *nc, VsgPackedMsg *pm,
                        gpointer user_data)
 {
   vsg_packed_msg_send_append (pm, &nc->in_count, 1, MPI_LONG);
+  _fw_count ++;
 }
 
 void nc_visit_fw_unpack (NodeCounter *nc, VsgPackedMsg *pm,
@@ -120,6 +125,7 @@ void nc_visit_bw_pack (NodeCounter *nc, VsgPackedMsg *pm,
 {
 /*   g_printerr ("%d : pack out %d\n", rk, nc->out_count); */
   vsg_packed_msg_send_append (pm, &nc->out_count, 1, MPI_LONG);
+  _bw_count ++;
 }
 
 void nc_visit_bw_unpack (NodeCounter *nc, VsgPackedMsg *pm,
@@ -518,9 +524,9 @@ void _tree_write (VsgPRTree2d *tree, gchar *prefix)
                          (VsgPRTree2dFunc) _traverse_bg_write,
                          f);
 
-/*   vsg_prtree2d_traverse (tree, G_PRE_ORDER, */
-/*                          (VsgPRTree2dFunc) _traverse_fg_write, */
-/*                          f); */
+  vsg_prtree2d_traverse (tree, G_PRE_ORDER,
+                         (VsgPRTree2dFunc) _traverse_fg_write,
+                         f);
   fprintf (f, "<xi:include xmlns:xi=\"http://www.w3.org/2001/XInclude\" " \
            "href=\"comm-%03d.svg\" xpointer=\"/1\" " \
            "parse=\"xml\" />\n", rk);
@@ -751,7 +757,16 @@ void _circle_fill (VsgPRTree2d *tree, guint np)
 
       _ref_count += c;
 
-      if (i%_flush_interval == 0) vsg_prtree2d_migrate_flush (tree);
+      if (i%_flush_interval == 0)
+        {
+          vsg_prtree2d_migrate_flush (tree);
+          if (i%(_flush_interval*100) == 0)
+            {
+              if (_verbose)
+                g_printerr ("%d: contiguous dist before %dth point\n", rk, i);
+              _distribute (tree);
+            }
+        }
       if (i%sz != rk) continue;
 
       if (i % 10000 == 0 && _verbose)
@@ -947,6 +962,7 @@ void _near (VsgPRTree2dNodeInfo *one_info,
   _near_count ++;
 }
 
+#define _N 40000
 gboolean _far (VsgPRTree2dNodeInfo *one_info,
                VsgPRTree2dNodeInfo *other_info,
                gint *err)
@@ -979,6 +995,15 @@ gboolean _far (VsgPRTree2dNodeInfo *one_info,
     }
 
   _far_count ++;
+
+  {
+    long i, j = 0;
+    for (i = 0; i< _N; i++)
+      {
+        j = j + i;
+      }
+    return j == _N*(_N-1)/2;
+  }
 
   return TRUE;
 }
@@ -1212,12 +1237,6 @@ gint main (gint argc, gchar ** argv)
       timer = g_timer_new ();
     }
 
-  if (_do_write)
-    {
-      MPI_Barrier (MPI_COMM_WORLD);
-      _tree_write (tree, "prtree2parallel-");
-    }
-
   /* accumulate the point counts across the tree */
   _do_upward_pass (tree);
 
@@ -1227,6 +1246,12 @@ gint main (gint argc, gchar ** argv)
                                    &ret);
   /* accumulate from top to leaves */
   vsg_prtree2d_traverse (tree, G_PRE_ORDER, (VsgPRTree2dFunc) _down, NULL);
+
+  if (_do_write)
+    {
+      MPI_Barrier (MPI_COMM_WORLD);
+      _tree_write (tree, "prtree2parallel-");
+    }
 
   if (_verbose)
     {
@@ -1253,6 +1278,8 @@ gint main (gint argc, gchar ** argv)
     {
       gint near_count_sum, far_count_sum;
       MPI_Barrier (MPI_COMM_WORLD);
+      g_printerr ("%d: processor msg stats fw=%d bw=%d\n",
+                  rk, _fw_count, _bw_count);
       g_printerr ("%d: processor call stats near=%d far=%d\n",
                   rk, _near_count, _far_count);
 
