@@ -991,7 +991,9 @@ _prtree2@t@node_traverse_custom_internal (VsgPRTree2@t@Node *node,
                                           VsgPRTree2@t@NodeInfo *father_info,
                                           vsgloc2 child_number,
                                           GTraverseType order,
+                                          VsgRegion2@t@InternalLocDataFunc sel_func,
                                           VsgRegion2 selector,
+                                          gpointer sel_data,
                                           VsgPRTree2@t@InternalFunc func,
                                           gpointer user_data,
                                           VsgPRTree2@t@Config *config,
@@ -1000,12 +1002,14 @@ _prtree2@t@node_traverse_custom_internal (VsgPRTree2@t@Node *node,
   VsgPRTree2@t@NodeInfo node_info;
   guint8 i;
   vsgrloc2 ipow;
-  vsgrloc2 locmask = CALL_REGION2@T@_LOC (config, selector, &node->center);
+  vsgrloc2 locmask = VSG_RLOC2_MASK;
 
   gint children[4];
   gpointer children_keys[4];
 
   _vsg_prtree2@t@node_get_info (node, &node_info, father_info, child_number);
+
+  if (sel_func != NULL) locmask = sel_func (selector, &node_info, sel_data);
 
   if (PRTREE2@T@NODE_IS_REMOTE (node))
     {
@@ -1030,7 +1034,8 @@ _prtree2@t@node_traverse_custom_internal (VsgPRTree2@t@Node *node,
           if (ipow & locmask)
             _prtree2@t@node_traverse_custom_internal
               (PRTREE2@T@NODE_CHILD(node, ic), &node_info, ic,
-               order, selector, func, user_data, config, children_keys[i]);
+               order, sel_func, selector, sel_data, func, user_data, config,
+               children_keys[i]);
 	}
     }
 
@@ -1048,7 +1053,8 @@ _prtree2@t@node_traverse_custom_internal (VsgPRTree2@t@Node *node,
           if (ipow & locmask)
             _prtree2@t@node_traverse_custom_internal
               (PRTREE2@T@NODE_CHILD(node, ic), &node_info, ic,
-               order, selector, func, user_data, config, children_keys[i]);
+               order, sel_func, selector, sel_data, func, user_data, config,
+               children_keys[i]);
 	}
     }
 
@@ -2194,21 +2200,14 @@ void vsg_prtree2@t@_traverse_custom (VsgPRTree2@t@ *prtree2@t@,
                                    prtree2@t@->config.root_key);
 }
 
-static vsgrloc2 _region_selector_null (const VsgRegion2 candidate,
-                                       const VsgVector2@t@ *center,
-                                       gpointer data)
-{
-  return VSG_RLOC2_MASK;
-}
-
-
-void vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
-                                              GTraverseType order,
-                                              VsgRegion2@t@LocDataFunc sel_func,
-                                              VsgRegion2 selector,
-                                              gpointer sel_data,
-                                              VsgPRTree2@t@InternalFunc func,
-                                              gpointer user_data)
+void
+vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
+                                         GTraverseType order,
+                                         VsgRegion2@t@InternalLocDataFunc sel_func,
+                                         VsgRegion2 selector,
+                                         gpointer sel_data,
+                                         VsgPRTree2@t@InternalFunc func,
+                                         gpointer user_data)
 {
 #ifdef VSG_CHECK_PARAMS
   g_return_if_fail (prtree2@t@ != NULL);
@@ -2219,19 +2218,9 @@ void vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
   {
     VsgPRTree2@t@Config conf = prtree2@t@->config;
 
-    if (sel_func != NULL)
-      {
-        conf.region_loc_func = sel_func;
-        conf.region_loc_data = sel_data;
-      }
-    else if (selector == NULL)
-      {
-        conf.region_loc_func = _region_selector_null;
-        conf.region_loc_data = NULL;
-      }
-
     _prtree2@t@node_traverse_custom_internal (prtree2@t@->node, NULL, 0,
-                                              order, selector, func,
+                                              order, sel_func, selector,
+                                              sel_data, func,
                                               user_data, &conf,
                                               prtree2@t@->config.root_key);
   }

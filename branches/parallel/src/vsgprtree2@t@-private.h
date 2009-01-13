@@ -62,6 +62,11 @@ typedef void (*VsgPRTree2@t@InternalFunc) (VsgPRTree2@t@Node *node,
                                            VsgPRTree2@t@NodeInfo *info,
                                            gpointer user_data);
 
+typedef vsgrloc2
+(*VsgRegion2@t@InternalLocDataFunc) (const VsgRegion2 region,
+                                     const VsgPRTree2@t@NodeInfo *node_info,
+                                     gpointer data);
+
 
 /* private structs */
 struct _VsgPRTree2@t@Leaf {
@@ -233,13 +238,14 @@ VsgPRTree2@t@Node *_vsg_prtree2@t@node_get_child_at (VsgPRTree2@t@Node *node,
 VsgPRTree2@t@Node *vsg_prtree2@t@node_key_lookup (VsgPRTree2@t@Node *node,
                                                   VsgPRTreeKey2@t@ key);
 
-void vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
-                                              GTraverseType order,
-                                              VsgRegion2@t@LocDataFunc sel_func,
-                                              VsgRegion2 selector,
-                                              gpointer sel_data,
-                                              VsgPRTree2@t@InternalFunc func,
-                                              gpointer user_data);
+void
+vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
+                                         GTraverseType order,
+                                         VsgRegion2@t@InternalLocDataFunc sel_func,
+                                         VsgRegion2 selector,
+                                         gpointer sel_data,
+                                         VsgPRTree2@t@InternalFunc func,
+                                         gpointer user_data);
 
 void vsg_prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
                                   const VsgPRTree2@t@Config *config);

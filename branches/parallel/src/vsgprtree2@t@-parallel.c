@@ -155,6 +155,17 @@ void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
     }
 }
 
+/* selector function used in traverse_custom_internal to avoid
+   traversing all local nodes */
+static vsgrloc2 _selector_skip_local_nodes (VsgRegion2 *selector,
+                                            VsgPRTree2@t@NodeInfo *node_info,
+                                            gpointer data)
+{
+  if (VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL (node_info)) return 0x0;
+
+  return VSG_RLOC2_MASK;
+}
+
 typedef struct _MigrateData MigrateData;
 struct _MigrateData
 {
@@ -233,8 +244,12 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
 
   /* send the pending VsgPoint to their remote location */
 
-  vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL, NULL, NULL,
-                                           (VsgPRTree2@t@InternalFunc) _migrate_traverse_point_send,
+  vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER,
+                                           (VsgRegion2@t@InternalLocDataFunc)
+                                           _selector_skip_local_nodes,
+                                           NULL, NULL,
+                                           (VsgPRTree2@t@InternalFunc)
+                                           _migrate_traverse_point_send,
                                            &md);
 
   vsg_comm_buffer_share (cb);
@@ -295,8 +310,12 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
       md.rk = rk;
       md.cb = cb;
 
-      vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL, NULL, NULL,
-                                               (VsgPRTree2@t@InternalFunc) _migrate_traverse_region_send,
+      vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER,
+                                               (VsgRegion2@t@InternalLocDataFunc)
+                                               _selector_skip_local_nodes,
+                                               NULL, NULL,
+                                               (VsgPRTree2@t@InternalFunc)
+                                               _migrate_traverse_region_send,
                                                &md);
 
       vsg_comm_buffer_share (cb);
@@ -859,7 +878,10 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
 
   /* fix all remote nodes: remove remaining subtree and locally stored
    * regions */
-  vsg_prtree2@t@_traverse_custom_internal (tree, G_POST_ORDER, NULL, NULL, NULL,
+  vsg_prtree2@t@_traverse_custom_internal (tree, G_POST_ORDER,
+                                           (VsgRegion2@t@InternalLocDataFunc)
+                                           _selector_skip_local_nodes,
+                                           NULL, NULL,
 					   (VsgPRTree2@t@InternalFunc)
 					   _traverse_flatten_remote,
 					   &tree->config);
@@ -1848,8 +1870,10 @@ vsg_prtree2@t@_node_check_parallel_near_far (VsgPRTree2@t@ *tree,
       memset (nrd.procs, 0, nfc->sz * sizeof (gboolean));
       nrd.procnums = g_array_new (FALSE, FALSE, sizeof (gint));
 
-      vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL, NULL,
-                                               NULL,
+      vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER,
+                                               (VsgRegion2@t@InternalLocDataFunc)
+                                               _selector_skip_local_nodes,
+                                               NULL, NULL,
                                                (VsgPRTree2@t@InternalFunc)
                                                _traverse_check_remote_neighbours,
                                                &nrd);
@@ -1957,7 +1981,9 @@ static void _nf_allreduce_shared (VsgPRTree2@t@ *tree,
           msg.position = 0;
 
           /* fill cam_send with shared nodes */
-          vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL,
+          vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER,
+                                                   (VsgRegion2@t@InternalLocDataFunc)
+                                                   _selector_skip_local_nodes,
                                                    NULL, NULL,
                                                    (VsgPRTree2@t@InternalFunc)
                                                    _bw_pack_shared,
@@ -1984,7 +2010,9 @@ static void _nf_allreduce_shared (VsgPRTree2@t@ *tree,
           vsg_packed_msg_recv (&nfc->recv, src, VISIT_SHARED_TAG);
 
           /* add results to shared nodes */
-          vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL,
+          vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER,
+                                                   (VsgRegion2@t@InternalLocDataFunc)
+                                                   _selector_skip_local_nodes,
                                                    NULL, NULL,
                                                    (VsgPRTree2@t@InternalFunc)
                                                    _bw_unpack_shared,
