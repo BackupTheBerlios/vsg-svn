@@ -782,6 +782,7 @@ void _circle_fill (VsgPRTree2d *tree, guint np)
     }
 
   vsg_prtree2d_migrate_flush (tree);
+  _distribute (tree);
 }
 
 static
