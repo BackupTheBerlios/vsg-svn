@@ -1555,6 +1555,56 @@ static void _traverse_visiting_nf (VsgPRTree2@t@Node *node,
 
 }
 
+static void _build_visitor_box (VsgPRTree2@t@NodeInfo *node_info,
+                                VsgVector2@t@ *bounds)
+{
+  VsgVector2@t@ *center = &node_info->center;
+  VsgVector2@t@ size;
+
+  vsg_vector2@t@_sub (&node_info->ubound, center, &size);
+
+  vsg_vector2@t@_scalp (&size, 7., &size);
+
+  vsg_vector2@t@_sub (center, &size, &bounds[0]);
+  vsg_vector2@t@_add (center, &size, &bounds[1]);
+}
+
+static vsgrloc2 _box_rloc2 (VsgVector2@t@ *bounds, VsgVector2@t@ *center)
+{
+  static const vsgrloc2 _box_rloc2[3][3] = {
+    {1<<3, (1<<2|1<<3), 1<<2},
+    {(1<<3|1<<1), VSG_RLOC2_MASK, (1<<0|1<<2)},
+    {1<<1, (1<<0|1<<1), 1<<0},
+  };
+
+  gint i, j;
+
+  if (center->x > bounds[1].x) i = 2;
+  else if (center->x < bounds[0].x) i = 0;
+  else i = 1;
+
+  if (center->y > bounds[1].y) j = 2;
+  else if (center->y < bounds[0].y) j = 0;
+  else j = 1;
+
+  return _box_rloc2[i][j];
+}
+
+static vsgrloc2 _selector_visiting_node (VsgPRTree2@t@NodeInfo *visit_info,
+                                         VsgPRTree2@t@NodeInfo *node_info,
+                                         VsgVector2@t@ *bounds)
+{
+  /* skip local nodes deeper than the visitor */
+  if (visit_info->point_list == NULL &&
+      node_info->id.depth > visit_info->id.depth)
+    return 0x0;
+
+  if (vsg_prtree_key2@t@_compare_near_far (&visit_info->id, &node_info->id) > 1)
+    return _box_rloc2 (bounds, &node_info->center);
+
+  return VSG_RLOC2_MASK;
+}
+
 /*
  * operates a traversal of near/far interactions for any visiting node left
  * in @nfc.
@@ -1565,6 +1615,7 @@ static gboolean _compute_one_visit (VsgPRTree2@t@ *tree,
   GSList *first = nfc->waiting_visitors;
   WaitingVisitor *wv;
   NIAndFuncs niaf;
+  VsgVector2@t@ bounds[2];
 
   if (first == NULL) return FALSE;
 
@@ -1582,8 +1633,12 @@ static gboolean _compute_one_visit (VsgPRTree2@t@ *tree,
 
   first->next = NULL;
 
-  vsg_prtree2@t@_traverse_custom_internal (tree, G_POST_ORDER, NULL,
-                                           NULL, NULL,
+  _build_visitor_box (&niaf.ref_info, bounds);
+
+  vsg_prtree2@t@_traverse_custom_internal (tree, G_POST_ORDER,
+                                           (VsgRegion2@t@InternalLocDataFunc)
+                                           _selector_visiting_node,
+                                           &niaf.ref_info, bounds,
                                            (VsgPRTree2@t@InternalFunc)
                                            _traverse_visiting_nf,
                                            &niaf);
