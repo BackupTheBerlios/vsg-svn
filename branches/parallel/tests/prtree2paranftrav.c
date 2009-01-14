@@ -21,11 +21,11 @@ static gint _maxbox = 2;
 
 /* global variables */
 static gint rk, sz;
+static glong _ref_count = 0;
 
 /* statistics counters */
 static gint _near_count = 0;
 static gint _far_count = 0;
-static glong _ref_count = 0;
 static gint _fw_count = 0;
 static gint _bw_count = 0;
 
@@ -268,10 +268,11 @@ void _pt_write (Pt *pt, FILE *file)
   gchar *color = "#00FF00";
 
   if (pt->count != _ref_count) color = "#FF0000";
+  else return;
 
   fprintf (file, "<circle cx=\"%g\" cy=\"%g\" r=\"%g\" " \
-           "style=\"stroke-width:0.01;stroke:#000000;fill:%s;\">\n",
-           pt->vector.x, -pt->vector.y, 0.02, color);
+           "style=\"stroke-width:0.0001;stroke:#000000;fill:%s;\">\n",
+           pt->vector.x, -pt->vector.y, 0.0001, color);
   fprintf (file, "<title>w=%d</title>\n", pt->weight);
   fprintf (file, "<desc>count=%ld</desc>\n", pt->count);
   fprintf (file, "</circle>\n");
@@ -318,7 +319,7 @@ void _traverse_bg_write (VsgPRTree2dNodeInfo *node_info, FILE *file)
     }
 
   fprintf (file, "<rect x=\"%g\" y=\"%g\" width=\"%g\" height=\"%g\" " \
-           "rx=\"0\" style=\"stroke-width:0.01;stroke:#000000; " \
+           "rx=\"0\" style=\"stroke-width:0.0001;stroke:#000000; " \
            "stroke-linejoin:miter; stroke-linecap:butt; fill:%s;\">\n",
            x, y, w, h, fill);
   fprintf (file, "<title>");
@@ -1218,11 +1219,6 @@ gint main (gint argc, gchar ** argv)
       gchar fn[1024];
       FILE *f;
 
-      g_sprintf (fn, "prtree2parallel-%03d.txt", rk);
-      f = fopen (fn, "w");
-      vsg_prtree2d_write (tree, f);
-      fclose (f);
-
       sprintf (fn, "comm-%03d.svg", rk);
       f = fopen (fn, "w");
 
@@ -1250,7 +1246,16 @@ gint main (gint argc, gchar ** argv)
 
   if (_do_write)
     {
+      gchar fn[1024];
+      FILE *f;
+
       MPI_Barrier (MPI_COMM_WORLD);
+
+      g_sprintf (fn, "prtree2parallel-%03d.txt", rk);
+      f = fopen (fn, "w");
+      vsg_prtree2d_write (tree, f);
+      fclose (f);
+
       _tree_write (tree, "prtree2parallel-");
     }
 

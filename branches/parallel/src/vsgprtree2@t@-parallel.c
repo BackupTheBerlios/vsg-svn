@@ -1874,9 +1874,11 @@ static void _traverse_check_remote_neighbours (VsgPRTree2@t@Node *node,
     {
       gint proc = PRTREE2@T@NODE_PROC (node);
       guint8 nf;
-      guint8 mindepth = node_info->depth +
-        PRTREE2@T@NODE_LEAF (node).remote_depth;
+      guint8 mindepth;
+
       if (data->procs[proc]) return;
+
+      mindepth = node_info->depth + PRTREE2@T@NODE_LEAF (node).remote_depth;
 
 /*       nf = vsg_prtree_key2@t@_compare_near_far (&data->ref_info->id, */
 /*                                                 &node_info->id); */
@@ -2160,21 +2162,25 @@ vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
   g_timer_destroy (timer);
 }
 
-static guint _prtree2@t@node_mindepth (const VsgPRTree2@t@Node *node)
+static guint8 _prtree2@t@node_mindepth (const VsgPRTree2@t@Node *node)
 {
-  guint res = G_MAXUINT;
+  guint8 res = sizeof (@type@); /* max depth is the number of bits of
+                                  @type@ */
   vsgloc2 i;
 
-  if (PRTREE2@T@NODE_ISLEAF (node) ||
-      PRTREE2@T@NODE_IS_REMOTE (node)) return 0;
+  /* empty nodes can be omitted here: return /infinite/ depth */
+  if (node->point_count == 0)
+    return res;
+
+  if (PRTREE2@T@NODE_ISLEAF (node)) return 0;
 
   for (i=0; i<4; i++)
     {
-      guint tmp = _prtree2@t@node_mindepth (PRTREE2@T@NODE_CHILD (node, i));
+      guint8 tmp = _prtree2@t@node_mindepth (PRTREE2@T@NODE_CHILD (node, i));
       if (tmp < res) res = tmp;
     }
 
-  return res + 1;
+  return (res == G_MAXUINT8) ? res : res + 1;
 }
 
 static void _remote_depths_array_build (VsgPRTree2@t@Node *node,
@@ -2187,7 +2193,7 @@ static void _remote_depths_array_build (VsgPRTree2@t@Node *node,
       if (node_info->father_info == NULL ||
           VSG_PRTREE2@T@_NODE_INFO_IS_SHARED (node_info->father_info))
         {
-          gint i = 0;
+          guint8 i = 0;
 
           if (PRTREE2@T@NODE_IS_LOCAL (node))
             i = _prtree2@t@node_mindepth (node);
@@ -2201,7 +2207,7 @@ static void _remote_depths_array_build (VsgPRTree2@t@Node *node,
 
 static void _remote_depths_store (VsgPRTree2@t@Node *node,
                                   VsgPRTree2@t@NodeInfo *node_info,
-                                  gint ** depths)
+                                  guint8 ** depths)
 {
   if (! PRTREE2@T@NODE_IS_SHARED (node))
     {
@@ -2213,15 +2219,16 @@ static void _remote_depths_store (VsgPRTree2@t@Node *node,
             PRTREE2@T@NODE_LEAF (node).remote_depth = **depths;
 
           /* go to the next depth entry */
-          depths ++;
+          (*depths) ++;
         }
     }
 }
 
 void vsg_prtree2@t@_update_remote_depths (VsgPRTree2@t@ *tree)
 {
-  GArray *array = g_array_sized_new (FALSE, FALSE, sizeof (gint), 1024);
+  GArray *array = g_array_sized_new (FALSE, FALSE, sizeof (guint8), 1024);
   GArray *reduced;
+  guint8 *depths;
 
   vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL, NULL, NULL,
                                            (VsgPRTree2@t@InternalFunc)
@@ -2229,18 +2236,20 @@ void vsg_prtree2@t@_update_remote_depths (VsgPRTree2@t@ *tree)
                                            array);
 
   /* prepare reduced for storing the results of the Allreduce */
-  reduced = g_array_sized_new (FALSE, TRUE, sizeof (gint), array->len);
+  reduced = g_array_sized_new (FALSE, TRUE, sizeof (guint8), array->len);
   reduced = g_array_set_size (reduced, array->len);
 
-  MPI_Allreduce (array->data, reduced->data, array->len, MPI_INT, MPI_MAX,
-                 tree->config.parallel_config.communicator);
+  MPI_Allreduce (array->data, reduced->data, array->len, MPI_UNSIGNED_CHAR,
+                 MPI_MAX, tree->config.parallel_config.communicator);
 
   g_array_free (array, TRUE);
+
+  depths = reduced->data;
 
   vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL, NULL, NULL,
                                            (VsgPRTree2@t@InternalFunc)
                                            _remote_depths_store,
-                                           &reduced->data);
+                                           &depths);
 
   g_array_free (reduced, TRUE);
 

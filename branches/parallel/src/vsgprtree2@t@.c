@@ -667,9 +667,10 @@ static void _prtree2@t@node_write (VsgPRTree2@t@Node *node,
                node->lbound.x, node->lbound.y,
                node->ubound.x, node->ubound.y);
       vsg_prtree_key2@t@_write (&node_info->id, file);
-      fprintf (file, ")] point=%d region=%d\n",
+      fprintf (file, ")] point=%d region=%d remote_depth=%u\n",
                node->point_count,
-               node->region_count);
+               node->region_count,
+               PRTREE2@T@NODE_LEAF (node).remote_depth);
 
       return;
     }

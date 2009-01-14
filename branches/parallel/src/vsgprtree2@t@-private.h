@@ -73,7 +73,7 @@ struct _VsgPRTree2@t@Leaf {
 
   gpointer isint;
   GSList *point;
-  gint8 remote_depth; /* depth of the subtree in case this node is
+  guint8 remote_depth; /* depth of the subtree in case this node is
                          remote */
 };
 
