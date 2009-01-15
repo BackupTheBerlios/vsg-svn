@@ -14,7 +14,7 @@
 static gboolean _do_write = FALSE;
 static gint _np = 12;
 static guint32 _random_seed = 0;
-static gint _flush_interval = 100;
+static gint _flush_interval = 1000;
 static gboolean _hilbert = FALSE;
 static gboolean _verbose = FALSE;
 static gint _maxbox = 2;
@@ -715,7 +715,7 @@ void _random_fill (VsgPRTree2d *tree, guint np)
       if (i%_flush_interval == 0)
         {
           vsg_prtree2d_migrate_flush (tree);
-          if (i%(_flush_interval*100) == 0)
+          if (i%(_flush_interval*10) == 0)
             {
               if (_verbose)
                 g_printerr ("%d: contiguous dist before %dth point\n", rk, i);
@@ -762,7 +762,7 @@ void _circle_fill (VsgPRTree2d *tree, guint np)
       if (i%_flush_interval == 0)
         {
           vsg_prtree2d_migrate_flush (tree);
-          if (i%(_flush_interval*100) == 0)
+          if (i%(_flush_interval*10) == 0)
             {
               if (_verbose)
                 g_printerr ("%d: contiguous dist before %dth point\n", rk, i);
