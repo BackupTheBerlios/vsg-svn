@@ -2164,8 +2164,8 @@ vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
 
 static guint8 _prtree2@t@node_mindepth (const VsgPRTree2@t@Node *node)
 {
-  guint8 res = sizeof (@type@); /* max depth is the number of bits of
-                                  @type@ */
+  guint8 res = 8 * sizeof (@type@); /* max depth is the number of bits of
+                                       @type@ */
   vsgloc2 i;
 
   /* empty nodes can be omitted here: return /infinite/ depth */
