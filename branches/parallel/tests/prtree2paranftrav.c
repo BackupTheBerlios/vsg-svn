@@ -748,7 +748,8 @@ void _circle_fill (VsgPRTree2d *tree, guint np)
   gint i;
   Pt *pt;
   const gdouble r = 0.95;
-  gdouble dtheta = 2. * G_PI / (np-1);
+  gdouble dtheta = 2. * G_PI / (np-1) / sz;
+  gdouble theta0 = 2. * rk * G_PI / sz;
 
   for (i=0; i<np; i++)
     {
@@ -775,8 +776,8 @@ void _circle_fill (VsgPRTree2d *tree, guint np)
 
       pt = pt_alloc (TRUE, NULL);
 
-      pt->vector.x = r * cos (i * dtheta);
-      pt->vector.y = r * sin (i * dtheta);
+      pt->vector.x = r * cos (theta0 + i * dtheta);
+      pt->vector.y = r * sin (theta0 + i * dtheta);
       pt->weight = c;
 
       vsg_prtree2d_insert_point (tree, pt);
