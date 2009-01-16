@@ -1878,10 +1878,12 @@ static void _traverse_check_remote_neighbours (VsgPRTree2@t@Node *node,
 
       if (data->procs[proc]) return;
 
+      /* use remote depth to avoid unwanted fw sends */
       mindepth = node_info->depth + PRTREE2@T@NODE_LEAF (node).remote_depth;
 
-/*       nf = vsg_prtree_key2@t@_compare_near_far (&data->ref_info->id, */
-/*                                                 &node_info->id); */
+      /* don't check deeper than node's depth */
+      mindepth = MIN (mindepth, data->ref_info->depth);
+
       nf = vsg_prtree_key2@t@_compare_near_far_mindepth (&data->ref_info->id,
                                                          &node_info->id,
                                                          mindepth);
