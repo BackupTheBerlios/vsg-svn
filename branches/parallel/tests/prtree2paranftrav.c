@@ -18,10 +18,12 @@ static gint _flush_interval = 1000;
 static gboolean _hilbert = FALSE;
 static gboolean _verbose = FALSE;
 static gint _maxbox = 2;
+static gint nc_padding = 0;
 
 /* global variables */
 static gint rk, sz;
 static glong _ref_count = 0;
+static gchar *_nc_padding_buffer = NULL;
 
 /* statistics counters */
 static gint _near_count = 0;
@@ -108,6 +110,10 @@ void nc_visit_fw_pack (NodeCounter *nc, VsgPackedMsg *pm,
                        gpointer user_data)
 {
   vsg_packed_msg_send_append (pm, &nc->in_count, 1, MPI_LONG);
+
+  if (nc_padding != 0)
+    vsg_packed_msg_send_append (pm, _nc_padding_buffer, nc_padding, MPI_CHAR);
+
   _fw_count ++;
 }
 
@@ -115,6 +121,9 @@ void nc_visit_fw_unpack (NodeCounter *nc, VsgPackedMsg *pm,
                          gpointer user_data)
 {
   vsg_packed_msg_recv_read (pm, &nc->in_count, 1, MPI_LONG);
+
+  if (nc_padding != 0)
+    vsg_packed_msg_recv_read (pm, _nc_padding_buffer, nc_padding, MPI_CHAR);
 }
 
 /* visit forward pack/unpack functions */
@@ -125,6 +134,10 @@ void nc_visit_bw_pack (NodeCounter *nc, VsgPackedMsg *pm,
 {
 /*   g_printerr ("%d : pack out %d\n", rk, nc->out_count); */
   vsg_packed_msg_send_append (pm, &nc->out_count, 1, MPI_LONG);
+
+  if (nc_padding != 0)
+    vsg_packed_msg_send_append (pm, _nc_padding_buffer, nc_padding, MPI_CHAR);
+
   _bw_count ++;
 }
 
@@ -135,6 +148,9 @@ void nc_visit_bw_unpack (NodeCounter *nc, VsgPackedMsg *pm,
 
   vsg_packed_msg_recv_read (pm, &count, 1, MPI_LONG);
   nc->out_count += count;
+
+  if (nc_padding != 0)
+    vsg_packed_msg_recv_read (pm, _nc_padding_buffer, nc_padding, MPI_CHAR);
 /*   g_printerr ("%d : unpack out %d (sum=%d)\n", rk, count, nc->out_count); */
 }
 
@@ -885,6 +901,19 @@ void parse_args (int argc, char **argv)
 	    g_printerr ("Invalid maximum particles / box number " \
                         "(--maxbox %s)\n", arg);
 	}
+      else if (g_ascii_strncasecmp (arg, "--nc-size", 9) == 0)
+	{
+	  guint tmp = 0;
+	  iarg ++;
+
+	  arg = (iarg<argc) ? argv[iarg] : NULL;
+
+	  if (sscanf (arg, "%u", &tmp) == 1)
+            nc_padding = MAX (0, tmp - sizeof (NodeCounter));
+	  else
+	    g_printerr ("Invalid value for NodeCounter padding "
+                        "(--nc-size %s)\n", arg);
+	}
       else if (g_ascii_strcasecmp (arg, "--version") == 0)
 	{
 	  g_printerr ("%s version %s\n", argv[0], PACKAGE_VERSION);
@@ -1166,6 +1195,13 @@ gint main (gint argc, gchar ** argv)
 
   parse_args (argc, argv);
 
+  if (nc_padding > 0)
+    {
+      if (_verbose && rk == 0)
+        g_printerr ("%d: NodeCounter padding: %d\n", rk, nc_padding);
+      _nc_padding_buffer = g_malloc (nc_padding * sizeof (char));
+    }
+
   points = g_ptr_array_new ();
 
   lb.x = -1.; lb.y = -1.;
@@ -1311,6 +1347,8 @@ gint main (gint argc, gchar ** argv)
 
   /* destroy the tree */
   vsg_prtree2d_free (tree);
+
+  if (nc_padding > 0) g_free (_nc_padding_buffer);
 
   MPI_Finalize ();
 
