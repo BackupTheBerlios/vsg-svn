@@ -359,6 +359,9 @@ void _traverse_bg_write (VsgPRTree2dNodeInfo *node_info, FILE *file)
 
 void _traverse_fg_write (VsgPRTree2dNodeInfo *node_info, FILE *file)
 {
+  fprintf (file, "<!-- %d: node ", rk);
+  vsg_prtree_key2d_write (&node_info->id, file);
+  fprintf (file, " -->\n");
   g_slist_foreach (node_info->point_list, (GFunc) _pt_write, file);
 }
 

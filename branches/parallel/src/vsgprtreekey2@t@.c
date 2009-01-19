@@ -485,7 +485,7 @@ static vsgloc2 _first_difference_coord (VsgPRTreeKey2@t@ *one,
 static void _expand_to_closest (VsgPRTreeKey2@t@ *key,
                                 VsgPRTreeKey2@t@ *reference,
                                 guint8 index, vsgloc2 coord,
-                                guint8 free_depth)
+                                gint free_depth)
 {
   if (index > 1 && free_depth > 0)
     {
