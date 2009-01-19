@@ -2049,23 +2049,37 @@ static void _nf_allreduce_shared (VsgPRTree2@t@ *tree,
                                                    &cam_send);
 
           /* send to first destination */
-/*           g_printerr ("%d : allreduce sending to %d\n", nfc->rk, dst); */
+/*           g_printerr ("%d : allreduce sending (step %d) to %d\n", nfc->rk, */
+/*                       step, dst); */
           vsg_packed_msg_isend (&msg, dst, VISIT_SHARED_TAG, &requests[0]);
 
           requests[1] = MPI_REQUEST_NULL;
+
           /* try alternate destination */
           dst += maxoffset;
           if (dst < nfc->sz && dst != nfc->rk)
             {
-/*               g_printerr ("%d : allreduce sending2 to %d\n", nfc->rk, dst); */
-              vsg_packed_msg_isend (&msg, dst, VISIT_SHARED_TAG, &requests[1]);
+              int dstmod = (dst + offset) % quo;
+              int dstdiv = dst / quo;
+              int dstsrc = dstmod + dstdiv * quo;
+
+              /* send to alternate destination only if it has no
+                 communiocation this step */
+              if (dstsrc >= nfc->sz)
+                {
+/*                   g_printerr ("%d : allreduce sending2 (step %d) to %d\n", */
+/*                               nfc->rk, step, dst); */
+                  vsg_packed_msg_isend (&msg, dst, VISIT_SHARED_TAG,
+                                        &requests[1]);
+                }
             }
         }
 
       if (src != nfc->rk)
         {
           /* receive from source */
-/*           g_printerr ("%d : allreduce recv from %d\n", nfc->rk, src); */
+/*           g_printerr ("%d : allreduce recv (step %d) from %d\n", nfc->rk, */
+/*                       step, src); */
           vsg_packed_msg_recv (&nfc->recv, src, VISIT_SHARED_TAG);
 
           /* add results to shared nodes */
@@ -2081,6 +2095,7 @@ static void _nf_allreduce_shared (VsgPRTree2@t@ *tree,
 /*           g_printerr ("%d : allreduce no recv\n", nfc->rk); */
 
       MPI_Waitall (2, requests, MPI_STATUSES_IGNORE);
+/*       g_printerr ("%d : allreduce (step %d) ok\n", nfc->rk, step); */
     }
 
   vsg_packed_msg_drop_buffer (&msg);
