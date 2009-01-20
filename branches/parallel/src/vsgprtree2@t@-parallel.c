@@ -2261,7 +2261,7 @@ void vsg_prtree2@t@_update_remote_depths (VsgPRTree2@t@ *tree)
 
   g_array_free (array, TRUE);
 
-  depths = reduced->data;
+  depths = (guint8 *) reduced->data;
 
   vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL, NULL, NULL,
                                            (VsgPRTree2@t@InternalFunc)
