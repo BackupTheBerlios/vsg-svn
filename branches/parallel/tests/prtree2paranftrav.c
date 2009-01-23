@@ -19,6 +19,8 @@ static gboolean _hilbert = FALSE;
 static gboolean _verbose = FALSE;
 static gint _maxbox = 2;
 static gint nc_padding = 0;
+static gint _far_slowdown = 0;
+
 
 /* global variables */
 static gint rk, sz;
@@ -736,7 +738,7 @@ void _random_fill (VsgPRTree2d *tree, guint np)
           vsg_prtree2d_migrate_flush (tree);
           if (i%(_flush_interval*10) == 0)
             {
-              if (_verbose)
+              if (_verbose && rk == 0)
                 g_printerr ("%d: contiguous dist before %dth point\n", rk, i);
               _distribute (tree);
             }
@@ -783,7 +785,7 @@ void _circle_fill (VsgPRTree2d *tree, guint np)
           vsg_prtree2d_migrate_flush (tree);
           if (i%(_flush_interval*10) == 0)
             {
-              if (_verbose)
+              if (_verbose && rk == 0)
                 g_printerr ("%d: contiguous dist before %dth point\n", rk, i);
               _distribute (tree);
             }
@@ -917,6 +919,19 @@ void parse_args (int argc, char **argv)
 	    g_printerr ("Invalid value for NodeCounter padding "
                         "(--nc-size %s)\n", arg);
 	}
+      else if (g_ascii_strncasecmp (arg, "--far-slowdown", 14) == 0)
+	{
+	  guint tmp = 0;
+	  iarg ++;
+
+	  arg = (iarg<argc) ? argv[iarg] : NULL;
+
+	  if (sscanf (arg, "%u", &tmp) == 1)
+            _far_slowdown = MAX (0, tmp);
+	  else
+	    g_printerr ("Invalid value for far interaction solwdown factor "
+                        "(--far-slowdown %s)\n", arg);
+	}
       else if (g_ascii_strcasecmp (arg, "--version") == 0)
 	{
 	  g_printerr ("%s version %s\n", argv[0], PACKAGE_VERSION);
@@ -997,7 +1012,6 @@ void _near (VsgPRTree2dNodeInfo *one_info,
   _near_count ++;
 }
 
-#define _N 40000
 gboolean _far (VsgPRTree2dNodeInfo *one_info,
                VsgPRTree2dNodeInfo *other_info,
                gint *err)
@@ -1033,11 +1047,11 @@ gboolean _far (VsgPRTree2dNodeInfo *one_info,
 
   {
     long i, j = 0;
-    for (i = 0; i< _N; i++)
+    for (i = 0; i< _far_slowdown; i++)
       {
         j = j + i;
       }
-    return j == _N*(_N-1)/2;
+    return j == _far_slowdown*(_far_slowdown-1)/2;
   }
 
   return TRUE;
