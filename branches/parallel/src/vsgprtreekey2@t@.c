@@ -417,8 +417,8 @@ static gboolean _ancestor_order (VsgPRTreeKey2@t@ *key,
  *
  * Returns: the near/far relation between @ine andf @other.
  */
-guint8 vsg_prtree_key2@t@_compare_near_far (VsgPRTreeKey2@t@ *one,
-                                            VsgPRTreeKey2@t@ *other)
+gint8 vsg_prtree_key2@t@_compare_near_far (VsgPRTreeKey2@t@ *one,
+                                           VsgPRTreeKey2@t@ *other)
 {
   VsgPRTreeKey2@t@ _one;
   VsgPRTreeKey2@t@ _other;
@@ -440,7 +440,7 @@ guint8 vsg_prtree_key2@t@_compare_near_far (VsgPRTreeKey2@t@ *one,
       _key_copy (&_other, other);
     }
 
-   if (! _ancestor_order (&_one, &_other)) return 3;
+   if (! _ancestor_order (&_one, &_other)) return -1;
 
    d = _key2@t@_distance (&_one, &_other);
 
@@ -525,9 +525,9 @@ static void _expand_to_closest (VsgPRTreeKey2@t@ *key,
 
 }
 
-guint8 vsg_prtree_key2@t@_compare_near_far_mindepth (VsgPRTreeKey2@t@ *one,
-                                                     VsgPRTreeKey2@t@ *other,
-                                                     guint8 mindepth)
+gint8 vsg_prtree_key2@t@_compare_near_far_mindepth (VsgPRTreeKey2@t@ *one,
+                                                    VsgPRTreeKey2@t@ *other,
+                                                    guint8 mindepth)
 {
   VsgPRTreeKey2@t@ _one;
   VsgPRTreeKey2@t@ _other;
@@ -564,7 +564,7 @@ guint8 vsg_prtree_key2@t@_compare_near_far_mindepth (VsgPRTreeKey2@t@ *one,
       _key_copy (&_other, other);
     }
 
-   if (! _ancestor_order (&_one, &_other)) return 3;
+   if (! _ancestor_order (&_one, &_other)) return -1;
 
    fdc = _first_difference_coord (&_one, &_other, &fdi);
 

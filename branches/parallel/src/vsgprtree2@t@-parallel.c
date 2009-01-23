@@ -1594,12 +1594,18 @@ static vsgrloc2 _selector_visiting_node (VsgPRTree2@t@NodeInfo *visit_info,
                                          VsgPRTree2@t@NodeInfo *node_info,
                                          VsgVector2@t@ *bounds)
 {
+  gint8 nf;
+
   /* skip local nodes deeper than the visitor */
   if (visit_info->point_list == NULL &&
       node_info->id.depth > visit_info->id.depth)
     return 0x0;
 
-  if (vsg_prtree_key2@t@_compare_near_far (&visit_info->id, &node_info->id) > 1)
+  nf = vsg_prtree_key2@t@_compare_near_far (&visit_info->id, &node_info->id);
+
+  if (nf < 0) return 0x0;
+
+  if (nf > 1)
     return _box_rloc2 (bounds, &node_info->center);
 
   return VSG_RLOC2_MASK;

@@ -133,45 +133,32 @@ struct _NFTestData {
   VsgPRTreeKey2d k1;
   VsgPRTreeKey2d k2;
   guint8 mindepth;
-  guint8 cmp_ref;
   guint8 cmp_mindepth_ref;
 };
 
 static NFTestData _nf_test_data[] = {
-  {{0x04, 0x0, 3}, {0x19, 0x0, 5}, 4, 2, 3},
-  {{0x1, 0x1, 2}, {0x0, 0x1, 1}, 1, 1, 1},
-  {{0x1, 0x1, 2}, {0x0, 0x1, 1}, 2, 1, 1},
-  {{0x1, 0x0, 2}, {0x0, 0x1, 1}, 2, 1, 2},
-  {{0x1, 0x1, 3}, {0x0, 0x2, 2}, 3, 2, 3},
-  {{0x358, 0x356, 10}, {0xd66, 0xd58, 12}, 12, 1, 3},
-  {{0x0, 0x0, 1}, {0x6, 0x0, 3}, 3, 1, 3},
-  {{0x1, 0x2, 2}, {0x4, 0x5, 3}, 2, 1, 1},
-  {{0x165, 0x13a, 11}, {0x2cc, 0x274, 12}, 11, 1, 1},
-  {{0x0, 0x0, 0}, {0x0, 0x0, 0}, 0, 0, 0},
+  {{0x04, 0x0, 3}, {0x19, 0x0, 5}, 4, 3},
+  {{0x1, 0x1, 2}, {0x0, 0x1, 1}, 1, 1},
+  {{0x1, 0x1, 2}, {0x0, 0x1, 1}, 2, 1},
+  {{0x1, 0x0, 2}, {0x0, 0x1, 1}, 2, 2},
+  {{0x1, 0x1, 3}, {0x0, 0x2, 2}, 3, 3},
+  {{0x358, 0x356, 10}, {0xd66, 0xd58, 12}, 12, 3},
+  {{0x0, 0x0, 1}, {0x6, 0x0, 3}, 3, 3},
+  {{0x1, 0x2, 2}, {0x4, 0x5, 3}, 2, 1},
+  {{0x165, 0x13a, 11}, {0x2cc, 0x274, 12}, 11, 1},
+  {{0x0, 0x0, 0}, {0x0, 0x0, 0}, 0, 0},
 };
 
 static NFTestData _nf_test_data_sentinel = {
-  {0x0, 0x0, 0}, {0x0, 0x0, 0}, 0, 0, 0
+  {0x0, 0x0, 0}, {0x0, 0x0, 0}, 0, 0
 };
 
 gboolean _check_nf_mindepth (NFTestData *data)
 {
-  guint8 cmp, cmp_mindepth;
+  guint8 cmp_mindepth;
 
   if (memcmp (data, &_nf_test_data_sentinel, sizeof (NFTestData)) == 0)
     return TRUE;
-
-  cmp = vsg_prtree_key2d_compare_near_far (&data->k1, &data->k2);
-  if (cmp != data->cmp_ref)
-    {
-      g_printerr ("Error on compare_near_far (k1, k2):\n");
-      g_printerr ("k1: ");
-      vsg_prtree_key2d_write (&data->k1, stderr);
-      g_printerr ("\nk2: ");
-      vsg_prtree_key2d_write (&data->k2, stderr);
-
-      g_printerr ("\ngot %u, should be %u\n\n", cmp, data->cmp_ref);
-    }
 
   cmp_mindepth = vsg_prtree_key2d_compare_near_far_mindepth (&data->k1,
                                                              &data->k2,
@@ -192,6 +179,97 @@ gboolean _check_nf_mindepth (NFTestData *data)
   return FALSE;
 }
 
+void _nf_error (VsgPRTreeKey2d *k1, VsgPRTreeKey2d *k2, gint8 got,
+                gint8 shouldbe)
+{
+  g_printerr ("Error on compare_near_far (k1, k2):\n");
+  g_printerr ("k1: ");
+  vsg_prtree_key2d_write (k1, stderr);
+  g_printerr ("\nk2: ");
+  vsg_prtree_key2d_write (k2, stderr);
+
+  g_printerr ("\ngot %d should be %d\n\n", got, shouldbe);
+
+}
+
+void _check_nf (VsgPRTreeKey2d *k1, guint8 lvl, gint8 window)
+{
+  /* check k1 against neighbours */
+  if (k1->depth > 1)
+    {
+      VsgPRTreeKey2d k2;
+      guint64 i, j;
+      guint64 n = (1 << k1->depth) - 1;
+
+      for (i=MAX (0, k1->x-window); i<MIN (n, k1->x+window); i++)
+        for (j=MAX (0, k1->y-window); j<MIN (n, k1->y+window); j++)
+          {
+            gint8 nf;
+            gint64 dx, dy, diff, fdx, fdy, fdiff;
+
+            k2.x = i;
+            k2.y = j;
+            k2.depth = k1->depth;
+
+            nf = vsg_prtree_key2d_compare_near_far (k1, &k2);
+
+            dx = k2.x-k1->x;
+            dy = k2.y-k1->y;
+            diff = MAX (ABS (dx), ABS (dy));
+
+            fdx = (k2.x>>1)-(k1->x>>1);
+            fdy = (k2.y>>1)-(k1->y>>1);
+            fdiff = MAX (ABS (fdx), ABS (fdy));
+
+            if (nf < 0) 
+              {
+                /* ancestor order */
+              }
+            else if (diff == 0)
+              {
+                if (nf != 0)
+                  _nf_error (k1, &k2, nf, 0);
+              }
+            else if (diff == 1)
+              {
+                if (nf != 1)
+                  _nf_error (k1, &k2, nf, 1);
+              }
+            else if (diff == 2)
+              {
+                if (nf != 2)
+                  _nf_error (k1, &k2, nf, 2);
+              }
+            else if (diff == 3 && fdiff <= 1)
+              {
+                if (nf != 2)
+                  _nf_error (k1, &k2, nf, 2);
+              }
+            else
+              {
+                if (nf != 3)
+                  _nf_error (k1, &k2, nf, 3);
+              }
+          }
+      
+    }
+
+  /* step down in the tree */
+  if (lvl > 0)
+    {
+      vsgloc2 i;
+
+      for (i=0; i<4; i++)
+        {
+          VsgPRTreeKey2d child;
+
+          vsg_prtree_key2d_build_child (k1, i, &child);
+
+          _check_nf (&child, lvl-1, window);
+        }
+    }
+}
+
 gint main (gint argc, gchar ** argv)
 {
   gint ret = 0;
@@ -206,6 +284,11 @@ gint main (gint argc, gchar ** argv)
 
   while (! _check_test_data (&_test_data[i]))
     i ++;
+
+  {
+    VsgPRTreeKey2d k1 = vsg_prtree_key2d_root;
+    _check_nf (&k1, 8, 5);
+  }
 
   i = 0;
   while (! _check_nf_mindepth (&_nf_test_data[i]))
