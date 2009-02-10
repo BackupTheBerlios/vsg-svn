@@ -415,7 +415,7 @@ static gboolean _ancestor_order (VsgPRTreeKey2@t@ *key,
  * 3: no interaction.
  * 
  *
- * Returns: the near/far relation between @ine andf @other.
+ * Returns: the near/far relation between @one andf @other.
  */
 gint8 vsg_prtree_key2@t@_compare_near_far (VsgPRTreeKey2@t@ *one,
                                            VsgPRTreeKey2@t@ *other)

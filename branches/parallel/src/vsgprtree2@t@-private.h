@@ -203,10 +203,13 @@ struct _VsgNFConfig2@t@
   gint rk, sz;
   VsgPackedMsg recv;
   GHashTable *procs_msgs;
-  GSList *waiting_visitors;
-  GSList *done_visitors;
+  gint forward_pending_nb;
+  gint backward_pending_nb;
   gint pending_end_forward;
   gint pending_backward_msgs;
+
+  gint all_fw_sends, all_fw_recvs;
+  gint all_bw_sends, all_bw_recvs;
 
   gint shared_far_interaction_counter;
 };
