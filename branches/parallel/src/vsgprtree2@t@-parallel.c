@@ -1646,8 +1646,8 @@ static void _traverse_visiting_nf (VsgPRTree2@t@Node *node,
 
 }
 
-static void _build_visitor_box (VsgPRTree2@t@NodeInfo *node_info,
-                                VsgVector2@t@ *bounds)
+static void _build_nf_box (VsgPRTree2@t@NodeInfo *node_info,
+                           VsgVector2@t@ *bounds)
 {
   VsgVector2@t@ *center = &node_info->center;
   VsgVector2@t@ size;
@@ -1681,18 +1681,18 @@ static vsgrloc2 _box_rloc2 (VsgVector2@t@ *bounds, VsgVector2@t@ *center)
   return _box_rloc2[i][j];
 }
 
-static vsgrloc2 _selector_visiting_node (VsgPRTree2@t@NodeInfo *visit_info,
-                                         VsgPRTree2@t@NodeInfo *node_info,
-                                         VsgVector2@t@ *bounds)
+static vsgrloc2 _selector_nf_box (VsgPRTree2@t@NodeInfo *ref_info,
+                                  VsgPRTree2@t@NodeInfo *node_info,
+                                  VsgVector2@t@ *bounds)
 {
   gint8 nf;
 
   /* skip local nodes deeper than the visitor */
-  if (visit_info->point_list == NULL &&
-      node_info->id.depth > visit_info->id.depth)
+  if (ref_info->point_list == NULL &&
+      node_info->id.depth > ref_info->id.depth)
     return 0x0;
 
-  nf = vsg_prtree_key2@t@_compare_near_far (&visit_info->id, &node_info->id);
+  nf = vsg_prtree_key2@t@_compare_near_far (&ref_info->id, &node_info->id);
 
   if (nf < 0) return 0x0;
 
@@ -1721,11 +1721,11 @@ static gboolean _compute_visiting_node (VsgPRTree2@t@ *tree,
 
   niaf.done_flag = 0;
 
-  _build_visitor_box (&niaf.ref_info, bounds);
+  _build_nf_box (&niaf.ref_info, bounds);
 
   vsg_prtree2@t@_traverse_custom_internal (tree, G_POST_ORDER,
                                            (VsgRegion2@t@InternalLocDataFunc)
-                                           _selector_visiting_node,
+                                           _selector_nf_box,
                                            &niaf.ref_info, bounds,
                                            (VsgPRTree2@t@InternalFunc)
                                            _traverse_visiting_nf,
@@ -1927,6 +1927,27 @@ struct _NodeRemoteData
   gboolean *procs;
 };
 
+static vsgrloc2 _selector_nf_remote_box (VsgPRTree2@t@NodeInfo *ref_info,
+                                         VsgPRTree2@t@NodeInfo *node_info,
+                                         VsgVector2@t@ *bounds)
+{
+  gint8 nf;
+
+  if (VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL (node_info)) return 0x0;
+
+  if (! ref_info->isleaf &&
+      ref_info->depth < node_info->depth) return 0x0;
+
+  nf = vsg_prtree_key2@t@_compare_near_far (&ref_info->id, &node_info->id);
+
+  if (nf < 0) return 0x0;
+
+  if (nf > 1)
+    return _box_rloc2 (bounds, &node_info->center);
+
+  return VSG_RLOC2_MASK;
+}
+
 /*
  * used in vsg_prtree2@t@_traverse to register which processors a node is to
  * be sent to for a near/far interaction.
@@ -1987,6 +2008,7 @@ vsg_prtree2@t@_node_check_parallel_near_far (VsgPRTree2@t@ *tree,
   if (VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL (info))
     {
       NodeRemoteData nrd;
+      VsgVector2@t@ bounds[2];
 
       nrd.tree = tree;
       nrd.nfc = nfc;
@@ -1995,10 +2017,12 @@ vsg_prtree2@t@_node_check_parallel_near_far (VsgPRTree2@t@ *tree,
       nrd.procs = g_alloca (nfc->sz * sizeof (gboolean));
       memset (nrd.procs, 0, nfc->sz * sizeof (gboolean));
 
+      _build_nf_box (info, bounds);
+
       vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER,
                                                (VsgRegion2@t@InternalLocDataFunc)
-                                               _selector_skip_local_nodes,
-                                               NULL, NULL,
+                                               _selector_nf_remote_box,
+                                               info, bounds,
                                                (VsgPRTree2@t@InternalFunc)
                                                _traverse_check_remote_neighbours,
                                                &nrd);
