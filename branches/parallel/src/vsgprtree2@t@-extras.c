@@ -236,10 +236,6 @@ _sub_neighborhood_near_far_traversal (VsgNFConfig2@t@ *nfc,
     _SYMMETRY (3, x, y),
   };
 
-  if (PRTREE2@T@NODE_IS_REMOTE (one) ||
-      PRTREE2@T@NODE_IS_REMOTE (other))
-    return;
-
   if (_NODE_IS_EMPTY(one) || _NODE_IS_EMPTY(other))
     return;
 
