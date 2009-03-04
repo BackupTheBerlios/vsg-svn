@@ -39,7 +39,13 @@ static BitMaskData *_bitmasks = NULL;
 /* list of number of sieves for any  */
 static guint8 _number_of_sieves[KEY_BITS+1];
 
-static inline void _set_bitmasks ()
+static void _exitfunc ()
+{
+  if (_bitmasks != NULL)
+    g_free (_bitmasks);
+}
+
+void vsgprtree_key2@t@_init ()
 {
   if (G_UNLIKELY (_bitmasks_number == 0))
     {
@@ -71,6 +77,8 @@ static inline void _set_bitmasks ()
 /*               g_printerr ("powers %d %d\n", j,  _number_of_sieves[j]); */
             }
         }
+
+      g_atexit (_exitfunc);
    }
 }
 
@@ -131,8 +139,6 @@ static guint8 _single_key_first_true_bit (@key_type@ key, guint8 maxdepth)
 {
   gint8 sieves_number;
   gint8 i, ret;
-
-  _set_bitmasks ();
 
   if (!key) return 0;
 
@@ -387,17 +393,17 @@ vsgloc2 vsg_prtree_key2@t@_child (VsgPRTreeKey2@t@ *key)
 static gboolean _ancestor_order (VsgPRTreeKey2@t@ *key,
                                  VsgPRTreeKey2@t@ *center)
 {
-  VsgPRTreeKey2@t@ ktmp, ctmp;
   guint8 index;
-  vsgloc2 cloc, kloc;
+  @key_type@ indexmask;
+  @key_type@ kloc, cloc;
 
   index = vsg_prtree_key2@t@_first_different_index (key, center);
 
-  _key_scale_down (key, index - 1, &ktmp);
-  _key_scale_down (center, index - 1, &ctmp);
+  indexmask = 1 << (index-1);
 
-  kloc = (ktmp.x & 1) | ((ktmp.y & 1) << 1);
-  cloc = (ctmp.x & 1) | ((ctmp.y & 1) << 1);
+  /* use @key_type@ like we should do with vsgloc2 */
+  kloc = (key->x & indexmask) | ((key->y & indexmask) << 1);
+  cloc = (center->x & indexmask) | ((center->y & indexmask) << 1);
 
   return kloc <= cloc;
 }

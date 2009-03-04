@@ -52,8 +52,12 @@ static void _prtree2@t@_finalize ()
     }
 }
 
+/* keep in sync with vsgprtreekey2@t@.c */
+void vsgprtree_key2@t@_init ();
+
 void vsg_prtree2@t@_init()
 {
+  vsgprtree_key2@t@_init ();
   g_atexit (_prtree2@t@_finalize);
 }
 
