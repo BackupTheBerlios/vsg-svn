@@ -20,7 +20,7 @@ static gboolean _verbose = FALSE;
 static gint _maxbox = 2;
 static gint nc_padding = 0;
 static gint _far_slowdown = 0;
-
+static gint _near_slowdown = 0;
 
 /* global variables */
 static gint rk, sz;
@@ -929,8 +929,37 @@ void parse_args (int argc, char **argv)
 	  if (sscanf (arg, "%u", &tmp) == 1)
             _far_slowdown = MAX (0, tmp);
 	  else
-	    g_printerr ("Invalid value for far interaction solwdown factor "
+	    g_printerr ("Invalid value for far interaction slowdown factor "
                         "(--far-slowdown %s)\n", arg);
+	}
+      else if (g_ascii_strncasecmp (arg, "--near-slowdown", 15) == 0)
+	{
+	  guint tmp = 0;
+	  iarg ++;
+
+	  arg = (iarg<argc) ? argv[iarg] : NULL;
+
+	  if (sscanf (arg, "%u", &tmp) == 1)
+            _near_slowdown = MAX (0, tmp);
+	  else
+	    g_printerr ("Invalid value for near interaction slowdown factor "
+                        "(--near-slowdown %s)\n", arg);
+	}
+      else if (g_ascii_strncasecmp (arg, "--nf-slowdown", 15) == 0)
+	{
+	  guint tmp = 0;
+	  iarg ++;
+
+	  arg = (iarg<argc) ? argv[iarg] : NULL;
+
+	  if (sscanf (arg, "%u", &tmp) == 1)
+            {
+              _near_slowdown = MAX (0, tmp);
+              _far_slowdown = MAX (0, tmp);
+            }
+	  else
+	    g_printerr ("Invalid value for near/far interaction slowdown "
+                        "factor (--nf-slowdown %s)\n", arg);
 	}
       else if (g_ascii_strcasecmp (arg, "--version") == 0)
 	{
@@ -1009,6 +1038,14 @@ void _near (VsgPRTree2dNodeInfo *one_info,
       fclose (f);
     }
 
+  {
+    long i, j = 0;
+    for (i = 0; i< _far_slowdown; i++)
+      {
+        j = j + i;
+      }
+    if (j != _far_slowdown*(_far_slowdown-1)/2) g_printerr ("oops\n");
+  }
   _near_count ++;
 }
 
