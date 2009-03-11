@@ -263,7 +263,7 @@ void vsg_nf_config2@t@_clean (VsgNFConfig2@t@ *nfc);
 
 gboolean vsg_nf_config2@t@_shared_far_interaction_skip (VsgNFConfig2@t@ *nfc);
 
-void
+gboolean
 vsg_prtree2@t@_node_check_parallel_near_far (VsgPRTree2@t@ *tree,
                                              VsgNFConfig2@t@ *nfc,
                                              VsgPRTree2@t@Node *node,

@@ -339,7 +339,8 @@ vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@ *tree,
                                        VsgNFConfig2@t@ *nfc,
                                        VsgPRTree2@t@Node *node,
                                        VsgPRTree2@t@NodeInfo *father_info,
-                                       vsgloc2 child_number)
+                                       vsgloc2 child_number,
+                                       gboolean parallel_check)
 {
   vsgloc2 i,j;
   VsgPRTree2@t@NodeInfo node_info;
@@ -349,7 +350,11 @@ vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@ *tree,
 
   _vsg_prtree2@t@node_get_info (node, &node_info, father_info, child_number);
 
-  vsg_prtree2@t@_node_check_parallel_near_far (tree, nfc, node, &node_info);
+  /* check for remote processors to send this node, if needed */
+  if (parallel_check)
+    parallel_check = vsg_prtree2@t@_node_check_parallel_near_far (tree, nfc,
+                                                                  node,
+                                                                  &node_info);
 
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
@@ -399,7 +404,7 @@ vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@ *tree,
       for (i=0; i<4; i++)
         vsg_prtree2@t@node_near_far_traversal (tree, nfc,
                                                PRTREE2@T@NODE_CHILD(node, i),
-                                               &node_info, i);
+                                               &node_info, i, parallel_check);
     }
 }
 
@@ -509,7 +514,7 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
 
   vsg_prtree2@t@node_near_far_traversal (prtree2@t@, &nfc,
                                          prtree2@t@->node,
-                                         NULL, 0);
+                                         NULL, 0, TRUE);
 
   if (comm != MPI_COMM_NULL)
     {

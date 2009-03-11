@@ -1702,6 +1702,9 @@ static vsgrloc2 _selector_nf_box (VsgPRTree2@t@NodeInfo *ref_info,
   return VSG_RLOC2_MASK;
 }
 
+/* static gint _visitors = 0; */
+/* static gint _unused_visitors = 0; */
+
 /*
  * operates a traversal of near/far interactions for a visiting node.
  */
@@ -1730,6 +1733,9 @@ static gboolean _compute_visiting_node (VsgPRTree2@t@ *tree,
                                            (VsgPRTree2@t@InternalFunc)
                                            _traverse_visiting_nf,
                                            &niaf);
+
+/*   if (niaf.done_flag == 0) _unused_visitors ++; */
+/*   _visitors ++; */
 
 /*   if (niaf.done_flag == 0) */
 /*     { */
@@ -1925,6 +1931,7 @@ struct _NodeRemoteData
   VsgPRTree2@t@Node *ref_node;
   VsgPRTree2@t@NodeInfo *ref_info;
   gboolean *procs;
+  gboolean sent;
 };
 
 static vsgrloc2 _selector_nf_remote_box (VsgPRTree2@t@NodeInfo *ref_info,
@@ -1979,27 +1986,30 @@ static void _traverse_check_remote_neighbours (VsgPRTree2@t@Node *node,
                                   &data->ref_info->id);
 
           data->procs[proc] = TRUE;
+          data->sent = TRUE;
         }
     }
 }
 
 /*
  * checks wether some specified node is to be sent to distant processors in
- * order to complete a near/far traversal.
+ * order to complete a near/far traversal. Returns TRUE if node id
+ * LOCAL and was sent to another processor.
  */
-void
+gboolean
 vsg_prtree2@t@_node_check_parallel_near_far (VsgPRTree2@t@ *tree,
                                              VsgNFConfig2@t@ *nfc,
                                              VsgPRTree2@t@Node *node,
                                              VsgPRTree2@t@NodeInfo *info)
 {
+  gboolean ret = TRUE;
   gint rk, sz;
 
   if (tree->config.parallel_config.communicator == MPI_COMM_NULL)
-    return;
+    return ret;
 
   MPI_Comm_size (tree->config.parallel_config.communicator, &sz);
-  if (sz < 2) return;
+  if (sz < 2) return ret;
 
   MPI_Comm_rank (tree->config.parallel_config.communicator, &rk);
 
@@ -2016,6 +2026,7 @@ vsg_prtree2@t@_node_check_parallel_near_far (VsgPRTree2@t@ *tree,
       nrd.ref_info = info;
       nrd.procs = g_alloca (nfc->sz * sizeof (gboolean));
       memset (nrd.procs, 0, nfc->sz * sizeof (gboolean));
+      nrd.sent = FALSE;
 
       _build_nf_box (info, bounds);
 
@@ -2027,9 +2038,12 @@ vsg_prtree2@t@_node_check_parallel_near_far (VsgPRTree2@t@ *tree,
                                                _traverse_check_remote_neighbours,
                                                &nrd);
 
+      ret = nrd.sent;
     }
 
   vsg_prtree2@t@_nf_check_send (tree, nfc);
+
+  return ret;
 }
 
 typedef struct _ConfigAndMsg ConfigAndMsg;
@@ -2268,6 +2282,9 @@ vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
 
 /*   g_printerr ("%d : parallel_end done (%f seconds)\n", nfc->rk, */
 /*               g_timer_elapsed (timer, NULL)); */
+
+/*   g_printerr ("%d : unused visitors %d (%d total)\n", nfc->rk, */
+/*               _unused_visitors, _visitors); */
 
 /*   g_printerr ("%d : nodes msgs (fw send=%d recv=%d) (bw send=%d recv=%d)\n", */
 /*               nfc->rk, nfc->all_fw_sends, nfc->all_fw_recvs, nfc->all_bw_sends, */
