@@ -278,6 +278,14 @@ vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
 
 void vsg_prtree2@t@_update_remote_depths (VsgPRTree2@t@ *tree);
 
+void vsg_prtree2@t@node_recursive_near_func (VsgPRTree2@t@Node *one,
+                                             VsgPRTree2@t@NodeInfo *one_info,
+                                             VsgPRTree2@t@Node *other,
+                                             VsgPRTree2@t@NodeInfo *other_info,
+                                             VsgPRTree2@t@InteractionFunc near_func,
+                                             gpointer user_data);
+
+
 G_END_DECLS;
 
 #endif /* __VSGPRTREE2@T@_PRIVATE_H__ */

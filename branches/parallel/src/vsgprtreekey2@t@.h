@@ -30,6 +30,13 @@ G_BEGIN_DECLS;
 
 /* macros */
 #define VSG_MPI_TYPE_PRTREE_KEY2@T@ vsg_prtree_key2@t@_get_mpi_type ()
+#define VSG_PRTREE_KEY2@T@_SIZE (sizeof (@key_type@))
+#define VSG_PRTREE_KEY2@T@_BITS (8*VSG_PRTREE_KEY2@T@_SIZE)
+
+#define VSG_PRTREE_KEY2@T@_INDEX_MASK(index) ( \
+(1<<((index)+1)) - 1 \
+)
+
 
 /* typedefs */
 typedef struct _VsgPRTreeKey2@t@ VsgPRTreeKey2@t@;
@@ -71,9 +78,36 @@ vsgloc2 vsg_prtree_key2@t@_child (VsgPRTreeKey2@t@ *key);
 gint8 vsg_prtree_key2@t@_compare_near_far (VsgPRTreeKey2@t@ *one,
                                            VsgPRTreeKey2@t@ *other);
 
-gint8 vsg_prtree_key2@t@_compare_near_far_mindepth (VsgPRTreeKey2@t@ *one,
-                                                    VsgPRTreeKey2@t@ *other,
-                                                    guint8 mindepth);
+gboolean vsg_prtree_key2@t@_equals (VsgPRTreeKey2@t@ *one,
+                                    VsgPRTreeKey2@t@ *other);
+
+void vsg_prtree_key2@t@_copy (VsgPRTreeKey2@t@ *dst, VsgPRTreeKey2@t@ *src);
+
+void vsg_prtree_key2@t@_get_father (VsgPRTreeKey2@t@ *key,
+                                    VsgPRTreeKey2@t@ *father);
+
+gboolean vsg_prtree_key2@t@_is_neighbour (VsgPRTreeKey2@t@ *one,
+                                          VsgPRTreeKey2@t@ *other);
+
+static inline void vsg_prtree_key2@t@_truncate (VsgPRTreeKey2@t@ *key,
+                                                guint8 offset,
+                                                VsgPRTreeKey2@t@ *result)
+{
+  result->x = key->x >> offset;
+  result->y = key->y >> offset;
+  result->depth = (guint8) MAX (0, ((gint8) key->depth) - offset);
+}
+
+static inline void vsg_prtree_key2@t@_sever (VsgPRTreeKey2@t@ *key, guint8 size,
+                                             VsgPRTreeKey2@t@ *result)
+{
+  @key_type@ mask = VSG_PRTREE_KEY2@T@_INDEX_MASK (size-1);
+
+  result->x &= mask;
+  result->y &= mask;
+  result->depth = size;
+}
+
 G_END_DECLS;
 
 #endif /* __VSG_PRTREE_KEY2@T@_H__ */

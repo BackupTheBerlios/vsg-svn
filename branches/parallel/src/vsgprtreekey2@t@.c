@@ -16,15 +16,6 @@
  * A structure for manupilating VsgPRTree2@t@ nodes coordinates.
  */
 
-/* number of bytes in a key */
-#define KEY_SIZE (sizeof (@key_type@))
-/* number of bits in a key */
-#define KEY_BITS (8*KEY_SIZE)
-
-#define INDEX_MASK(index) ( \
-(1<<((index)+1)) - 1 \
-)
-
 typedef struct _BitMaskData BitMaskData;
 
 struct _BitMaskData {
@@ -37,7 +28,7 @@ static guint8 _bitmasks_number = 0;
 static BitMaskData *_bitmasks = NULL;
 
 /* list of number of sieves for any  */
-static guint8 _number_of_sieves[KEY_BITS+1];
+static guint8 _number_of_sieves[VSG_PRTREE_KEY2@T@_BITS+1];
 
 static void _exitfunc ()
 {
@@ -49,7 +40,7 @@ void vsgprtree_key2@t@_init ()
 {
   if (G_UNLIKELY (_bitmasks_number == 0))
     {
-      guint8 ks = KEY_BITS;
+      guint8 ks = VSG_PRTREE_KEY2@T@_BITS;
       gint8 i, j;
       @key_type@ mask = ~0;
 
@@ -143,7 +134,7 @@ static guint8 _single_key_first_true_bit (@key_type@ key, guint8 maxdepth)
   if (!key) return 0;
 
   sieves_number = _number_of_sieves[maxdepth]-1;
-  ret = INDEX_MASK (sieves_number);
+  ret = VSG_PRTREE_KEY2@T@_INDEX_MASK (sieves_number);
 
   for (i=sieves_number; i >= 0; i--)
     {
@@ -172,8 +163,8 @@ void vsg_prtree_key2@t@_write (VsgPRTreeKey2@t@ *key, FILE *file)
     }
   else
     {
-      @key_type@ x = key->x & INDEX_MASK (key->depth-1);
-      @key_type@ y = key->y & INDEX_MASK (key->depth-1);
+      @key_type@ x = key->x/*  & VSG_PRTREE_KEY2@T@_INDEX_MASK (key->depth-1) */;
+      @key_type@ y = key->y/*  & VSG_PRTREE_KEY2@T@_INDEX_MASK (key->depth-1) */;
 
       g_fprintf (file, "x=%#@kmod@x, y=%#@kmod@x, d=%d",
                  x, y, key->depth);
@@ -390,8 +381,18 @@ vsgloc2 vsg_prtree_key2@t@_child (VsgPRTreeKey2@t@ *key)
   return loc;
 }
 
-static gboolean _ancestor_order (VsgPRTreeKey2@t@ *key,
-                                 VsgPRTreeKey2@t@ *center)
+/**
+ * vsg_prtree_key2@t@_compare_near_far:
+ * @key : a VsgPRTreeKey2@t@.
+ * @center : a VsgPRTreeKey2@t@.
+ *
+ * Compares @key and @center for determining their order in a default
+ * children order traversal.
+ *
+ * Returns: wether @key would precede @center in a normal traversal.
+ */
+gboolean vsg_prtree_key2@t@_ancestor_order_unsafe (VsgPRTreeKey2@t@ *key,
+                                                   VsgPRTreeKey2@t@ *center)
 {
   guint8 index;
   @key_type@ indexmask;
@@ -408,207 +409,28 @@ static gboolean _ancestor_order (VsgPRTreeKey2@t@ *key,
   return kloc <= cloc;
 }
 
-/**
- * vsg_prtree_key2@t@_compare_near_far:
- * @one : a VsgPRTreeKey2@t@.
- * @other : a VsgPRTreeKey2@t@.
- *
- * Compares two keys in the meaning of near/far interactions (see
- * vsg_prtree2@t@_near_far_traversal()). Result is to be interpreted as follow:
- * 0: @one and @other are identical.
- * 1: neighbours (near interaction).
- * 2: far interaction.
- * 3: no interaction.
- * 
- *
- * Returns: the near/far relation between @one andf @other.
- */
-gint8 vsg_prtree_key2@t@_compare_near_far (VsgPRTreeKey2@t@ *one,
-                                           VsgPRTreeKey2@t@ *other)
+gboolean vsg_prtree_key2@t@_equals (VsgPRTreeKey2@t@ *one,
+                                    VsgPRTreeKey2@t@ *other)
 {
-  VsgPRTreeKey2@t@ _one;
-  VsgPRTreeKey2@t@ _other;
-  @key_type@ d;
-
-   if (one->depth < other->depth)
-    {
-      _key_scale_down (other, other->depth - one->depth, &_other);
-      _key_copy (&_one, one);
-    }
-  else if (one->depth > other->depth)
-    {
-      _key_scale_down (one, one->depth - other->depth, &_one);
-      _key_copy (&_other, other);
-    }
-  else
-    {
-      _key_copy (&_one, one);
-      _key_copy (&_other, other);
-    }
-
-   if (! _ancestor_order (&_one, &_other)) return -1;
-
-   d = _key2@t@_distance (&_one, &_other);
-
-   if (d < 3) return d;
-
-   if (d == 3)
-     {
-       /* compare fathers distance */
-       _key_scale_down (&_one, 1, &_one);
-       _key_scale_down (&_other, 1, &_other);
-
-       d = _key2@t@_distance (&_one, &_other);
-
-       /* if fathers are neighbours, then promote nodes to far interaction */
-       if (d < 2) return 2;
-     }
-
-   return 3;
+/*   return memcmp (one, other, sizeof (VsgPRTreeKey2@t@)) == 0; */
+  return one->depth == other->depth && one->x == other->x && one->y == other->y;
 }
 
-static vsgloc2 _first_difference_coord (VsgPRTreeKey2@t@ *one,
-                                        VsgPRTreeKey2@t@ *other,
-                                        guint8 *index)
+void vsg_prtree_key2@t@_copy (VsgPRTreeKey2@t@ *dst, VsgPRTreeKey2@t@ *src)
 {
-  VsgPRTreeKey2@t@ xor;
-  guint8 x, y;
-
-  vsg_prtree_key2@t@_xor (one, other, &xor);
-
-  x = _single_key_first_true_bit (xor.x, xor.depth);
-  y = _single_key_first_true_bit (xor.y, xor.depth);
-
-  *index = MAX (x, y);
-
-  if (*index == 0) return 0;
-
-  _key_scale_down (&xor, *index-1, &xor);
-
-  return (xor.x & 1) | ((xor.y & 1) << 1);
+  _key_copy (dst, src);
 }
 
-static void _expand_to_closest (VsgPRTreeKey2@t@ *key,
-                                VsgPRTreeKey2@t@ *reference,
-                                guint8 index, vsgloc2 coord,
-                                gint free_depth)
+void vsg_prtree_key2@t@_get_father (VsgPRTreeKey2@t@ *key,
+                                    VsgPRTreeKey2@t@ *father)
 {
-  if (index > 1 && free_depth > 0)
-    {
-      @key_type@ ref_mask = (1 << free_depth) - 1;
-      @key_type@ key_mask = ~ref_mask;
-
-/*       g_printerr ("ref_mask 0x%x - key_mask 0x%x\n", ref_mask, key_mask); */
-
-      if (coord & VSG_LOC2_X)
-        {
-          @key_type@ ref_bit = reference->x & (1 << (index-1));
-          if (ref_bit != 0) ref_bit = ~0 & ref_mask;
-
-/*           g_printerr ("coord 0x%x --- ref_bit 0x%x\n", coord, ref_bit); */
-/*           g_printerr ("key->x & key_mask 0x%x\n", (key->x & key_mask)); */
-
-          key->x = (key->x & key_mask) | ref_bit;
-        }
-      else
-        {
-          memcpy (&key->x, &reference->x, sizeof (@key_type@));
-        }
-
-      if (coord & VSG_LOC2_Y)
-        {
-          @key_type@ ref_bit = reference->y & (1 << (index-1));
-          if (ref_bit != 0) ref_bit = ~0 & ref_mask;
-
-          key->y = (key->y & key_mask) | ref_bit;
-        }
-      else
-        {
-          memcpy (&key->y, &reference->y, sizeof (@key_type@));
-        }
-    }
-
-
+  _key_scale_down (key, 1, father);
 }
 
-gint8 vsg_prtree_key2@t@_compare_near_far_mindepth (VsgPRTreeKey2@t@ *one,
-                                                    VsgPRTreeKey2@t@ *other,
-                                                    guint8 mindepth)
+gboolean vsg_prtree_key2@t@_is_neighbour (VsgPRTreeKey2@t@ *one,
+                                          VsgPRTreeKey2@t@ *other)
 {
-  VsgPRTreeKey2@t@ _one;
-  VsgPRTreeKey2@t@ _other;
-  @key_type@ d;
-  vsgloc2 fdc;
-  guint8 fdi;
-
-  mindepth = MIN (mindepth, MAX (one->depth, other->depth));
-
-  /* set one to the desired scale */ 
-  if (one->depth > mindepth)
-    {
-      _key_scale_down (one, one->depth - mindepth, &_one);
-    }
-  else if (one->depth < mindepth)
-    {
-      _key_scale_up (one, mindepth - one->depth, &_one);
-    }
-  else
-    {
-      _key_copy (&_one, one);
-    }
-
-  if (other->depth > mindepth)
-    {
-      _key_scale_down (other, other->depth - mindepth, &_other);
-    }
-  else if (other->depth < mindepth)
-    {
-      _key_scale_up (other, mindepth - other->depth, &_other);
-    }
-  else
-    {
-      _key_copy (&_other, other);
-    }
-
-   if (! _ancestor_order (&_one, &_other)) return -1;
-
-   fdc = _first_difference_coord (&_one, &_other, &fdi);
-
-   if (fdc == 0) return 0;
-
-/*    g_printerr ("fdi %d\n", fdi); */
-
-/*    vsg_prtree_key2@t@_write (&_one, stderr); */
-/*    g_printerr (" "); */
-/*    vsg_prtree_key2@t@_write (&_other, stderr); */
-/*    g_printerr (" --- %d %d", one->depth, _one.depth); */
-/*    g_printerr ("\n"); */
-
-   if (one->depth < _one.depth)
-     _expand_to_closest (&_one, &_other, fdi, fdc, _one.depth-one->depth);
-   else
-     _expand_to_closest (&_other, &_one, fdi, fdc, _other.depth-other->depth);
-
-/*    vsg_prtree_key2@t@_write (&_one, stderr); */
-/*    g_printerr (" "); */
-/*    vsg_prtree_key2@t@_write (&_other, stderr); */
-/*    g_printerr ("\n"); */
-
-   d = _key2@t@_distance (&_one, &_other);
-
-   if (d < 3) return d;
-
-   if (d == 3)
-     {
-       /* compare fathers distance */
-       _key_scale_down (&_one, 1, &_one);
-       _key_scale_down (&_other, 1, &_other);
-
-       d = _key2@t@_distance (&_one, &_other);
-
-       /* if fathers are neighbours, then promote nodes to far interaction */
-       if (d < 2) return 2;
-     }
-
-   return 3;
+  return ((one->x - other->x) <= 1 || (other->x - one->x) <= 1) &&
+    ((one->y - other->y) <= 1 || (other->y - one->y) <= 1);
 }
+

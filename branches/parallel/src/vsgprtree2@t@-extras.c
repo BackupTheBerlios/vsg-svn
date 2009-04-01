@@ -216,6 +216,16 @@ static void recursive_near_func (VsgPRTree2@t@Node *one,
 
 }
 
+void vsg_prtree2@t@node_recursive_near_func (VsgPRTree2@t@Node *one,
+                                             VsgPRTree2@t@NodeInfo *one_info,
+                                             VsgPRTree2@t@Node *other,
+                                             VsgPRTree2@t@NodeInfo *other_info,
+                                             VsgPRTree2@t@InteractionFunc near_func,
+                                             gpointer user_data)
+{
+  recursive_near_func (one, one_info, other, other_info, near_func, user_data);
+}
+
 #define _NODE_IS_EMPTY(node) ( \
  (node)->point_count == 0 && PRTREE2@T@NODE_IS_LOCAL (node)     \
 )

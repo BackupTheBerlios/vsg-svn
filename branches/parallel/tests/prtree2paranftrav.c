@@ -290,7 +290,7 @@ void _pt_write (Pt *pt, FILE *file)
 
   fprintf (file, "<circle cx=\"%g\" cy=\"%g\" r=\"%g\" " \
            "style=\"stroke-width:0.0001;stroke:#000000;fill:%s;\">\n",
-           pt->vector.x, -pt->vector.y, 0.01, color);
+           pt->vector.x, -pt->vector.y, 0.005, color);
   fprintf (file, "<title>w=%d</title>\n", pt->weight);
   fprintf (file, "<desc>count=%ld</desc>\n", pt->count);
   fprintf (file, "</circle>\n");

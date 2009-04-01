@@ -1571,10 +1571,12 @@ static void _propose_node_backward (VsgPRTree2@t@ *tree,
  */
 typedef struct _NIAndFuncs NIAndFuncs;
 struct _NIAndFuncs {
+  VsgPRTree2@t@Node *ref;
   VsgPRTree2@t@NodeInfo ref_info;
   VsgPRTree2@t@FarInteractionFunc far_func;
   VsgPRTree2@t@InteractionFunc near_func;
   gpointer user_data;
+  VsgPRTreeKey2@t@ *ref_ancestry_ids;
   gint8 done_flag;
 };
 
@@ -1585,121 +1587,91 @@ static void _traverse_visiting_nf (VsgPRTree2@t@Node *node,
                                    VsgPRTree2@t@NodeInfo *node_info,
                                    NIAndFuncs *niaf)
 {
-  if (PRTREE2@T@NODE_IS_LOCAL (node))
-    {
-      VsgPRTree2@t@NodeInfo *ref_info = &niaf->ref_info;
+  VsgPRTree2@t@NodeInfo *ref_info = &niaf->ref_info;
+  guint8 node_depth;
+  gboolean fardone;
 /*       gint rk; */
-      guint8 nf;
-      gboolean fardone;
 
 /*       MPI_Comm_rank (MPI_COMM_WORLD, &rk); */
 
-      /* interact only with interior local nodes of depth greater than visiting
-       * node.
-       */
-      if (PRTREE2@T@NODE_ISINT (node) &&
-          (node_info->id.depth < ref_info->id.depth))
-        return;
+  node_depth = node_info->id.depth;
 
-      /* avoid interactions with empty local nodes. */
-      if (PRTREE2@T@NODE_ISLEAF (node) && node->point_count == 0) return;
+  if (node_depth <= ref_info->id.depth)
+    {
+      VsgPRTreeKey2@t@ *ref_id = &niaf->ref_ancestry_ids[node_depth];
+      if (vsg_prtree_key2@t@_is_neighbour (ref_id, &node_info->id))
+        {
+          if (ref_info->point_count == 0 || node->point_count == 0) return;
 
-      nf = vsg_prtree_key2@t@_compare_near_far (&ref_info->id,
-                                                &node_info->id);
-
-      if (nf > 1 && node_info->id.depth > ref_info->id.depth) return;
-
-      switch (nf) {
-      case (1):
-        if (! node_info->isleaf) return;
-        if (ref_info->point_count == 0) return;
-
+          if (PRTREE2@T@NODE_ISLEAF (node) ||
+              node_depth == ref_info->id.depth)
+            {
 /*         g_printerr ("%d : near interaction [", rk); */
 /*         vsg_prtree_key2@t@_write (&ref_info->id, stderr); */
 /*         g_printerr ("] ["); */
 /*         vsg_prtree_key2@t@_write (&node_info->id, stderr); */
 /*         g_printerr ("]\n"); */
 
-        niaf->near_func (ref_info, node_info, niaf->user_data);
-        niaf->done_flag |= 1;
-        break;
-      case (2):
-        if (node_info->id.depth != ref_info->id.depth) return;
-
+              vsg_prtree2@t@node_recursive_near_func (niaf->ref, ref_info,
+                                                      node, node_info,
+                                                      niaf->near_func,
+                                                      niaf->user_data);
+              niaf->done_flag |= 1;
+            }
+        }
+      else if (node_depth == ref_info->id.depth &&
+               PRTREE2@T@NODE_IS_LOCAL (node) &&
+               node_info->point_count != 0)
+        {
 /*         g_printerr ("%d : far interaction [", rk); */
 /*         vsg_prtree_key2@t@_write (&ref_info->id, stderr); */
 /*         g_printerr ("] ["); */
 /*         vsg_prtree_key2@t@_write (&node_info->id, stderr); */
 /*         g_printerr ("]\n"); */
 
-	fardone = niaf->far_func (ref_info, node_info, niaf->user_data);
-	if (! fardone)
-	  g_critical ("far_func() -> FALSE not handled in \"%s\"",
-		      __PRETTY_FUNCTION__);
-        niaf->done_flag |= 1<<1;
-        break;
-      default:
-        break;
-      };
+          fardone = niaf->far_func (ref_info, node_info, niaf->user_data);
+          if (! fardone)
+            g_critical ("far_func() -> FALSE not handled in \"%s\"",
+                        __PRETTY_FUNCTION__);
+          niaf->done_flag |= 1<<1;
+        }
+    }
+}
 
+static vsgrloc2 _selector_nf_visitor (VsgPRTree2@t@NodeInfo *ref_info,
+                                      VsgPRTree2@t@NodeInfo *node_info,
+                                      VsgPRTreeKey2@t@ *ref_ancestry_ids)
+{
+  static const vsgrloc2 ancestor_order_rlocs[] = {
+    VSG_RLOC2_MASK - (VSG_RLOC2_COMP (0)-1),
+    VSG_RLOC2_MASK - (VSG_RLOC2_COMP (1)-1),
+    VSG_RLOC2_MASK - (VSG_RLOC2_COMP (2)-1),
+    VSG_RLOC2_MASK - (VSG_RLOC2_COMP (3)-1),
+  };
+  VsgPRTreeKey2@t@ *node_key = &node_info->id;
+  gint d = node_key->depth;
+
+  if (d >= ref_info->id.depth)
+    {
+/*       if (ref_info->point_count == 0/\*  || d > ref_info->id.depth *\/) */
+        return 0x0;
+
+      return VSG_RLOC2_MASK;
     }
 
-}
+  if (vsg_prtree_key2@t@_is_neighbour (&ref_ancestry_ids[d], node_key))
+    {
+      if (vsg_prtree_key2@t@_equals (&ref_ancestry_ids[d], node_key))
+        {
+          vsgloc2 loc = (ref_ancestry_ids[d+1].x & 1) |
+            ((ref_ancestry_ids[d+1].y & 1) << 1);
 
-static void _build_nf_box (VsgPRTree2@t@NodeInfo *node_info,
-                           VsgVector2@t@ *bounds)
-{
-  VsgVector2@t@ *center = &node_info->center;
-  VsgVector2@t@ size;
+          return ancestor_order_rlocs[loc];
+        }
+      return VSG_RLOC2_MASK;
+    }
 
-  vsg_vector2@t@_sub (&node_info->ubound, center, &size);
-
-  vsg_vector2@t@_scalp (&size, 7., &size);
-
-  vsg_vector2@t@_sub (center, &size, &bounds[0]);
-  vsg_vector2@t@_add (center, &size, &bounds[1]);
-}
-
-static vsgrloc2 _box_rloc2 (VsgVector2@t@ *bounds, VsgVector2@t@ *center)
-{
-  static const vsgrloc2 _box_rloc2[3][3] = {
-    {1<<3, (1<<2|1<<3), 1<<2},
-    {(1<<3|1<<1), VSG_RLOC2_MASK, (1<<0|1<<2)},
-    {1<<1, (1<<0|1<<1), 1<<0},
-  };
-
-  gint i, j;
-
-  if (center->x > bounds[1].x) i = 2;
-  else if (center->x < bounds[0].x) i = 0;
-  else i = 1;
-
-  if (center->y > bounds[1].y) j = 2;
-  else if (center->y < bounds[0].y) j = 0;
-  else j = 1;
-
-  return _box_rloc2[i][j];
-}
-
-static vsgrloc2 _selector_nf_box (VsgPRTree2@t@NodeInfo *ref_info,
-                                  VsgPRTree2@t@NodeInfo *node_info,
-                                  VsgVector2@t@ *bounds)
-{
-  gint8 nf;
-
-  /* skip local nodes deeper than the visitor */
-  if (ref_info->point_list == NULL &&
-      node_info->id.depth > ref_info->id.depth)
-    return 0x0;
-
-  nf = vsg_prtree_key2@t@_compare_near_far (&ref_info->id, &node_info->id);
-
-  if (nf < 0) return 0x0;
-
-  if (nf > 1)
-    return _box_rloc2 (bounds, &node_info->center);
-
-  return VSG_RLOC2_MASK;
+  return 0x0;
 }
 
 /* static gint _visitors = 0; */
@@ -1713,8 +1685,10 @@ static gboolean _compute_visiting_node (VsgPRTree2@t@ *tree,
                                         WaitingVisitor *wv)
 {
   NIAndFuncs niaf;
-  VsgVector2@t@ bounds[2];
+  VsgPRTreeKey2@t@ ref_ancestry_ids[sizeof (@key_type@) * 8];
+  gint i;
 
+  niaf.ref = wv->node;
   niaf.far_func = nfc->far_func;
   niaf.near_func = nfc->near_func;
   niaf.user_data = nfc->user_data;
@@ -1722,14 +1696,22 @@ static gboolean _compute_visiting_node (VsgPRTree2@t@ *tree,
   _vsg_prtree2@t@node_get_info (wv->node, &niaf.ref_info, NULL, 0);
   memcpy (&niaf.ref_info.id, &wv->id, sizeof (VsgPRTreeKey2@t@));
 
-  niaf.done_flag = 0;
+  vsg_prtree_key2@t@_copy (&ref_ancestry_ids[niaf.ref_info.id.depth],
+                           &niaf.ref_info.id);
+  for (i = niaf.ref_info.id.depth-1; i >= 0; i --)
+    {
+      vsg_prtree_key2@t@_get_father (&ref_ancestry_ids[i+1],
+                                     &ref_ancestry_ids[i]);
+    }
 
-  _build_nf_box (&niaf.ref_info, bounds);
+  niaf.ref_ancestry_ids = ref_ancestry_ids;
+
+  niaf.done_flag = 0;
 
   vsg_prtree2@t@_traverse_custom_internal (tree, G_POST_ORDER,
                                            (VsgRegion2@t@InternalLocDataFunc)
-                                           _selector_nf_box,
-                                           &niaf.ref_info, bounds,
+                                           _selector_nf_visitor,
+                                           &niaf.ref_info, ref_ancestry_ids,
                                            (VsgPRTree2@t@InternalFunc)
                                            _traverse_visiting_nf,
                                            &niaf);
@@ -1930,29 +1912,62 @@ struct _NodeRemoteData
   VsgNFConfig2@t@ *nfc;
   VsgPRTree2@t@Node *ref_node;
   VsgPRTree2@t@NodeInfo *ref_info;
+  VsgPRTreeKey2@t@ *ref_ancestry_ids;
   gboolean *procs;
   gboolean sent;
 };
 
-static vsgrloc2 _selector_nf_remote_box (VsgPRTree2@t@NodeInfo *ref_info,
-                                         VsgPRTree2@t@NodeInfo *node_info,
-                                         VsgVector2@t@ *bounds)
+static vsgrloc2 _selector_nf_remote (VsgPRTree2@t@NodeInfo *ref_info,
+                                     VsgPRTree2@t@NodeInfo *node_info,
+                                     VsgPRTreeKey2@t@ *ref_ancestry_ids)
 {
-  gint8 nf;
+  static const vsgrloc2 ancestor_order_rlocs[] = {
+    VSG_RLOC2_MASK - (VSG_RLOC2_COMP (0)-1),
+    VSG_RLOC2_MASK - (VSG_RLOC2_COMP (1)-1),
+    VSG_RLOC2_MASK - (VSG_RLOC2_COMP (2)-1),
+    VSG_RLOC2_MASK - (VSG_RLOC2_COMP (3)-1),
+  };
+  VsgPRTreeKey2@t@ *node_key = &node_info->id;
+  gint d = node_key->depth;
 
-  if (VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL (node_info)) return 0x0;
+  if (d >= ref_info->id.depth)
+    {
+      /* we can't skip non leaf nodes like in the following because
+         all ref_info's subtree could be skipped (see parallel_check in
+         vsgprrtee2@t@-extras.c:vsg_prtree2@t@node_near_far_traversal()) */
+      /* if (!ref_info->isleaf) return 0x0; */
 
-  if (! ref_info->isleaf &&
-      ref_info->depth < node_info->depth) return 0x0;
+      return VSG_RLOC2_MASK;
+    }
 
-  nf = vsg_prtree_key2@t@_compare_near_far (&ref_info->id, &node_info->id);
+  if (vsg_prtree_key2@t@_is_neighbour (&ref_ancestry_ids[d], node_key))
+    {
+      if (VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL (node_info)) return 0x0;
 
-  if (nf < 0) return 0x0;
+      if (vsg_prtree_key2@t@_equals (&ref_ancestry_ids[d], node_key))
+        {
+          vsgloc2 loc = (ref_ancestry_ids[d+1].x & 1) |
+            ((ref_ancestry_ids[d+1].y & 1) << 1);
 
-  if (nf > 1)
-    return _box_rloc2 (bounds, &node_info->center);
+          return ancestor_order_rlocs[loc];
+        }
 
-  return VSG_RLOC2_MASK;
+      return VSG_RLOC2_MASK;
+    }
+
+  return 0x0;
+}
+
+static inline @key_type@ _key_coord_dist (@key_type@ ref, @key_type@ node,
+                                          @key_type@ clamped, guint8 height)
+{
+  if (node == ref)
+    return 0;
+
+  if (node > ref)
+    return (1<<(height)) - clamped;
+
+  return clamped;
 }
 
 /*
@@ -1966,28 +1981,72 @@ static void _traverse_check_remote_neighbours (VsgPRTree2@t@Node *node,
   if (PRTREE2@T@NODE_IS_REMOTE (node))
     {
       gint proc = PRTREE2@T@NODE_PROC (node);
-      guint8 nf;
-      guint8 mindepth;
+      VsgPRTree2@t@NodeInfo *ref_info = data->ref_info;
+      guint8 node_depth;
 
-      if (data->procs[proc]) return;
+     if (data->procs[proc]) return;
 
-      /* use remote depth to avoid unwanted fw sends */
-      mindepth = node_info->depth + PRTREE2@T@NODE_LEAF (node).remote_depth;
+/*       gint rk; */
 
-      /* don't check deeper than node's depth */
-      mindepth = MIN (mindepth, data->ref_info->depth);
+/*       MPI_Comm_rank (MPI_COMM_WORLD, &rk); */
 
-      nf = vsg_prtree_key2@t@_compare_near_far_mindepth (&data->ref_info->id,
-                                                         &node_info->id,
-                                                         mindepth);
-      if (nf < 3 && nf > 0)
+       node_depth = node_info->id.depth;
+
+      if (node_depth <= ref_info->id.depth)
         {
-          _propose_node_forward (data->tree, data->nfc, proc, data->ref_node,
-                                  &data->ref_info->id);
+          VsgPRTreeKey2@t@ *ref_id = &data->ref_ancestry_ids[node_depth];
 
-          data->procs[proc] = TRUE;
-          data->sent = TRUE;
+          if (! vsg_prtree_key2@t@_is_neighbour (ref_id, &node_info->id))
+            {
+              if (node_depth < ref_info->id.depth)
+                return;
+            }
+          else
+            {
+              if (node_depth < ref_info->id.depth &&
+                  PRTREE2@T@NODE_LEAF (node).remote_depth > 0)
+                {
+                  /* check for mindepth */
+                  VsgPRTreeKey2@t@ clamped_ref;
+                  guint8 mindepth;
+                  guint8 shift;
+                  guint8 height;
+
+                  /* use remote depth to avoid unwanted fw sends */
+                  mindepth = node_info->depth +
+                    PRTREE2@T@NODE_LEAF (node).remote_depth;
+
+                  /* don't check deeper than node's depth */
+                  mindepth = MIN (mindepth, data->ref_info->depth);
+
+                  shift = ref_info->id.depth - mindepth;
+                  height = mindepth - node_info->depth;
+
+                  vsg_prtree_key2@t@_truncate (&ref_info->id, shift, &clamped_ref);
+
+                  vsg_prtree_key2@t@_sever (&clamped_ref, height, &clamped_ref);
+
+                  if (_key_coord_dist (ref_id->x, node_info->id.x,
+                                       clamped_ref.x, height) > 3)
+                    return;
+
+                  if (_key_coord_dist (ref_id->y, node_info->id.y,
+                                       clamped_ref.y, height) > 3)
+                    return;
+                }
+            }
         }
+      else
+        if (ref_info->point_count == 0) return;
+
+      _propose_node_forward (data->tree, data->nfc, proc,
+                             data->ref_node, &data->ref_info->id);
+
+      data->procs[proc] = TRUE;
+      data->sent = TRUE;
+
+      return;
+
     }
 }
 
@@ -2017,23 +2076,32 @@ vsg_prtree2@t@_node_check_parallel_near_far (VsgPRTree2@t@ *tree,
 
   if (VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL (info))
     {
+      gint i;
       NodeRemoteData nrd;
-      VsgVector2@t@ bounds[2];
+      VsgPRTreeKey2@t@ ref_ancestry_ids[sizeof (@key_type@) * 8];
 
       nrd.tree = tree;
       nrd.nfc = nfc;
       nrd.ref_node = node;
       nrd.ref_info = info;
+
+      vsg_prtree_key2@t@_copy (&ref_ancestry_ids[info->id.depth], &info->id);
+      for (i = info->id.depth-1; i >= 0; i --)
+        {
+          vsg_prtree_key2@t@_get_father (&ref_ancestry_ids[i+1],
+                                         &ref_ancestry_ids[i]);
+        }
+
+      nrd.ref_ancestry_ids = ref_ancestry_ids;
+
       nrd.procs = g_alloca (nfc->sz * sizeof (gboolean));
       memset (nrd.procs, 0, nfc->sz * sizeof (gboolean));
       nrd.sent = FALSE;
 
-      _build_nf_box (info, bounds);
-
       vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER,
                                                (VsgRegion2@t@InternalLocDataFunc)
-                                               _selector_nf_remote_box,
-                                               info, bounds,
+                                               _selector_nf_remote,
+                                               info, ref_ancestry_ids,
                                                (VsgPRTree2@t@InternalFunc)
                                                _traverse_check_remote_neighbours,
                                                &nrd);
