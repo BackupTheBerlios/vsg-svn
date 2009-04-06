@@ -75,9 +75,6 @@ vsgloc2 vsg_prtree_key2@t@_loc2 (VsgPRTreeKey2@t@ *key,
 
 vsgloc2 vsg_prtree_key2@t@_child (VsgPRTreeKey2@t@ *key);
 
-gint8 vsg_prtree_key2@t@_compare_near_far (VsgPRTreeKey2@t@ *one,
-                                           VsgPRTreeKey2@t@ *other);
-
 gboolean vsg_prtree_key2@t@_equals (VsgPRTreeKey2@t@ *one,
                                     VsgPRTreeKey2@t@ *other);
 
