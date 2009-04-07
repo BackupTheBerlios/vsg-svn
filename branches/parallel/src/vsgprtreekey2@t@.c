@@ -382,7 +382,7 @@ vsgloc2 vsg_prtree_key2@t@_child (VsgPRTreeKey2@t@ *key)
 }
 
 /**
- * vsg_prtree_key2@t@_compare_near_far:
+ * vsg_prtree_key2@t@_ancestor_order_unsafe:
  * @key : a VsgPRTreeKey2@t@.
  * @center : a VsgPRTreeKey2@t@.
  *
