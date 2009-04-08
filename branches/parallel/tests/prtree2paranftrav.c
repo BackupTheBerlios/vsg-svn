@@ -1059,11 +1059,11 @@ void _near (VsgPRTree2dNodeInfo *one_info,
 
   {
     long i, j = 0;
-    for (i = 0; i< _far_slowdown; i++)
+    for (i = 0; i< _near_slowdown; i++)
       {
         j = j + i;
       }
-    if (j != _far_slowdown*(_far_slowdown-1)/2) g_printerr ("oops\n");
+    if (j != _near_slowdown*(_near_slowdown-1)/2) g_printerr ("oops\n");
   }
   _near_count ++;
 }
