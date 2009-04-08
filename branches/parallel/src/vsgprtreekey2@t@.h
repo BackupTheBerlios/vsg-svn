@@ -86,6 +86,9 @@ void vsg_prtree_key2@t@_get_father (VsgPRTreeKey2@t@ *key,
 gboolean vsg_prtree_key2@t@_is_neighbour (VsgPRTreeKey2@t@ *one,
                                           VsgPRTreeKey2@t@ *other);
 
+gboolean vsg_prtree_key2@t@_is_ancestor (VsgPRTreeKey2@t@ *ancestor,
+                                         VsgPRTreeKey2@t@ *child);
+
 static inline void vsg_prtree_key2@t@_truncate (VsgPRTreeKey2@t@ *key,
                                                 guint8 offset,
                                                 VsgPRTreeKey2@t@ *result)

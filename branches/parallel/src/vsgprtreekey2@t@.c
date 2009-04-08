@@ -434,3 +434,22 @@ gboolean vsg_prtree_key2@t@_is_neighbour (VsgPRTreeKey2@t@ *one,
     ((one->y - other->y) <= 1 || (other->y - one->y) <= 1);
 }
 
+gboolean vsg_prtree_key2@t@_is_ancestor (VsgPRTreeKey2@t@ *ancestor,
+                                         VsgPRTreeKey2@t@ *child)
+{
+  VsgPRTreeKey2@t@ tmp;
+  VsgPRTreeKey2@t@ *_child;
+
+  if (child->depth < ancestor->depth) return FALSE;
+
+  if (child->depth > ancestor->depth)
+    {
+      _child = &tmp;
+      _key_scale_down (child, child->depth - ancestor->depth, _child);
+    }
+  else
+    _child = child;
+
+  return ancestor->x == _child->x && ancestor->y == _child->y;
+}
+

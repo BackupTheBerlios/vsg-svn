@@ -337,7 +337,7 @@ void _traverse_bg_write (VsgPRTree2dNodeInfo *node_info, FILE *file)
     }
 
   fprintf (file, "<rect x=\"%g\" y=\"%g\" width=\"%g\" height=\"%g\" " \
-           "rx=\"0\" style=\"stroke-width:0.0001;stroke:#000000; " \
+           "rx=\"0\" style=\"stroke-width:0.001;stroke:#000000; " \
            "stroke-linejoin:miter; stroke-linecap:butt; fill:%s;\">\n",
            x, y, w, h, fill);
   fprintf (file, "<title>");
@@ -591,6 +591,7 @@ struct _ContiguousDistData {
   gint q, r, m;        /* distribution variables */
   gint current_index;  /* number of already checked array entries */
   gint current_lcount; /* number of already checked leaves */
+  VsgPRTreeKey2d last_subtree_id; /* key of the last local subtree */
 };
 
 gint contiguous_dist (VsgPRTree2dNodeInfo *node_info,
@@ -607,6 +608,19 @@ gint contiguous_dist (VsgPRTree2dNodeInfo *node_info,
 
       cda->current_lcount ++;
 
+      if (! vsg_prtree_key2d_is_ancestor (&cda->last_subtree_id,
+                                          &node_info->id))
+        {
+          VsgPRTree2dNodeInfo *ancestor = node_info;
+
+          while (ancestor->father_info &&
+                 VSG_PRTREE2D_NODE_INFO_IS_LOCAL (ancestor->father_info))
+            ancestor = ancestor->father_info;
+
+          cda->current_index ++;
+          vsg_prtree_key2d_copy (&cda->last_subtree_id, &ancestor->id);
+        }
+
 /*       g_printerr ("%d: sending node ", rk); */
 /*       vsg_vector2d_write (&node_info->center, stderr); */
 /*       g_printerr (" to %d\n", ret); */
@@ -621,6 +635,8 @@ gint contiguous_dist (VsgPRTree2dNodeInfo *node_info,
 
   return -1;
 }
+
+static const VsgPRTreeKey2d _dummy_key = {0, 0, 255};
 
 void contiguous_distribute_nodes (VsgPRTree2d *tree)
 {
@@ -655,10 +671,13 @@ void contiguous_distribute_nodes (VsgPRTree2d *tree)
   cda.m = (cda.q+1) * cda.r;
   cda.current_lcount = 0;
   cda.current_index = 0;
+  cda.last_subtree_id = _dummy_key;
 
   vsg_prtree2d_distribute_nodes (tree,
                                  (VsgPRTree2dDistributionFunc) contiguous_dist,
                                  &cda);
+
+  g_printerr ("%d : reduced-len=%d current-index=%d\n", rk, reduced->len, cda.current_index);
 
   g_array_free (reduced, TRUE);
 
@@ -1335,6 +1354,16 @@ gint main (gint argc, gchar ** argv)
   /* accumulate from top to leaves */
   vsg_prtree2d_traverse (tree, G_PRE_ORDER, (VsgPRTree2dFunc) _down, NULL);
 
+  if (_verbose)
+    {
+      MPI_Barrier (MPI_COMM_WORLD);
+
+      g_printerr ("%d: near/far traversal ok elapsed=%f seconds\n", rk,
+                  g_timer_elapsed (timer, NULL));
+
+      g_timer_destroy (timer);
+    }
+
   if (_do_write)
     {
       gchar fn[1024];
@@ -1348,16 +1377,6 @@ gint main (gint argc, gchar ** argv)
       fclose (f);
 
       _tree_write (tree, "prtree2parallel-");
-    }
-
-  if (_verbose)
-    {
-      MPI_Barrier (MPI_COMM_WORLD);
-
-      g_printerr ("%d: near/far traversal ok elapsed=%f seconds\n", rk,
-                  g_timer_elapsed (timer, NULL));
-
-      g_timer_destroy (timer);
     }
 
   if (_do_write)
