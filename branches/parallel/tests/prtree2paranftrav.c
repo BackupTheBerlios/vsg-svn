@@ -579,7 +579,8 @@ void _local_leaves_count (VsgPRTree2dNodeInfo *node_info, GArray *array)
         }
 
       /* increment local leaves */
-      if (node_info->isleaf && VSG_PRTREE2D_NODE_INFO_IS_LOCAL (node_info))
+      if (node_info->isleaf && VSG_PRTREE2D_NODE_INFO_IS_LOCAL (node_info) &&
+          node_info->point_count != 0)
         g_array_index (array, gint, array->len-1) ++;
     }
 }
@@ -605,6 +606,8 @@ gint contiguous_dist (VsgPRTree2dNodeInfo *node_info,
         ret = (cda->current_lcount - cda->r) / cda->q;
       else
         ret = cda->current_lcount / (cda->q + 1);
+
+      if (node_info->point_count == 0) return ret;
 
       cda->current_lcount ++;
 
@@ -666,18 +669,21 @@ void contiguous_distribute_nodes (VsgPRTree2d *tree)
   for (i=0; i<reduced->len; i++)
     cda.total_leaves += g_array_index (reduced, gint, i);
 
-  cda.q = cda.total_leaves / sz;
-  cda.r = cda.total_leaves % sz;
-  cda.m = (cda.q+1) * cda.r;
-  cda.current_lcount = 0;
-  cda.current_index = 0;
-  cda.last_subtree_id = _dummy_key;
+  if (cda.total_leaves > 0)
+    {
+      cda.q = cda.total_leaves / sz;
+      cda.r = cda.total_leaves % sz;
+      cda.m = (cda.q+1) * cda.r;
+      cda.current_lcount = 0;
+      cda.current_index = 0;
+      cda.last_subtree_id = _dummy_key;
 
-  vsg_prtree2d_distribute_nodes (tree,
-                                 (VsgPRTree2dDistributionFunc) contiguous_dist,
-                                 &cda);
+      vsg_prtree2d_distribute_nodes (tree,
+                                     (VsgPRTree2dDistributionFunc) contiguous_dist,
+                                     &cda);
 
-  g_printerr ("%d : reduced-len=%d current-index=%d\n", rk, reduced->len, cda.current_index);
+/*   g_printerr ("%d : reduced-len=%d current-index=%d\n", rk, reduced->len, cda.current_index); */
+    }
 
   g_array_free (reduced, TRUE);
 
