@@ -474,43 +474,6 @@ static void contiguous_distribute_nodes (VsgPRTree2d *tree)
 
 }
 
-typedef enum _Hilbert2Key Hilbert2Key;
-enum _Hilbert2Key {
-  HK2_0_1,
-  HK2_3_2,
-  HK2_3_1,
-  HK2_0_2,
-
-};
-
-static gint hilbert2_coords[][4] = {
-  {0, 2, 3, 1, },
-  {3, 1, 0, 2, },
-  {3, 2, 0, 1, },
-  {0, 1, 3, 2, },
-
-};
-
-static Hilbert2Key hilbert2_decompositions[][4] = {
-  {HK2_0_2, HK2_0_1, HK2_0_1, HK2_3_1, },
-  {HK2_3_1, HK2_3_2, HK2_3_2, HK2_0_2, },
-  {HK2_3_2, HK2_3_1, HK2_3_1, HK2_0_1, },
-  {HK2_0_1, HK2_0_2, HK2_0_2, HK2_3_2, },
-
-};
-
-static void hilbert2_order (gpointer node_key, gint *children,
-                            gpointer *children_keys)
-{
-  gint i;
-  Hilbert2Key hkey = GPOINTER_TO_INT (node_key);
-
-  for (i=0; i<4; i++)
-    {
-      children[i] = hilbert2_coords[hkey][i];
-      children_keys[i] = GINT_TO_POINTER (hilbert2_decompositions[hkey][i]);
-    }
-}
 static void random_fill (VsgPRTree2d *tree, guint np);
 
 static void (*_fill) (VsgPRTree2d *tree, guint np) = random_fill;
@@ -695,8 +658,7 @@ gint main (gint argc, gchar ** argv)
   if (_hilbert)
     {
       /* configure for hilbert curve order traversal */
-      vsg_prtree2d_set_children_order (tree, hilbert2_order,
-                                       GINT_TO_POINTER (HK2_0_1));
+      vsg_prtree2d_set_children_order_hilbert (tree);
     }
 
   if (_verbose)

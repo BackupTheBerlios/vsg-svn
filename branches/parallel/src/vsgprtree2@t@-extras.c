@@ -417,6 +417,44 @@ vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@ *tree,
                                                &node_info, i, parallel_check);
     }
 }
+typedef enum _Hilbert2Key Hilbert2Key;
+enum _Hilbert2Key {
+  HK2_0_1,
+  HK2_3_2,
+  HK2_3_1,
+  HK2_0_2,
+
+};
+
+static gint hilbert2_coords[][4] = {
+  {0, 2, 3, 1, },
+  {3, 1, 0, 2, },
+  {3, 2, 0, 1, },
+  {0, 1, 3, 2, },
+
+};
+
+static Hilbert2Key hilbert2_decompositions[][4] = {
+  {HK2_0_2, HK2_0_1, HK2_0_1, HK2_3_1, },
+  {HK2_3_1, HK2_3_2, HK2_3_2, HK2_0_2, },
+  {HK2_3_2, HK2_3_1, HK2_3_1, HK2_0_1, },
+  {HK2_0_1, HK2_0_2, HK2_0_2, HK2_3_2, },
+
+};
+
+static void hilbert2_order (gpointer node_key, gint *children,
+                            gpointer *children_keys)
+{
+  gint i;
+  Hilbert2Key hkey = GPOINTER_TO_INT (node_key);
+
+  for (i=0; i<4; i++)
+    {
+      children[i] = hilbert2_coords[hkey][i];
+      children_keys[i] = GINT_TO_POINTER (hilbert2_decompositions[hkey][i]);
+    }
+}
+
 
 /*-------------------------------------------------------------------*/
 /* typedefs and structure doc */
@@ -532,4 +570,35 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
     }
 
   vsg_nf_config2@t@_clean (&nfc);
+}
+
+/**
+ * vsg_prtree2@t@_set_children_order_hilbert:
+ * @prtree2@t@: a #VsgPRTree2@t@.
+ *
+ * Configures @prtree2@t@ for Hilbert curve order traversal.
+ */
+void vsg_prtree2@t@_set_children_order_hilbert (VsgPRTree2@t@ *prtree2@t@)
+{
+#ifdef VSG_CHECK_PARAMS
+  g_return_if_fail (prtree2@t@ != NULL);
+#endif
+
+  vsg_prtree2@t@_set_children_order (prtree2@t@, hilbert2_order,
+                                     GINT_TO_POINTER (HK2_0_1));
+
+}
+/**
+ * vsg_prtree2@t@_set_children_order_default:
+ * @prtree2@t@: a #VsgPRTree2@t@.
+ *
+ * Configures @prtree2@t@ for default (Z order) order traversal.
+ */
+void vsg_prtree2@t@_set_children_order_default (VsgPRTree2@t@ *prtree2@t@)
+{
+#ifdef VSG_CHECK_PARAMS
+  g_return_if_fail (prtree2@t@ != NULL);
+#endif
+
+  vsg_prtree2@t@_set_children_order (prtree2@t@, NULL, NULL);
 }

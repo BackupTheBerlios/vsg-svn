@@ -486,6 +486,22 @@ vsgprtree2d
 @user_data: 
 
 
+<!-- ##### FUNCTION vsg_prtree2d_set_children_order_hilbert ##### -->
+<para>
+
+</para>
+
+@prtree2d: 
+
+
+<!-- ##### FUNCTION vsg_prtree2d_set_children_order_default ##### -->
+<para>
+
+</para>
+
+@prtree2d: 
+
+
 <!-- ##### FUNCTION vsg_prtree2d_distribute_nodes ##### -->
 <para>
 

@@ -335,6 +335,9 @@ vsg_prtree2d_near_far_traversal
 vsg_prtree2d_traverse_custom
 vsg_prtree2d_traverse
 
+vsg_prtree2d_set_children_order_hilbert
+vsg_prtree2d_set_children_order_default
+
 vsg_prtree2d_distribute_nodes
 vsg_prtree2d_migrate_flush
 vsg_prtree2d_set_parallel
@@ -403,6 +406,9 @@ vsg_prtree2f_find_point
 vsg_prtree2f_near_far_traversal
 vsg_prtree2f_traverse_custom
 vsg_prtree2f_traverse
+
+vsg_prtree2f_set_children_order_hilbert
+vsg_prtree2f_set_children_order_default
 
 vsg_prtree2f_distribute_nodes
 vsg_prtree2f_migrate_flush
