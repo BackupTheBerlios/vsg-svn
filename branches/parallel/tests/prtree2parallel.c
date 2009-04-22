@@ -168,34 +168,6 @@ static VsgPRTreeParallelConfig pconfig = {
 };
 
 
-static gint concentrate_dist (VsgPRTree2dNodeInfo *node_info, gint *dst)
-{
-/*   g_printerr ("%d: dist node center ", rk); */
-/*   vsg_vector2d_write (&node_info->center, stderr); */
-/*   g_printerr (" dst=%d\n", *dst); */
-
-  return *dst;
-}
-
-static gint scatter_dist (VsgPRTree2dNodeInfo *node_info, gint *cptr)
-{
-  if (VSG_PRTREE2D_NODE_INFO_IS_LOCAL (node_info))
-    {
-      gint dst = *cptr;
-
-/*       g_printerr ("%d: dist node center ", rk); */
-/*       vsg_vector2d_write (&node_info->center, stderr);  */
-/*       g_printerr (" dst=%d\n", dst); */
-
-      (*cptr) ++;
-      (*cptr) = (*cptr) % sz;
-
-      return dst;
-    }
-
-  return -1;
-}
-
 static void _pt_write (VsgVector2d *pt, FILE *file)
 {
   fprintf (file, "<circle cx=\"%g\" cy=\"%g\" r=\"%g\" " \
@@ -500,10 +472,7 @@ gint main (gint argc, gchar ** argv)
 /*       MPI_Barrier (MPI_COMM_WORLD); */
 /*       g_printerr ("%d: move to %d\n", rk, dst); */
 
-      vsg_prtree2d_distribute_nodes (tree,
-                                     (VsgPRTree2dDistributionFunc)
-                                     concentrate_dist,
-                                     &dst);
+      vsg_prtree2d_distribute_concentrate (tree, dst);
 
       ret += check_points_number (tree);
       ret += check_regions_number (tree);
@@ -512,11 +481,7 @@ gint main (gint argc, gchar ** argv)
 /*   MPI_Barrier (MPI_COMM_WORLD); */
 /*   g_printerr ("%d: split between nodes\n", rk); */
 
-  i = 0;
-  vsg_prtree2d_distribute_nodes (tree,
-                                 (VsgPRTree2dDistributionFunc)
-                                 scatter_dist,
-                                 &i);
+  vsg_prtree2d_distribute_scatter_leaves (tree);
 
 /*   ret += check_points_number (tree); */
 /*   ret += check_regions_number (tree); */

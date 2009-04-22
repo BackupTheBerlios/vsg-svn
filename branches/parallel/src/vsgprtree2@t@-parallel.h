@@ -38,6 +38,13 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree);
 void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
                                       VsgPRTree2@t@DistributionFunc func,
                                       gpointer user_data);
+
+void vsg_prtree2@t@_distribute_contiguous_leaves (VsgPRTree2@t@ *tree);
+
+void vsg_prtree2@t@_distribute_scatter_leaves (VsgPRTree2@t@ *tree);
+
+void vsg_prtree2@t@_distribute_concentrate (VsgPRTree2@t@ *tree, gint dst);
+
 G_END_DECLS;
 
 #endif /* __VSGPRTREE2@T@_PARALLEL_H__ */

@@ -342,6 +342,11 @@ vsg_prtree2d_distribute_nodes
 vsg_prtree2d_migrate_flush
 vsg_prtree2d_set_parallel
 
+vsg_prtree2d_distribute_contiguous_leaves
+vsg_prtree2d_distribute_scatter_leaves
+vsg_prtree2d_distribute_concentrate
+
+
 <SUBSECTION Standard>
 vsg_prtree2d_get_type
 vsg_prtree2d_node_info_get_type
@@ -413,6 +418,10 @@ vsg_prtree2f_set_children_order_default
 vsg_prtree2f_distribute_nodes
 vsg_prtree2f_migrate_flush
 vsg_prtree2f_set_parallel
+
+vsg_prtree2f_distribute_contiguous_leaves
+vsg_prtree2f_distribute_scatter_leaves
+vsg_prtree2f_distribute_concentrate
 
 <SUBSECTION Standard>
 vsg_prtree2f_get_type

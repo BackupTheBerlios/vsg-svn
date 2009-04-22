@@ -2430,10 +2430,13 @@ static void _remote_depths_store (VsgPRTree2@t@Node *node,
 
 void vsg_prtree2@t@_update_remote_depths (VsgPRTree2@t@ *tree)
 {
-  GArray *array = g_array_sized_new (FALSE, FALSE, sizeof (guint8), 1024);
+  GArray *array;
   GArray *reduced;
   guint8 *depths;
 
+  g_return_if_fail (tree != NULL);
+
+  array = g_array_sized_new (FALSE, FALSE, sizeof (guint8), 1024);
   vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER, NULL, NULL, NULL,
                                            (VsgPRTree2@t@InternalFunc)
                                            _remote_depths_array_build,
@@ -2460,3 +2463,225 @@ void vsg_prtree2@t@_update_remote_depths (VsgPRTree2@t@ *tree)
   tree->config.remote_depth_dirty = FALSE;
 }
 
+static void _local_leaves_count (VsgPRTree2@t@NodeInfo *node_info,
+                                 GArray *array)
+{
+  if (! VSG_PRTREE2@T@_NODE_INFO_IS_SHARED (node_info))
+    {
+      /* detect root of local (remote) subtrees */
+      if (node_info->father_info == NULL ||
+          VSG_PRTREE2@T@_NODE_INFO_IS_SHARED (node_info->father_info))
+        {
+          gint i = 0;
+          g_array_append_val (array, i);
+        }
+
+      /* increment local leaves */
+      if (node_info->isleaf && VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL (node_info) &&
+          node_info->point_count != 0)
+        g_array_index (array, gint, array->len-1) ++;
+    }
+}
+
+typedef struct _ContiguousDistData ContiguousDistData;
+struct _ContiguousDistData {
+  GArray *array;       /* array of number of leaves on each local subtree */
+  gint total_leaves;   /* total number of leaves in the tree (sum of array) */
+  gint q, r, m;        /* distribution variables */
+  gint current_index;  /* number of already checked array entries */
+  gint current_lcount; /* number of already checked leaves */
+  VsgPRTreeKey2@t@ last_subtree_id; /* key of the last local subtree */
+};
+
+static gint contiguous_dist (VsgPRTree2@t@NodeInfo *node_info,
+                             ContiguousDistData *cda)
+{
+  if (VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL (node_info))
+    {
+      gint ret = 0;
+
+      if (cda->current_lcount >= cda->m)
+        ret = (cda->current_lcount - cda->r) / cda->q;
+      else
+        ret = cda->current_lcount / (cda->q + 1);
+
+      if (node_info->point_count == 0) return ret;
+
+      cda->current_lcount ++;
+
+      if (! vsg_prtree_key2@t@_is_ancestor (&cda->last_subtree_id,
+                                          &node_info->id))
+        {
+          VsgPRTree2@t@NodeInfo *ancestor = node_info;
+
+          while (ancestor->father_info &&
+                 VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL (ancestor->father_info))
+            ancestor = ancestor->father_info;
+
+          cda->current_index ++;
+          vsg_prtree_key2@t@_copy (&cda->last_subtree_id, &ancestor->id);
+        }
+
+/*       g_printerr ("%d: sending node ", rk); */
+/*       vsg_vector2@t@_write (&node_info->center, stderr); */
+/*       g_printerr (" to %d\n", ret); */
+
+      return ret;
+    }
+
+  g_assert (VSG_PRTREE2@T@_NODE_INFO_IS_REMOTE (node_info));
+
+  cda->current_lcount += g_array_index (cda->array, gint, cda->current_index);
+  cda->current_index ++;
+
+  return -1;
+}
+
+static const VsgPRTreeKey2@t@ _dummy_key = {0, 0, 255};
+
+/**
+ * vsg_prtree2@t@_distribute_contiguous_leaves:
+ * @tree: a #VsgPRTree2@t@.
+ *
+ * Performs parallel distribution of the nodes in @tree so as leaves
+ * are sent to processors in order to have contiguous segments of (non
+ * empty) leaves of roughly the same size in each
+ * processor. "Contiguous segments" is here meant as if leaves were
+ * numbered successively in an ordinary traversal of @tree. This means
+ * that this distribution is subject to the current children ordering
+ * of the tree.
+ */
+void vsg_prtree2@t@_distribute_contiguous_leaves (VsgPRTree2@t@ *tree)
+{
+  MPI_Comm comm;
+  ContiguousDistData cda;
+  GArray *array;
+  GArray *reduced;
+  gint i, sz;
+
+  g_return_if_fail (tree != NULL);
+
+  array = g_array_sized_new (FALSE, FALSE, sizeof (gint), 1024);
+  comm = tree->config.parallel_config.communicator;
+  
+/*   MPI_Comm_rank (comm, &rk); */
+  MPI_Comm_size (comm, &sz);
+
+  /* accumulate number of local leaves in the local subtrees' roots */
+  vsg_prtree2@t@_traverse (tree, G_PRE_ORDER,
+                         (VsgPRTree2@t@Func) _local_leaves_count,
+                         array);
+
+  /* prepare reduced for storing the results of the Allreduce */
+  reduced = g_array_sized_new (FALSE, TRUE, sizeof (gint), array->len);
+  reduced = g_array_set_size (reduced, array->len);
+
+  MPI_Allreduce (array->data, reduced->data, array->len, MPI_INT, MPI_MAX,
+                 comm);
+
+/*   g_printerr ("%d: contiguous allreduce size=%d\n", rk, array->len); */
+
+  g_array_free (array, TRUE);
+
+  cda.array = reduced;
+  cda.total_leaves = 0;
+  for (i=0; i<reduced->len; i++)
+    cda.total_leaves += g_array_index (reduced, gint, i);
+
+  if (cda.total_leaves > 0)
+    {
+      cda.q = cda.total_leaves / sz;
+      cda.r = cda.total_leaves % sz;
+      cda.m = (cda.q+1) * cda.r;
+      cda.current_lcount = 0;
+      cda.current_index = 0;
+      cda.last_subtree_id = _dummy_key;
+
+      vsg_prtree2@t@_distribute_nodes (tree,
+                                     (VsgPRTree2@t@DistributionFunc) contiguous_dist,
+                                     &cda);
+
+/*   g_printerr ("%d : reduced-len=%d current-index=%d\n", rk, reduced->len, cda.current_index); */
+    }
+
+  g_array_free (reduced, TRUE);
+}
+
+typedef struct _ScatterData ScatterData;
+struct _ScatterData {
+  gint cptr;
+  gint sz;
+};
+
+static gint scatter_dist (VsgPRTree2@t@NodeInfo *node_info, ScatterData *sd)
+{
+  if (VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL (node_info))
+    {
+      gint dst = sd->cptr;
+
+      sd->cptr ++;
+      sd->cptr = sd->cptr % sd->sz;
+
+      return dst;
+    }
+
+  return -1;
+}
+
+/**
+ * vsg_prtree2@t@_distribute_scatter_leaves:
+ * @tree: a #VsgPRTree2@t@.
+ *
+ * Performs parallel distribution of the nodes in @tree so as all
+ * leaves will be scattered across all processors, in the order they
+ * are encountered in a regular traversal (ie. first leaf for
+ * processor 0, second leaf for processor 1, etc... and cycling when
+ * the number of processors is reached).
+ */
+void vsg_prtree2@t@_distribute_scatter_leaves (VsgPRTree2@t@ *tree)
+{
+  MPI_Comm comm;
+  ScatterData sd;
+
+  g_return_if_fail (tree != NULL);
+
+  comm = tree->config.parallel_config.communicator;
+
+  sd.cptr = 0;
+  MPI_Comm_size (comm, &sd.sz);
+
+  vsg_prtree2@t@_distribute_nodes (tree,
+                                   (VsgPRTree2@t@DistributionFunc)
+                                   scatter_dist,
+                                   &sd);
+}
+
+static gint concentrate_dist (VsgPRTree2@t@NodeInfo *node_info, gint *dst)
+{
+  return *dst;
+}
+
+/**
+ * vsg_prtree2@t@_distribute_concentrate:
+ * @tree: a #VsgPRTree2@t@.
+ * @dst: destination processor number in the @tree's communicator.
+ *
+ * Performs parallel distribution of the nodes in @tree so as all
+ * nodes will be sent to the processor @dst.
+ */
+void vsg_prtree2@t@_distribute_concentrate (VsgPRTree2@t@ *tree, gint dst)
+{
+  MPI_Comm comm;
+  gint sz;
+
+  g_return_if_fail (tree != NULL);
+
+  comm = tree->config.parallel_config.communicator;
+  MPI_Comm_size (comm, &sz);
+
+  vsg_prtree2@t@_distribute_nodes (tree,
+                                   (VsgPRTree2@t@DistributionFunc)
+                                   concentrate_dist,
+                                   &dst);
+
+}

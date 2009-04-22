@@ -529,3 +529,28 @@ vsgprtree2d
 @pconfig: 
 
 
+<!-- ##### FUNCTION vsg_prtree2d_distribute_contiguous_leaves ##### -->
+<para>
+
+</para>
+
+@tree: 
+
+
+<!-- ##### FUNCTION vsg_prtree2d_distribute_scatter_leaves ##### -->
+<para>
+
+</para>
+
+@tree: 
+
+
+<!-- ##### FUNCTION vsg_prtree2d_distribute_concentrate ##### -->
+<para>
+
+</para>
+
+@tree: 
+@dst: 
+
+

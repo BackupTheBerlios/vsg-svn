@@ -182,25 +182,6 @@ static VsgPRTreeParallelConfig pconfig = {
   },
 };
 
-static gint scatter_dist (VsgPRTree2dNodeInfo *node_info, gint *cptr)
-{
-  if (VSG_PRTREE2D_NODE_INFO_IS_LOCAL (node_info))
-    {
-      gint dst = *cptr;
-
-/*       g_printerr ("%d: dist node center ", rk); */
-/*       vsg_vector2d_write (&node_info->center, stderr);  */
-/*       g_printerr (" dst=%d\n", dst); */
-
-      (*cptr) ++;
-      (*cptr) = (*cptr) % sz;
-
-      return dst;
-    }
-
-  return -1;
-}
-
 static void _pt_write (VsgVector2d *pt, FILE *file)
 {
   fprintf (file, "<circle cx=\"%g\" cy=\"%g\" r=\"%g\" " \
@@ -376,103 +357,6 @@ static gint check_regions_number (VsgPRTree2d *tree)
   return ret;
 }
 
-static void _local_leaves_count (VsgPRTree2dNodeInfo *node_info, GArray *array)
-{
-  if (! VSG_PRTREE2D_NODE_INFO_IS_SHARED (node_info))
-    {
-      /* detect root of local (remote) subtrees */
-      if (node_info->father_info == NULL ||
-          VSG_PRTREE2D_NODE_INFO_IS_SHARED (node_info->father_info))
-        {
-          gint i = 0;
-          g_array_append_val (array, i);
-        }
-
-      /* increment local leaves */
-      if (node_info->isleaf && VSG_PRTREE2D_NODE_INFO_IS_LOCAL (node_info))
-        g_array_index (array, gint, array->len-1) ++;
-    }
-}
-
-typedef struct _ContiguousDistData ContiguousDistData;
-struct _ContiguousDistData {
-  GArray *array;        /* array of number of leaves on each local subtree */
-  gint total_leaves;   /* total number of leaves in the tree (sum of array) */
-  gint q, r, m;        /* distribution variables */
-  gint current_index;  /* number of already checked array entries */
-  gint current_lcount; /* number of already checked leaves */
-};
-
-static gint contiguous_dist (VsgPRTree2dNodeInfo *node_info,
-                             ContiguousDistData *cda)
-{
-  if (VSG_PRTREE2D_NODE_INFO_IS_LOCAL (node_info))
-    {
-      gint ret = 0;
-
-      if (cda->current_lcount >= cda->m)
-        ret = (cda->current_lcount - cda->r) / cda->q;
-      else
-        ret = cda->current_lcount / (cda->q + 1);
-
-      cda->current_lcount ++;
-
-/*       g_printerr ("%d: sending node ", rk); */
-/*       vsg_vector2d_write (&node_info->center, stderr); */
-/*       g_printerr (" to %d\n", ret); */
-
-      return ret;
-    }
-
-  g_assert (VSG_PRTREE2D_NODE_INFO_IS_REMOTE (node_info));
-
-  cda->current_lcount += g_array_index (cda->array, gint, cda->current_index);
-  cda->current_index ++;
-
-  return -1;
-}
-
-static void contiguous_distribute_nodes (VsgPRTree2d *tree)
-{
-  ContiguousDistData cda;
-  GArray *array = g_array_sized_new (FALSE, FALSE, sizeof (gint), 1024);
-  GArray *reduced;
-  gint i;
-
-  /* accumulate number of local leaves in the local subtrees' roots */
-  vsg_prtree2d_traverse (tree, G_PRE_ORDER,
-                         (VsgPRTree2dFunc) _local_leaves_count,
-                         array);
-
-  /* prepare reduced for storing the results of the Allreduce */
-  reduced = g_array_sized_new (FALSE, TRUE, sizeof (gint), array->len);
-  reduced = g_array_set_size (reduced, array->len);
-
-  MPI_Allreduce (array->data, reduced->data, array->len, MPI_INT, MPI_MAX,
-                 MPI_COMM_WORLD);
-
-/*   g_printerr ("%d: contiguous allreduce size=%d\n", rk, array->len); */
-
-  g_array_free (array, TRUE);
-
-  cda.array = reduced;
-  cda.total_leaves = 0;
-  for (i=0; i<reduced->len; i++)
-    cda.total_leaves += g_array_index (reduced, gint, i);
-
-  cda.q = cda.total_leaves / sz;
-  cda.r = cda.total_leaves % sz;
-  cda.m = (cda.q+1) * cda.r;
-  cda.current_lcount = 0;
-  cda.current_index = 0;
-
-  vsg_prtree2d_distribute_nodes (tree,
-                                 (VsgPRTree2dDistributionFunc) contiguous_dist,
-                                 &cda);
-
-  g_array_free (reduced, TRUE);
-
-}
 
 static void random_fill (VsgPRTree2d *tree, guint np);
 
@@ -695,18 +579,13 @@ gint main (gint argc, gchar ** argv)
 
   if (_scatter_before)
     {
-      gint i = 0;
-
       if (_verbose)
         {
           MPI_Barrier (MPI_COMM_WORLD);
           g_printerr ("%d: scatter nodes begin\n", rk);
         }
 
-      vsg_prtree2d_distribute_nodes (tree,
-                                     (VsgPRTree2dDistributionFunc)
-                                     scatter_dist,
-                                     &i);
+      vsg_prtree2d_distribute_scatter_leaves (tree);
 
       ret += check_points_number (tree);
       ret += check_regions_number (tree);
@@ -729,7 +608,7 @@ gint main (gint argc, gchar ** argv)
           g_printerr ("%d: contiguous distribute begin\n", rk);
         }
 
-      contiguous_distribute_nodes (tree);
+      vsg_prtree2d_distribute_contiguous_leaves (tree);
 
       ret += check_points_number (tree);
       ret += check_regions_number (tree);
