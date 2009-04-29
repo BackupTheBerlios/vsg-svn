@@ -85,7 +85,9 @@ static VsgPRTree2@t@ *_prtree2@t@_alloc ()
   ret->config.user_data_type = G_TYPE_NONE;
   ret->config.user_data_model = NULL;
 
+#ifdef VSG_HAVE_MPI
   ret->config.parallel_config.communicator = MPI_COMM_NULL;
+#endif
 
   ret->pending_shared_regions = NULL;
 
@@ -184,7 +186,9 @@ static VsgPRTree2@t@Node *_leaf_alloc (const VsgVector2@t@ *lbound,
   VsgPRTree2@t@Node *node = vsg_prtree2@t@node_alloc_no_data (lbound, ubound,
                                                               config);
 
+#ifdef VSG_HAVE_MPI
   if (!VSG_PARALLEL_STATUS_IS_REMOTE (parallel_status))
+#endif
     _node_alloc_data (node, config);
 
   node->variable.isint = 0;
@@ -442,6 +446,7 @@ _prtree2@t@node_insert_point_list(VsgPRTree2@t@Node *node,
 {
   guint len = 0;
 
+#ifdef VSG_HAVE_MPI
   if (PRTREE2@T@NODE_IS_REMOTE (node))
     {
       /* store outgoing points into remote nodes as if they they were a leaf */
@@ -452,6 +457,7 @@ _prtree2@t@node_insert_point_list(VsgPRTree2@t@Node *node,
 
       return 0;
     }
+#endif
 
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
@@ -607,11 +613,13 @@ _prtree2@t@node_remove_point (VsgPRTree2@t@Node *node,
 {
   gboolean ret = FALSE;
 
+#ifdef VSG_HAVE_MPI
   if (PRTREE2@T@NODE_IS_REMOTE (node))
     {
       /* unable to remove a node located on another processor */
       return FALSE;
     }
+#endif
 
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
@@ -663,6 +671,7 @@ static void _prtree2@t@node_write (VsgPRTree2@t@Node *node,
 {
   _wtabs (file, 2*node_info->depth);
 
+#ifdef VSG_HAVE_MPI
   if (PRTREE2@T@NODE_IS_REMOTE (node))
     {
       fprintf (file,
@@ -678,6 +687,7 @@ static void _prtree2@t@node_write (VsgPRTree2@t@Node *node,
 
       return;
     }
+#endif
 
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
@@ -712,10 +722,12 @@ _prtree2@t@node_find_point (VsgPRTree2@t@Node *node,
                             VsgPoint2 selector,
                             const VsgPRTree2@t@Config *config)
 {
+#ifdef VSG_HAVE_MPI
   if (PRTREE2@T@NODE_IS_REMOTE (node))
     {
       return NULL;
     }
+#endif
 
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
@@ -773,6 +785,7 @@ _prtree2@t@node_insert_region_list (VsgPRTree2@t@Node *node,
 {
   guint len = g_slist_length (region_list);
 
+#ifdef VSG_HAVE_MPI
   if (PRTREE2@T@NODE_IS_REMOTE (node))
     {
       /* store outgoing regions into remote nodes. */
@@ -784,6 +797,7 @@ _prtree2@t@node_insert_region_list (VsgPRTree2@t@Node *node,
        */
       return 0;
     }
+#endif
 
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
@@ -807,12 +821,14 @@ _prtree2@t@node_insert_region_list (VsgPRTree2@t@Node *node,
               node->region_list =
                 g_slist_concat (current, node->region_list);
 
+#ifdef VSG_HAVE_MPI
               /* shared regions in shared nodes are stored to be notified
                * to *all* the processors.
                */
               if (shared_regions != NULL && PRTREE2@T@NODE_IS_SHARED (node))
                 *shared_regions = g_slist_concat (g_slist_copy (current),
                                                   *shared_regions);
+#endif
             }
           else
             {
@@ -858,11 +874,13 @@ _prtree2@t@node_remove_region (VsgPRTree2@t@Node *node,
 {
   gboolean ret = FALSE;
 
+#ifdef VSG_HAVE_MPI
   if (PRTREE2@T@NODE_IS_REMOTE (node))
     {
       /* unable to remove a region on a remote processor */
       return FALSE;
     }
+#endif
 
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
@@ -914,8 +932,10 @@ _prtree2@t@node_find_deep_region (VsgPRTree2@t@Node *node,
 {
   VsgRegion2 result = NULL;
 
+#ifdef VSG_HAVE_MPI
   if (PRTREE2@T@NODE_IS_REMOTE (node))
     return NULL;
+#endif
 
   if (PRTREE2@T@NODE_ISINT (node))
     {
@@ -1016,11 +1036,13 @@ _prtree2@t@node_traverse_custom_internal (VsgPRTree2@t@Node *node,
 
   if (sel_func != NULL) locmask = sel_func (selector, &node_info, sel_data);
 
+#ifdef VSG_HAVE_MPI
   if (PRTREE2@T@NODE_IS_REMOTE (node))
     {
       func (node, &node_info, user_data);
       return;
     }
+#endif
 
   if (order == G_PRE_ORDER)
     func (node, &node_info, user_data);
@@ -1089,11 +1111,13 @@ _prtree2@t@node_traverse_custom (VsgPRTree2@t@Node *node,
 
   _vsg_prtree2@t@node_get_info (node, &node_info, father_info, child_number);
 
+#ifdef VSG_HAVE_MPI
   if (PRTREE2@T@NODE_IS_REMOTE (node))
     {
       func (&node_info, user_data);
       return;
     }
+#endif
 
   if (order == G_PRE_ORDER)
     func (&node_info, user_data);
@@ -1154,8 +1178,10 @@ static void _foreach_point_custom (const VsgPRTree2@t@NodeInfo *node_info,
 {
   GSList *point_list = node_info->point_list;
 
+#ifdef VSG_HAVE_MPI
   if (VSG_PRTREE2@T@_NODE_INFO_IS_REMOTE (node_info))
     return;
+#endif
 
   while (point_list)
     {
@@ -1173,8 +1199,10 @@ static void _foreach_region_custom (const VsgPRTree2@t@NodeInfo *node_info,
 {
   GSList *region_list = node_info->region_list;
 
+#ifdef VSG_HAVE_MPI
   if (VSG_PRTREE2@T@_NODE_INFO_IS_REMOTE (node_info))
     return;
+#endif
 
   while (region_list)
     {
@@ -1198,8 +1226,10 @@ static void _foreach_point (const VsgPRTree2@t@NodeInfo *node_info,
 {
   GSList *point_list = node_info->point_list;
 
+#ifdef VSG_HAVE_MPI
   if (VSG_PRTREE2@T@_NODE_INFO_IS_REMOTE (node_info))
     return;
+#endif
 
   while (point_list)
     {
@@ -1216,8 +1246,10 @@ static void _foreach_region (const VsgPRTree2@t@NodeInfo *node_info,
 {
   GSList *region_list = node_info->region_list;
 
+#ifdef VSG_HAVE_MPI
   if (VSG_PRTREE2@T@_NODE_INFO_IS_REMOTE (node_info))
     return;
+#endif
 
   while (region_list)
     {
@@ -2030,8 +2062,10 @@ void vsg_prtree2@t@_insert_region (VsgPRTree2@t@ *prtree2@t@,
   g_return_if_fail (region != NULL);
 #endif
 
+#ifdef VSG_HAVE_MPI
   if (prtree2@t@->config.parallel_config.communicator != MPI_COMM_NULL)
     shared_regions = &prtree2@t@->pending_shared_regions;
+#endif
 
   _prtree2@t@node_insert_region (prtree2@t@->node, region,
                                  &prtree2@t@->config, shared_regions);

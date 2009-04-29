@@ -29,7 +29,9 @@
 G_BEGIN_DECLS;
 
 /* macros */
+#ifdef VSG_HAVE_MPI
 #define VSG_MPI_TYPE_PRTREE_KEY2@T@ vsg_prtree_key2@t@_get_mpi_type ()
+#endif
 #define VSG_PRTREE_KEY2@T@_SIZE (sizeof (@key_type@))
 #define VSG_PRTREE_KEY2@T@_BITS (8*VSG_PRTREE_KEY2@T@_SIZE)
 
@@ -52,7 +54,9 @@ struct _VsgPRTreeKey2@t@ {
 static const VsgPRTreeKey2@t@ vsg_prtree_key2@t@_root = {0, 0, 0};
 
 /* functions */
+#ifdef VSG_HAVE_MPI
 MPI_Datatype vsg_prtree_key2@t@_get_mpi_type (void) G_GNUC_CONST;
+#endif
 
 void vsg_prtree_key2@t@_write (VsgPRTreeKey2@t@ *key, FILE *file);
 

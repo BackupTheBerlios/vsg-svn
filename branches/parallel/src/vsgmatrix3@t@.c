@@ -103,6 +103,7 @@ GType vsg_matrix3@t@_get_type (void)
   return matrix3@t@_type;
 }
 
+#ifdef VSG_HAVE_MPI
 /**
  * VSG_MPI_TYPE_MATRIX3@T@:
  *
@@ -121,6 +122,7 @@ MPI_Datatype vsg_matrix3@t@_get_mpi_type (void)
 
   return matrix3@t@_mpi_type;
 }
+#endif
 
 /**
  * vsg_matrix3@t@_new:

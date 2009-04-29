@@ -1,9 +1,18 @@
 
-noinst_PROGRAMS = vec2add vec2sub vec2dotp vec2scalp vec2norm vec2vecp \
-vec2pred vec3add vec3sub vec3dotp vec3scalp vec3vecp vec3norm vec3pred \
-mat3add mat4add prtree2pt prtree2nftrav prtree2nftrave prtree3pt \
-prtree3nftrav prtree3nftrave prtree2hilb prtree3hilb commbuffer prtree2clone \
-prtree2parallel prtreekey2 prtree2paradist prtree2paranftrav sendchannel
+parallel_tests = commbuffer prtree2parallel prtree2paradist prtree2paranftrav sendchannel
+parallel_sources = $(addsuffix .c, $(parallel_tests))
+
+if VSG_HAVE_MPI
+parallel_programs = $(parallel_tests)
+else
+parallel_programs = 
+endif
+
+noinst_PROGRAMS = $(parallel_programs) vec2add vec2sub vec2dotp vec2scalp \
+vec2norm vec2vecp vec2pred vec3add vec3sub vec3dotp vec3scalp vec3vecp \
+vec3norm vec3pred mat3add mat4add prtree2pt prtree2nftrav prtree2nftrave \
+prtree3pt prtree3nftrav prtree3nftrave prtree2hilb prtree3hilb prtree2clone \
+prtreekey2 
 
 AM_CFLAGS = -I$(top_srcdir)/build $(MPI_CFLAGS)
 LDADD = $(top_srcdir)/build/vsg/libvsg.la $(top_srcdir)/build/vsg/libvsgd.la $(MPI_LIBS)
@@ -22,7 +31,7 @@ $(srcdir)/package.m4: $(top_srcdir)/configure.ac
 testscripts = vec2ops.at vec3ops.at mat3ops.at mat4ops.at prtree2.at \
 prtree3.at parallel.at
 
-EXTRA_DIST = testsuite.at $(testscripts) testsuite
+EXTRA_DIST = testsuite.at $(testscripts) testsuite $(parallel_sources)
 
 TESTSUITE = $(srcdir)/testsuite
 check-local: atconfig atlocal $(TESTSUITE)

@@ -21,14 +21,13 @@
 #define __VSGPRTREE2@T@_PARALLEL_H__
 
 #include "vsgprtree-parallel.h"
-#include "vsgprtree2@t@-private.h"
 #include "vsgprtree2@t@.h"
 
 G_BEGIN_DECLS;
 
 typedef
 gint (*VsgPRTree2@t@DistributionFunc) (VsgPRTree2@t@NodeInfo *node_info,
-                                           gpointer user_data);
+                                       gpointer user_data);
 
 void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
                                   VsgPRTreeParallelConfig *pconfig);

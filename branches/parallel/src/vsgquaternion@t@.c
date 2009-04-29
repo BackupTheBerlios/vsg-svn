@@ -91,6 +91,7 @@ GType vsg_quaternion@t@_get_type (void)
   return quaternion@t@_type;
 }
 
+#ifdef VSG_HAVE_MPI
 /**
  * VSG_MPI_TYPE_QUATERNION@T@:
  *
@@ -109,6 +110,7 @@ MPI_Datatype vsg_quaternion@t@_get_mpi_type (void)
 
   return quaternion@t@_mpi_type;
 }
+#endif
 
 /**
  * vsg_quaternion@t@_new:

@@ -95,6 +95,7 @@ GType vsg_vector3@t@_get_type (void)
 }
 
 
+#ifdef VSG_HAVE_MPI
 /**
  * VSG_MPI_TYPE_VECTOR3@T@:
  *
@@ -113,6 +114,7 @@ MPI_Datatype vsg_vector3@t@_get_mpi_type (void)
 
   return vector3@t@_mpi_type;
 }
+#endif
 
 /**
  * vsg_vector3@t@_new:

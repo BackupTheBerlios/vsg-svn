@@ -201,6 +201,8 @@ struct _VsgNFConfig2@t@
 
   /* parallel data */
   gint rk, sz;
+
+#ifdef VSG_HAVE_MPI
   VsgPackedMsg recv;
   GHashTable *procs_msgs;
   gint forward_pending_nb;
@@ -212,6 +214,7 @@ struct _VsgNFConfig2@t@
   gint all_bw_sends, all_bw_recvs;
 
   gint shared_far_interaction_counter;
+#endif
 };
 
 /* private functions */
@@ -253,11 +256,13 @@ vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
 void vsg_prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
                                   const VsgPRTree2@t@Config *config);
 
+#ifdef VSG_HAVE_MPI
 void vsg_nf_config2@t@_init (VsgNFConfig2@t@ *nfc,
                              MPI_Comm comm,
                              VsgPRTree2@t@FarInteractionFunc far_func,
                              VsgPRTree2@t@InteractionFunc near_func,
                              gpointer user_data);
+#endif
 
 void vsg_nf_config2@t@_clean (VsgNFConfig2@t@ *nfc);
 

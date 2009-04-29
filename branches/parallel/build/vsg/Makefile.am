@@ -11,7 +11,7 @@ lib_LTLIBRARIES = libvsgd.la libvsgf.la libvsg.la
 
 libvsgd_la_SOURCES = $(libvsgd_la_built_headers) $(libvsgd_la_built_sources) \
 $(libvsgd_built_noinst_headers) $(libvsg_common_headers) \
-$(libvsg_common_noinst_headers)
+$(libvsg_common_noinst_headers) $(libvsg_duplicated_sources)
 
 libvsgd_la_LIBADD =  $(MPI_LIBS)
 
@@ -23,7 +23,7 @@ libvsgd_la_LDFLAGS = \
 
 libvsgf_la_SOURCES = $(libvsgf_la_built_headers) $(libvsgf_la_built_sources) \
 $(libvsgf_built_noinst_headers) $(libvsg_common_headers) \
-$(libvsg_common_noinst_headers)
+$(libvsg_common_noinst_headers) $(libvsg_duplicated_sources)
 
 libvsgf_la_LIBADD = $(MPI_LIBS)
 

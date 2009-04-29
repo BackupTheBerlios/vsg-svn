@@ -20,6 +20,10 @@
 #ifndef __VSG_MPI_H__ /* __VSG_MPI_H__ */
 #define __VSG_MPI_H__
 
+@VSG_DEFINE_HAVE_MPI@
+
+#ifdef VSG_HAVE_MPI
+
 #include <glib.h>
 
 #include <mpi.h>
@@ -41,5 +45,7 @@ static inline void vsg_mpi_error_output_prefix (const gchar *prefix,
 }
 
 G_END_DECLS;
+
+#endif /* VSG_HAVE_MPI */
 
 #endif /* __VSG_MPI_H__ */

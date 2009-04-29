@@ -73,6 +73,7 @@ void vsgprtree_key2@t@_init ()
    }
 }
 
+#ifdef VSG_HAVE_MPI
 /**
  * VSG_MPI_TYPE_PRTREE_KEY2@T@:
  *
@@ -104,6 +105,7 @@ MPI_Datatype vsg_prtree_key2@t@_get_mpi_type (void)
 
   return prtree_key2@t@_mpi_type;
 }
+#endif
 
 static void _key_copy (VsgPRTreeKey2@t@ *dst, VsgPRTreeKey2@t@ *src)
 {

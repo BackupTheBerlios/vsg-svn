@@ -213,11 +213,16 @@ ACX_MPI_PATHS
 
 if test $MPI_ENABLED = 1; then
   have_mpi=yes
+  VSG_DEFINE_HAVE_MPI="#define VSG_HAVE_MPI"
 else
   have_mpi=no
+  VSG_DEFINE_HAVE_MPI="#undef VSG_HAVE_MPI /* Vsg Configured without MPI support */"
 fi
 
-AM_CONDITIONAL(HAVE_MPI, test x$have_mpi=xyes)
+AC_SUBST(VSG_DEFINE_HAVE_MPI)
+
+# define automake conditional
+AM_CONDITIONAL(VSG_HAVE_MPI, test x$have_mpi = xyes)
 
 # check for MPI_UNSIGNED_LONG_LONG
 if test x$have_mpi = xyes; then
@@ -258,6 +263,7 @@ vsgf.pc
 vsg.pc
 Makefile
 src/Makefile
+src/vsgmpi.h
 build/Makefile
 build/vsg/Makefile
 gencode/Makefile

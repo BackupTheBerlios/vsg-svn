@@ -21,7 +21,10 @@
 #define __VSGPRTREE_PARALLEL_H__
 
 #include <vsg/vsgmpi.h>
+#ifdef VSG_HAVE_MPI
 #include <vsg/vsgpackedmsg.h>
+#endif
+
 #include <vsg/vsgprtree-common.h>
 
 G_BEGIN_DECLS;
@@ -39,13 +42,12 @@ typedef gpointer (*VsgMigrableAllocDataFunc) (gboolean resident,
 typedef void (*VsgMigrableDestroyDataFunc) (gpointer data, gboolean resident,
                                             gpointer user_data);
 
+#ifdef VSG_HAVE_MPI
 typedef void (*VsgMigrablePackDataFunc) (gpointer var, VsgPackedMsg *pm,
                                          gpointer user_data);
 
 typedef void (*VsgMigrableUnpackDataFunc) (gpointer var, VsgPackedMsg *pm,
                                            gpointer user_data);
-
-
 /* structs */
 struct _VsgParallelMigrateVTable {
   VsgMigrablePackDataFunc pack;
@@ -54,6 +56,8 @@ struct _VsgParallelMigrateVTable {
   VsgMigrableUnpackDataFunc unpack;
   gpointer unpack_data;
 };
+
+#endif
 
 struct _VsgParallelVTable {
 
@@ -64,17 +68,22 @@ struct _VsgParallelVTable {
   VsgMigrableDestroyDataFunc destroy;
   gpointer destroy_data;
 
+#ifdef VSG_HAVE_MPI
   /* migration functions */
   VsgParallelMigrateVTable migrate;
 
   /* functions for volatile migrations (visits) */
   VsgParallelMigrateVTable visit_forward;
   VsgParallelMigrateVTable visit_backward;
-
+#endif
 };
 
 struct _VsgPRTreeParallelConfig {
+#ifdef VSG_HAVE_MPI
   MPI_Comm communicator;
+#else
+  gpointer padding;
+#endif
 
   VsgParallelVTable point;
   VsgParallelVTable region;

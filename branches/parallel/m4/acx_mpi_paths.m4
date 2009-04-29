@@ -130,6 +130,9 @@ then
     AC_MSG_RESULT([$MPI_STATUS])
 
     MPI_ENABLED=1
+else
+    AC_MSG_NOTICE([Compiling without MPI])
+    MPI_ENABLED=0
 fi
 
 AC_SUBST(MPI_CFLAGS)
