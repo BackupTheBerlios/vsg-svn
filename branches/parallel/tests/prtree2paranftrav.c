@@ -564,13 +564,11 @@ void _random_fill (VsgPRTree2d *tree, guint np)
 
   for (i=0; i< np; i++)
     {
-      gdouble x1, x2, y1, y2;
+      gdouble x1, y1;
       gint c;
 
       x1 = g_rand_double_range (rand, lb.x, ub.x);
       y1 = g_rand_double_range (rand, lb.y, ub.y);
-      x2 = g_rand_double_range (rand, lb.x, ub.x);
-      y2 = g_rand_double_range (rand, lb.y, ub.y);
 
       c = i+1;
 
