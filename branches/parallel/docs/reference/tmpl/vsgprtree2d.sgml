@@ -529,6 +529,15 @@ vsgprtree2d
 @pconfig: 
 
 
+<!-- ##### FUNCTION vsg_prtree2d_shared_nodes_allreduce ##### -->
+<para>
+
+</para>
+
+@tree: 
+@data_vtable: 
+
+
 <!-- ##### FUNCTION vsg_prtree2d_distribute_contiguous_leaves ##### -->
 <para>
 

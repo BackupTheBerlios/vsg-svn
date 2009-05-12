@@ -2167,11 +2167,16 @@ static void _pack_shared (VsgPRTree2@t@Node *node,
     }
 }
 
-/*
+/**
+ * vsg_prtree2@t@_shared_nodes_allreduce:
+ * @tree: A #VsgPRTree2@t@.
+ * @data_vtable: A #VsgParallelMigrateVTable specifying som reduction operator.
+ *
  * copies the semantic of the MPI_Allreduce operation on user_data for all
- * shared nodes of a tree involved in a near/far interaction.
+ * shared nodes of a tree. Reduction operator is given by the user
+ * through @data_vtable.
  */
-static void
+void
 vsg_prtree2@t@_shared_nodes_allreduce (VsgPRTree2@t@ *tree,
                                        VsgParallelMigrateVTable *data_vtable)
 {

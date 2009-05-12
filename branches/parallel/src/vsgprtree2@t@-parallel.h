@@ -44,6 +44,10 @@ void vsg_prtree2@t@_distribute_scatter_leaves (VsgPRTree2@t@ *tree);
 
 void vsg_prtree2@t@_distribute_concentrate (VsgPRTree2@t@ *tree, gint dst);
 
+void
+vsg_prtree2@t@_shared_nodes_allreduce (VsgPRTree2@t@ *tree,
+                                       VsgParallelMigrateVTable *data_vtable);
+
 G_END_DECLS;
 
 #endif /* __VSGPRTREE2@T@_PARALLEL_H__ */
