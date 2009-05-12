@@ -2117,8 +2117,8 @@ vsg_prtree2@t@_node_check_parallel_near_far (VsgPRTree2@t@ *tree,
 typedef struct _ConfigAndMsg ConfigAndMsg;
 
 struct _ConfigAndMsg {
-  VsgPRTree2@t@Config *config;
   VsgPackedMsg *msg;
+  VsgParallelMigrateVTable *data_vtable;
 };
 
 /*
@@ -2126,7 +2126,7 @@ struct _ConfigAndMsg {
  * in a backward direction (that is: supposedly accumulating/reducing with the
  * output part of the near/far interaction).
  */
-static void _bw_unpack_shared (VsgPRTree2@t@Node *node,
+static void _unpack_shared (VsgPRTree2@t@Node *node,
                                VsgPRTree2@t@NodeInfo *node_info,
                                ConfigAndMsg *cam)
 {
@@ -2138,8 +2138,9 @@ static void _bw_unpack_shared (VsgPRTree2@t@Node *node,
 /*       g_printerr ("%d : unpacking shared ", rk); */
 /*       vsg_prtree_key2@t@_write (&node_info->id, stderr); */
 /*       g_printerr ("\n"); */
+      cam->data_vtable->unpack (node->user_data, cam->msg,
+                                cam->data_vtable->unpack_data);
 
-      _visit_unpack_node (cam->config, node, cam->msg, DIRECTION_BACKWARD); 
     }
 }
 
@@ -2148,7 +2149,7 @@ static void _bw_unpack_shared (VsgPRTree2@t@Node *node,
  * in a backward direction (that is: supposedly accumulating/reducing with the
  * output part of the near/far interaction).
  */
-static void _bw_pack_shared (VsgPRTree2@t@Node *node,
+static void _pack_shared (VsgPRTree2@t@Node *node,
                              VsgPRTree2@t@NodeInfo *node_info,
                              ConfigAndMsg *cam)
 {
@@ -2160,34 +2161,42 @@ static void _bw_pack_shared (VsgPRTree2@t@Node *node,
 /*       g_printerr ("%d : packing shared ", rk); */
 /*       vsg_prtree_key2@t@_write (&node_info->id, stderr); */
 /*       g_printerr ("\n"); */
+      cam->data_vtable->pack (node->user_data, cam->msg,
+                              cam->data_vtable->pack_data);
 
-      _visit_pack_node (node, cam->msg, cam->config, DIRECTION_BACKWARD, TRUE); 
     }
 }
 
 /*
- * copies the semantic of the MPI_Allreduce operation but for all shared nodes
- * of a tree involved in a near/far interaction.
+ * copies the semantic of the MPI_Allreduce operation on user_data for all
+ * shared nodes of a tree involved in a near/far interaction.
  */
-static void _nf_allreduce_shared (VsgPRTree2@t@ *tree,
-                                  VsgNFConfig2@t@ *nfc)
+static void
+vsg_prtree2@t@_shared_nodes_allreduce (VsgPRTree2@t@ *tree,
+                                       VsgParallelMigrateVTable *data_vtable)
 {
-  VsgPackedMsg msg =
+  gint rk, sz;
+  VsgPackedMsg send_msg =
     VSG_PACKED_MSG_STATIC_INIT (tree->config.parallel_config.communicator);
-  ConfigAndMsg cam_send = {&tree->config, &msg};
-  ConfigAndMsg cam_recv = {&tree->config, &nfc->recv};
+  VsgPackedMsg recv_msg =
+    VSG_PACKED_MSG_STATIC_INIT (tree->config.parallel_config.communicator);
+  ConfigAndMsg cam_send = {&send_msg, data_vtable};
+  ConfigAndMsg cam_recv = {&recv_msg, data_vtable};
   MPI_Request requests[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
   gint step = 0;
   gint maxoffset, offset;
   gint quo;
   gint mod, div, src, dst;
 
-  while ((1<<step) < nfc->sz)
+  MPI_Comm_rank (tree->config.parallel_config.communicator, &rk);
+  MPI_Comm_size (tree->config.parallel_config.communicator, &sz);
+
+  while ((1<<step) < sz)
     step ++;
 
   maxoffset = 1<<(step-1);
 
-/*   g_printerr ("%d : allreduce steps=%d maxoffset=%d\n", nfc->rk, step, */
+/*   g_printerr ("%d : allreduce steps=%d maxoffset=%d\n", rk, step, */
 /*               maxoffset); */
 
   while (step > 0)
@@ -2195,17 +2204,17 @@ static void _nf_allreduce_shared (VsgPRTree2@t@ *tree,
       step --;
       offset = 1 << step;
       quo = offset << 1;
-      mod = (nfc->rk + offset) % quo;
-      div = nfc->rk / quo;
+      mod = (rk + offset) % quo;
+      div = rk / quo;
 
       dst = mod + div * quo;
       src = dst;
-      if (src >= nfc->sz) src = src % maxoffset;
+      if (src >= sz) src = src % maxoffset;
 
-      if (dst < nfc->sz && dst != nfc->rk)
+      if (dst < sz && dst != rk)
         {
           /* reinit msg for packing a new message */
-          msg.position = 0;
+          send_msg.position = 0;
 
           /* fill cam_send with shared nodes */
           vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER,
@@ -2213,19 +2222,19 @@ static void _nf_allreduce_shared (VsgPRTree2@t@ *tree,
                                                    _selector_skip_local_nodes,
                                                    NULL, NULL,
                                                    (VsgPRTree2@t@InternalFunc)
-                                                   _bw_pack_shared,
+                                                   _pack_shared,
                                                    &cam_send);
 
           /* send to first destination */
-/*           g_printerr ("%d : allreduce sending (step %d) to %d\n", nfc->rk, */
+/*           g_printerr ("%d : allreduce sending (step %d) to %d\n", rk, */
 /*                       step, dst); */
-          vsg_packed_msg_isend (&msg, dst, VISIT_SHARED_TAG, &requests[0]);
+          vsg_packed_msg_isend (&send_msg, dst, VISIT_SHARED_TAG, &requests[0]);
 
           requests[1] = MPI_REQUEST_NULL;
 
           /* try alternate destination */
           dst += maxoffset;
-          if (dst < nfc->sz && dst != nfc->rk)
+          if (dst < sz && dst !=rk)
             {
               int dstmod = (dst + offset) % quo;
               int dstdiv = dst / quo;
@@ -2233,22 +2242,22 @@ static void _nf_allreduce_shared (VsgPRTree2@t@ *tree,
 
               /* send to alternate destination only if it has no
                  communiocation this step */
-              if (dstsrc >= nfc->sz)
+              if (dstsrc >= sz)
                 {
 /*                   g_printerr ("%d : allreduce sending2 (step %d) to %d\n", */
-/*                               nfc->rk, step, dst); */
-                  vsg_packed_msg_isend (&msg, dst, VISIT_SHARED_TAG,
+/*                               rk, step, dst); */
+                  vsg_packed_msg_isend (&send_msg, dst, VISIT_SHARED_TAG,
                                         &requests[1]);
                 }
             }
         }
 
-      if (src != nfc->rk)
+      if (src != rk)
         {
           /* receive from source */
-/*           g_printerr ("%d : allreduce recv (step %d) from %d\n", nfc->rk, */
+/*           g_printerr ("%d : allreduce recv (step %d) from %d\n", rk, */
 /*                       step, src); */
-          vsg_packed_msg_recv (&nfc->recv, src, VISIT_SHARED_TAG);
+          vsg_packed_msg_recv (&recv_msg, src, VISIT_SHARED_TAG);
 
           /* add results to shared nodes */
           vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER,
@@ -2256,17 +2265,18 @@ static void _nf_allreduce_shared (VsgPRTree2@t@ *tree,
                                                    _selector_skip_local_nodes,
                                                    NULL, NULL,
                                                    (VsgPRTree2@t@InternalFunc)
-                                                   _bw_unpack_shared,
+                                                   _unpack_shared,
                                                    &cam_recv);
         }
 /*       else */
-/*           g_printerr ("%d : allreduce no recv\n", nfc->rk); */
+/*           g_printerr ("%d : allreduce no recv\n", rk); */
 
       MPI_Waitall (2, requests, MPI_STATUSES_IGNORE);
-/*       g_printerr ("%d : allreduce (step %d) ok\n", nfc->rk, step); */
+/*       g_printerr ("%d : allreduce (step %d) ok\n", rk, step); */
     }
 
-  vsg_packed_msg_drop_buffer (&msg);
+  vsg_packed_msg_drop_buffer (&send_msg);
+  vsg_packed_msg_drop_buffer (&recv_msg);
 }
 
 /*
@@ -2346,7 +2356,7 @@ vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
 /*   g_printerr ("%d : allreduce begin\n", nfc->rk); */
 
 
-  _nf_allreduce_shared (tree, nfc);
+  vsg_prtree2@t@_shared_nodes_allreduce(tree, &tree->config.parallel_config.node_data.visit_backward);
 
 /*   g_printerr ("%d : parallel_end done (%f seconds)\n", nfc->rk, */
 /*               g_timer_elapsed (timer, NULL)); */
