@@ -42,6 +42,9 @@ typedef gpointer (*VsgMigrableAllocDataFunc) (gboolean resident,
 typedef void (*VsgMigrableDestroyDataFunc) (gpointer data, gboolean resident,
                                             gpointer user_data);
 
+typedef void (*VsgMigrableReductionDataFunc) (gpointer a, gpointer b,
+                                              gpointer user_data);
+
 #ifdef VSG_HAVE_MPI
 typedef void (*VsgMigrablePackDataFunc) (gpointer var, VsgPackedMsg *pm,
                                          gpointer user_data);
@@ -55,6 +58,9 @@ struct _VsgParallelMigrateVTable {
 
   VsgMigrableUnpackDataFunc unpack;
   gpointer unpack_data;
+
+  VsgMigrableReductionDataFunc reduce;
+  gpointer reduce_data;
 };
 
 #endif

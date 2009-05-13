@@ -1015,6 +1015,8 @@ void vsg_nf_config2@t@_init (VsgNFConfig2@t@ *nfc,
       nfc->sz = 1;
     }
 
+   nfc->tmp_node_data = NULL;
+
    nfc->forward_pending_nb = 0;
    nfc->backward_pending_nb = 0;
 
@@ -1288,7 +1290,7 @@ static void _visit_pack_node (VsgPRTree2@t@Node *node, VsgPackedMsg *msg,
  */
 static void _visit_unpack_node (VsgPRTree2@t@Config *config,
                                 VsgPRTree2@t@Node *node,
-                                VsgPackedMsg *recv,
+                                VsgNFConfig2@t@ *nfc,
                                 gint8 direction)
 {
   VsgPRTreeParallelConfig *pc = &config->parallel_config;
@@ -1312,15 +1314,25 @@ static void _visit_unpack_node (VsgPRTree2@t@Config *config,
     }
 
   /* unpack message definition */
-  vsg_packed_msg_recv_read (recv, &datapresent, 1, MPI_BYTE);
-  vsg_packed_msg_recv_read (recv, &point_count, 1, MPI_INT);
-  vsg_packed_msg_recv_read (recv, &region_count, 1, MPI_INT);
+  vsg_packed_msg_recv_read (&nfc->recv, &datapresent, 1, MPI_BYTE);
+  vsg_packed_msg_recv_read (&nfc->recv, &point_count, 1, MPI_INT);
+  vsg_packed_msg_recv_read (&nfc->recv, &region_count, 1, MPI_INT);
 
   /* unpack user_data */
   if (datapresent)
     {
-      /* node_data should be already allocated */
-      node_data->unpack (node->user_data, recv, node_data->unpack_data);
+      if (direction == DIRECTION_FORWARD)
+        {
+          node_data->unpack (node->user_data, &nfc->recv,
+                             node_data->unpack_data);
+        }
+      else
+        {
+           node_data->unpack (nfc->tmp_node_data, &nfc->recv,
+                              node_data->unpack_data);
+           node_data->reduce (nfc->tmp_node_data, node->user_data,
+                              node_data->reduce_data);
+        }
     }
 
   /* unpack the points */
@@ -1336,7 +1348,7 @@ static void _visit_unpack_node (VsgPRTree2@t@Config *config,
             {
               pt = pc->point.alloc (FALSE, pc->point.alloc_data);
 
-              point->unpack (pt, recv, point->unpack_data);
+              point->unpack (pt, &nfc->recv, point->unpack_data);
 
               points = g_slist_append (points, pt);
             }
@@ -1354,7 +1366,7 @@ static void _visit_unpack_node (VsgPRTree2@t@Config *config,
             {
               pt = (VsgPoint2) points->data;
 
-              point->unpack (pt, recv, point->unpack_data);
+              point->unpack (pt, &nfc->recv, point->unpack_data);
 
               points = g_slist_next (points);
             }
@@ -1374,7 +1386,7 @@ static void _visit_unpack_node (VsgPRTree2@t@Config *config,
             {
               pt = pc->region.alloc (FALSE, pc->region.alloc_data);
 
-              region->unpack (pt, recv, region->unpack_data);
+              region->unpack (pt, &nfc->recv, region->unpack_data);
 
               regions = g_slist_append (regions, pt);
             }
@@ -1392,7 +1404,7 @@ static void _visit_unpack_node (VsgPRTree2@t@Config *config,
             {
               pt = (VsgRegion2) regions->data;
 
-              region->unpack (pt, recv, region->unpack_data);
+              region->unpack (pt, &nfc->recv, region->unpack_data);
 
               regions = g_slist_next (regions);
             }
@@ -1850,7 +1862,7 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
 
         wv = _waiting_visitor_new (node, &id, status.MPI_SOURCE);
 
-        _visit_unpack_node (config, node, &nfc->recv, DIRECTION_FORWARD);
+        _visit_unpack_node (config, node, nfc, DIRECTION_FORWARD);
 
         /* compute nf interactions with local tree */
         if (_compute_visiting_node (tree, nfc, wv))
@@ -1879,7 +1891,7 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
 
         g_assert (PRTREE2@T@NODE_IS_LOCAL (node));
 
-        _visit_unpack_node (config, node, &nfc->recv, DIRECTION_BACKWARD);
+        _visit_unpack_node (config, node, nfc, DIRECTION_BACKWARD);
 
         nfc->pending_backward_msgs --;
 /*             g_printerr ("bw recv(%d)\n", nfc->rk); */
@@ -2114,11 +2126,12 @@ vsg_prtree2@t@_node_check_parallel_near_far (VsgPRTree2@t@ *tree,
   return ret;
 }
 
-typedef struct _ConfigAndMsg ConfigAndMsg;
+typedef struct _NodeDataReduce NodeDataReduce;
 
-struct _ConfigAndMsg {
+struct _NodeDataReduce {
   VsgPackedMsg *msg;
   VsgParallelMigrateVTable *data_vtable;
+  gpointer tmp_node_data;
 };
 
 /*
@@ -2127,8 +2140,8 @@ struct _ConfigAndMsg {
  * output part of the near/far interaction).
  */
 static void _unpack_shared (VsgPRTree2@t@Node *node,
-                               VsgPRTree2@t@NodeInfo *node_info,
-                               ConfigAndMsg *cam)
+                            VsgPRTree2@t@NodeInfo *node_info,
+                            NodeDataReduce *ndr)
 {
   if (PRTREE2@T@NODE_IS_SHARED (node))
     {
@@ -2138,9 +2151,11 @@ static void _unpack_shared (VsgPRTree2@t@Node *node,
 /*       g_printerr ("%d : unpacking shared ", rk); */
 /*       vsg_prtree_key2@t@_write (&node_info->id, stderr); */
 /*       g_printerr ("\n"); */
-      cam->data_vtable->unpack (node->user_data, cam->msg,
-                                cam->data_vtable->unpack_data);
+      ndr->data_vtable->unpack (ndr->tmp_node_data, ndr->msg,
+                                ndr->data_vtable->unpack_data);
 
+      ndr->data_vtable->reduce (ndr->tmp_node_data, node->user_data,
+                                ndr->data_vtable->reduce_data);
     }
 }
 
@@ -2150,8 +2165,8 @@ static void _unpack_shared (VsgPRTree2@t@Node *node,
  * output part of the near/far interaction).
  */
 static void _pack_shared (VsgPRTree2@t@Node *node,
-                             VsgPRTree2@t@NodeInfo *node_info,
-                             ConfigAndMsg *cam)
+                          VsgPRTree2@t@NodeInfo *node_info,
+                          NodeDataReduce *ndr)
 {
   if (PRTREE2@T@NODE_IS_SHARED (node))
     {
@@ -2161,32 +2176,25 @@ static void _pack_shared (VsgPRTree2@t@Node *node,
 /*       g_printerr ("%d : packing shared ", rk); */
 /*       vsg_prtree_key2@t@_write (&node_info->id, stderr); */
 /*       g_printerr ("\n"); */
-      cam->data_vtable->pack (node->user_data, cam->msg,
-                              cam->data_vtable->pack_data);
+      ndr->data_vtable->pack (node->user_data, ndr->msg,
+                              ndr->data_vtable->pack_data);
 
     }
 }
 
-/**
- * vsg_prtree2@t@_shared_nodes_allreduce:
- * @tree: A #VsgPRTree2@t@.
- * @data_vtable: A #VsgParallelMigrateVTable specifying som reduction operator.
- *
- * copies the semantic of the MPI_Allreduce operation on user_data for all
- * shared nodes of a tree. Reduction operator is given by the user
- * through @data_vtable.
- */
-void
-vsg_prtree2@t@_shared_nodes_allreduce (VsgPRTree2@t@ *tree,
-                                       VsgParallelMigrateVTable *data_vtable)
+static void
+_shared_nodes_allreduce_internal (VsgPRTree2@t@ *tree,
+                                  VsgParallelMigrateVTable *data_vtable,
+                                  gpointer tmp_node_data)
 {
   gint rk, sz;
   VsgPackedMsg send_msg =
     VSG_PACKED_MSG_STATIC_INIT (tree->config.parallel_config.communicator);
   VsgPackedMsg recv_msg =
     VSG_PACKED_MSG_STATIC_INIT (tree->config.parallel_config.communicator);
-  ConfigAndMsg cam_send = {&send_msg, data_vtable};
-  ConfigAndMsg cam_recv = {&recv_msg, data_vtable};
+
+  NodeDataReduce ndr_send = {&send_msg, data_vtable, tmp_node_data};
+  NodeDataReduce ndr_recv = {&recv_msg, data_vtable, tmp_node_data};
   MPI_Request requests[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
   gint step = 0;
   gint maxoffset, offset;
@@ -2221,14 +2229,14 @@ vsg_prtree2@t@_shared_nodes_allreduce (VsgPRTree2@t@ *tree,
           /* reinit msg for packing a new message */
           send_msg.position = 0;
 
-          /* fill cam_send with shared nodes */
+          /* fill ndr_send with shared nodes */
           vsg_prtree2@t@_traverse_custom_internal (tree, G_PRE_ORDER,
                                                    (VsgRegion2@t@InternalLocDataFunc)
                                                    _selector_skip_local_nodes,
                                                    NULL, NULL,
                                                    (VsgPRTree2@t@InternalFunc)
                                                    _pack_shared,
-                                                   &cam_send);
+                                                   &ndr_send);
 
           /* send to first destination */
 /*           g_printerr ("%d : allreduce sending (step %d) to %d\n", rk, */
@@ -2271,7 +2279,7 @@ vsg_prtree2@t@_shared_nodes_allreduce (VsgPRTree2@t@ *tree,
                                                    NULL, NULL,
                                                    (VsgPRTree2@t@InternalFunc)
                                                    _unpack_shared,
-                                                   &cam_recv);
+                                                   &ndr_recv);
         }
 /*       else */
 /*           g_printerr ("%d : allreduce no recv\n", rk); */
@@ -2282,6 +2290,46 @@ vsg_prtree2@t@_shared_nodes_allreduce (VsgPRTree2@t@ *tree,
 
   vsg_packed_msg_drop_buffer (&send_msg);
   vsg_packed_msg_drop_buffer (&recv_msg);
+}
+
+/**
+ * vsg_prtree2@t@_shared_nodes_allreduce:
+ * @tree: A #VsgPRTree2@t@.
+ * @data_vtable: A #VsgParallelMigrateVTable specifying som reduction operator.
+ *
+ * copies the semantic of the MPI_Allreduce operation on user_data for all
+ * shared nodes of a tree. Reduction operator is given by the user
+ * through @data_vtable.
+ */
+void
+vsg_prtree2@t@_shared_nodes_allreduce (VsgPRTree2@t@ *tree,
+                                       VsgParallelMigrateVTable *data_vtable)
+{
+  VsgPRTreeParallelConfig *pconfig = &tree->config.parallel_config;
+  gpointer tmp_node_data = NULL;
+
+  if (pconfig->node_data.alloc != NULL)
+    {
+      tmp_node_data =
+        pconfig->node_data.alloc (FALSE, pconfig->node_data.alloc_data);
+    }
+  else if (tree->config.user_data_type != G_TYPE_NONE)
+    {
+      tmp_node_data = g_boxed_copy (tree->config.user_data_type,
+                                    tree->config.user_data_model);
+    }
+
+  _shared_nodes_allreduce_internal (tree, data_vtable, tmp_node_data);
+
+  if (pconfig->node_data.destroy != NULL)
+    {
+      pconfig->node_data.destroy (tmp_node_data, FALSE,
+                                  pconfig->node_data.destroy_data);
+    }
+  else if (tree->config.user_data_type != G_TYPE_NONE)
+    {
+      g_boxed_free (tree->config.user_data_type, tmp_node_data);
+    }
 }
 
 /*
@@ -2361,7 +2409,8 @@ vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
 /*   g_printerr ("%d : allreduce begin\n", nfc->rk); */
 
 
-  vsg_prtree2@t@_shared_nodes_allreduce(tree, &tree->config.parallel_config.node_data.visit_backward);
+  _shared_nodes_allreduce_internal (tree,
+                                    &tree->config.parallel_config.node_data.visit_backward, nfc->tmp_node_data);
 
 /*   g_printerr ("%d : parallel_end done (%f seconds)\n", nfc->rk, */
 /*               g_timer_elapsed (timer, NULL)); */

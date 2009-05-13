@@ -128,6 +128,11 @@ void nc_visit_fw_unpack (NodeCounter *nc, VsgPackedMsg *pm,
     vsg_packed_msg_recv_read (pm, _nc_padding_buffer, nc_padding, MPI_CHAR);
 }
 
+void nc_visit_fw_reduce (NodeCounter *a, NodeCounter *b, gpointer user_data)
+{
+  b->in_count += a->in_count;
+}
+
 /* visit forward pack/unpack functions */
 /* only the count part is transmitted */
 void nc_visit_bw_pack (NodeCounter *nc, VsgPackedMsg *pm,
@@ -146,14 +151,16 @@ void nc_visit_bw_pack (NodeCounter *nc, VsgPackedMsg *pm,
 void nc_visit_bw_unpack (NodeCounter *nc, VsgPackedMsg *pm,
                          gpointer user_data)
 {
-  glong count;
-
-  vsg_packed_msg_recv_read (pm, &count, 1, MPI_LONG);
-  nc->out_count += count;
+  vsg_packed_msg_recv_read (pm, &nc->out_count, 1, MPI_LONG);
 
   if (nc_padding != 0)
     vsg_packed_msg_recv_read (pm, _nc_padding_buffer, nc_padding, MPI_CHAR);
 /*   g_printerr ("%d : unpack out %d (sum=%d)\n", rk, count, nc->out_count); */
+}
+
+void nc_visit_bw_reduce (NodeCounter *a, NodeCounter *b, gpointer user_data)
+{
+  b->out_count += a->out_count;
 }
 
 static GPtrArray *points = NULL;
@@ -241,9 +248,12 @@ static VsgPRTreeParallelConfig pconfig = {
   /* Point VTable */
   {(VsgMigrableAllocDataFunc) pt_alloc, NULL,
    (VsgMigrableDestroyDataFunc) pt_destroy, NULL,
-   {(VsgMigrablePackDataFunc) pt_migrate_pack, NULL, (VsgMigrablePackDataFunc) pt_migrate_unpack, NULL},
-   {(VsgMigrablePackDataFunc) pt_visit_fw_pack, NULL, (VsgMigrablePackDataFunc) pt_visit_fw_unpack, NULL},
-   {(VsgMigrablePackDataFunc) pt_visit_bw_pack, NULL, (VsgMigrablePackDataFunc) pt_visit_bw_unpack, NULL},
+   {(VsgMigrablePackDataFunc) pt_migrate_pack, NULL,
+    (VsgMigrableUnpackDataFunc) pt_migrate_unpack, NULL},
+   {(VsgMigrablePackDataFunc) pt_visit_fw_pack, NULL,
+    (VsgMigrableUnpackDataFunc) pt_visit_fw_unpack, NULL},
+   {(VsgMigrablePackDataFunc) pt_visit_bw_pack, NULL,
+    (VsgMigrableUnpackDataFunc) pt_visit_bw_unpack, NULL},
   },
   /* Region VTable */
   {NULL, NULL, NULL, NULL, {NULL, NULL, NULL, NULL},
@@ -251,9 +261,14 @@ static VsgPRTreeParallelConfig pconfig = {
   /* NodeData VTable */
   {node_counter_alloc, NULL,
    node_counter_destroy, NULL,
-   {(VsgMigrablePackDataFunc) nc_migrate_pack, NULL, (VsgMigrablePackDataFunc) nc_migrate_unpack, NULL},
-   {(VsgMigrablePackDataFunc) nc_visit_fw_pack, NULL, (VsgMigrablePackDataFunc) nc_visit_fw_unpack, NULL},
-   {(VsgMigrablePackDataFunc) nc_visit_bw_pack, NULL, (VsgMigrablePackDataFunc) nc_visit_bw_unpack, NULL},
+   {(VsgMigrablePackDataFunc) nc_migrate_pack, NULL,
+    (VsgMigrableUnpackDataFunc) nc_migrate_unpack, NULL},
+   {(VsgMigrablePackDataFunc) nc_visit_fw_pack, NULL,
+    (VsgMigrableUnpackDataFunc) nc_visit_fw_unpack, NULL,
+    (VsgMigrableReductionDataFunc) nc_visit_fw_reduce, NULL},
+   {(VsgMigrablePackDataFunc) nc_visit_bw_pack, NULL,
+    (VsgMigrableUnpackDataFunc) nc_visit_bw_unpack, NULL,
+    (VsgMigrableReductionDataFunc) nc_visit_bw_reduce, NULL},
   },
 };
 
@@ -974,41 +989,8 @@ void _zero (VsgPRTree2dNodeInfo *node_info, gpointer data)
     }
 }
 
-void _gather_shared_in_count (VsgPRTree2dNodeInfo *node_info,
-                              GArray *array)
-{
-  if (VSG_PRTREE2D_NODE_INFO_IS_SHARED (node_info))
-    {
-      glong i = ((NodeCounter *) node_info->user_data)->in_count;
-
-      g_array_append_val (array, i);
-    }
-}
-
-typedef struct _ArrayAndIndex ArrayAndIndex;
-struct _ArrayAndIndex {
-  GArray *array;
-  gint index;
-};
-
-void _dispatch_shared_in_count (VsgPRTree2dNodeInfo *node_info,
-                                ArrayAndIndex *aai)
-{
-  if (VSG_PRTREE2D_NODE_INFO_IS_SHARED (node_info))
-    {
-      glong *in_count = &((NodeCounter *) node_info->user_data)->in_count;
-
-      *in_count = g_array_index (aai->array, glong, aai->index);
-      aai->index ++;
-    }
-}
-
 void _do_upward_pass (VsgPRTree2d *tree)
 {
-  GArray *array = g_array_sized_new (FALSE, FALSE, sizeof (glong), 1024);
-  GArray *reduced;
-  ArrayAndIndex aai;
-
   /* zero counts  */
   vsg_prtree2d_traverse (tree, G_POST_ORDER, (VsgPRTree2dFunc) _zero, NULL);
 
@@ -1016,28 +998,7 @@ void _do_upward_pass (VsgPRTree2d *tree)
   vsg_prtree2d_traverse (tree, G_POST_ORDER, (VsgPRTree2dFunc) _up, NULL);
 
   /* gather shared in_counts */
-  vsg_prtree2d_traverse (tree, G_PRE_ORDER,
-                         (VsgPRTree2dFunc) _gather_shared_in_count,
-                         array);
-
-  /* prepare reduced for storing the results of the Allreduce */
-  reduced = g_array_sized_new (FALSE, TRUE, sizeof (glong), array->len);
-  reduced = g_array_set_size (reduced, array->len);
-
-  /* sum of all shared in_counts */
-  MPI_Allreduce (array->data, reduced->data, array->len, MPI_LONG, MPI_SUM,
-                 MPI_COMM_WORLD);
-
-  /* set the result for shared nodes */
-  aai.array = reduced;
-  aai.index = 0;
-  vsg_prtree2d_traverse (tree, G_PRE_ORDER,
-                         (VsgPRTree2dFunc) _dispatch_shared_in_count,
-                         &aai);
-
-  g_array_free (array, TRUE);
-
-  g_array_free (reduced, TRUE);
+  vsg_prtree2d_shared_nodes_allreduce (tree, &pconfig.node_data.visit_forward);
 }
 
 void _down (VsgPRTree2dNodeInfo *node_info, gpointer data)

@@ -205,6 +205,7 @@ struct _VsgNFConfig2@t@
 #ifdef VSG_HAVE_MPI
   VsgPackedMsg recv;
   GHashTable *procs_msgs;
+  gpointer tmp_node_data;
   gint forward_pending_nb;
   gint backward_pending_nb;
   gint pending_end_forward;

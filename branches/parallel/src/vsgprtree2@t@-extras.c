@@ -573,7 +573,8 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
                                    gpointer user_data)
 {
 #ifdef VSG_HAVE_MPI
-  MPI_Comm comm = prtree2@t@->config.parallel_config.communicator;
+  VsgPRTreeParallelConfig *pconfig = &prtree2@t@->config.parallel_config;
+  MPI_Comm comm = pconfig->communicator;
 #endif
   VsgNFConfig2@t@ nfc;
 
@@ -583,6 +584,17 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
 
 #ifdef VSG_HAVE_MPI
   vsg_nf_config2@t@_init (&nfc, comm, far_func, near_func, user_data);
+
+  if (pconfig->node_data.alloc != NULL)
+    {
+      nfc.tmp_node_data =
+        pconfig->node_data.alloc (FALSE, pconfig->node_data.alloc_data);
+    }
+  else if (prtree2@t@->config.user_data_type != G_TYPE_NONE)
+    {
+      nfc.tmp_node_data = g_boxed_copy (prtree2@t@->config.user_data_type,
+                                        prtree2@t@->config.user_data_model);
+    }
 #else
   nfc.far_func = far_func;
   nfc.near_func = near_func;
@@ -604,6 +616,18 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
   if (comm != MPI_COMM_NULL)
     {
       vsg_prtree2@t@_nf_check_parallel_end (prtree2@t@, &nfc);
+    }
+
+  if (pconfig->node_data.destroy != NULL)
+    {
+      pconfig->node_data.destroy (nfc.tmp_node_data, FALSE,
+                                   pconfig->node_data.destroy_data);
+      nfc.tmp_node_data = NULL;
+    }
+  else if (prtree2@t@->config.user_data_type != G_TYPE_NONE)
+    {
+      g_boxed_free (prtree2@t@->config.user_data_type,nfc.tmp_node_data);
+      nfc.tmp_node_data = NULL;
     }
 
   vsg_nf_config2@t@_clean (&nfc);
