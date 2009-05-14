@@ -32,6 +32,9 @@ gint (*VsgPRTree2@t@DistributionFunc) (VsgPRTree2@t@NodeInfo *node_info,
 void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
                                   VsgPRTreeParallelConfig *pconfig);
 
+void vsg_prtree2@t@_get_parallel (VsgPRTree2@t@ *tree,
+                                  VsgPRTreeParallelConfig *pconfig);
+
 void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree);
 
 void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,

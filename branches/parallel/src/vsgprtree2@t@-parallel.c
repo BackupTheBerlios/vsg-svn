@@ -155,6 +155,16 @@ void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
     }
 }
 
+void vsg_prtree2@t@_get_parallel (VsgPRTree2@t@ *tree,
+                                  VsgPRTreeParallelConfig *pconfig)
+{
+  g_return_if_fail (tree != NULL);
+  g_return_if_fail (pconfig != NULL);
+
+  memcpy (pconfig, &tree->config.parallel_config,
+          sizeof (VsgPRTreeParallelConfig));
+}
+
 /* selector function used in traverse_custom_internal to avoid
    traversing all local nodes */
 static vsgrloc2 _selector_skip_local_nodes (VsgRegion2 *selector,
