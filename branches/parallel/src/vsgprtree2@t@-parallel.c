@@ -1026,6 +1026,8 @@ void vsg_nf_config2@t@_init (VsgNFConfig2@t@ *nfc,
     }
 
    nfc->tmp_node_data = NULL;
+   nfc->tmp_point = NULL;
+   nfc->tmp_region = NULL;
 
    nfc->forward_pending_nb = 0;
    nfc->backward_pending_nb = 0;
@@ -1037,6 +1039,64 @@ void vsg_nf_config2@t@_init (VsgNFConfig2@t@ *nfc,
    nfc->all_bw_sends = 0; nfc->all_bw_recvs = 0;
 
    nfc->shared_far_interaction_counter = 0;
+}
+
+void vsg_nf_config2@t@_tmp_alloc (VsgNFConfig2@t@ *nfc,
+                                  VsgPRTree2@t@Config *config)
+{
+  VsgPRTreeParallelConfig *pc = &config->parallel_config;
+
+  if (pc->node_data.alloc != NULL)
+    {
+      nfc->tmp_node_data = pc->node_data.alloc (FALSE,
+                                                pc->node_data.alloc_data);
+    }
+  else if (config->user_data_type != G_TYPE_NONE)
+    {
+      nfc->tmp_node_data = g_boxed_copy (config->user_data_type,
+                                         config->user_data_model);
+    }
+
+  if (pc->point.alloc != NULL)
+    {
+      nfc->tmp_point = pc->point.alloc (FALSE, pc->point.alloc_data);
+    }
+
+  if (pc->region.alloc != NULL)
+    {
+      nfc->tmp_region = pc->region.alloc (FALSE, pc->region.alloc_data);
+    }
+
+}
+
+void vsg_nf_config2@t@_tmp_free (VsgNFConfig2@t@ *nfc,
+                                 VsgPRTree2@t@Config *config)
+{
+  VsgPRTreeParallelConfig *pc = &config->parallel_config;
+
+  if (pc->node_data.destroy != NULL)
+    {
+      pc->node_data.destroy (nfc->tmp_node_data, FALSE,
+                             pc->node_data.destroy_data);
+    }
+  else if (config->user_data_type != G_TYPE_NONE)
+    {
+      g_boxed_free (config->user_data_type,nfc->tmp_node_data);
+    }
+
+  nfc->tmp_node_data = NULL;
+
+  if (pc->point.destroy != NULL)
+    {
+      pc->point.destroy (nfc->tmp_point, FALSE, pc->point.destroy_data);
+      nfc->tmp_point = NULL;
+    }
+
+  if (pc->region.destroy != NULL)
+    {
+      pc->region.destroy (nfc->tmp_region, FALSE, pc->region.destroy_data);
+      nfc->tmp_region = NULL;
+    }
 }
 
 /*
@@ -1376,7 +1436,8 @@ static void _visit_unpack_node (VsgPRTree2@t@Config *config,
             {
               pt = (VsgPoint2) points->data;
 
-              point->unpack (pt, &nfc->recv, point->unpack_data);
+              point->unpack (nfc->tmp_point, &nfc->recv, point->unpack_data);
+              point->reduce (nfc->tmp_point, pt, point->reduce_data);
 
               points = g_slist_next (points);
             }
@@ -1387,18 +1448,18 @@ static void _visit_unpack_node (VsgPRTree2@t@Config *config,
   if (region_count > 0)
     {
       GSList *regions = NULL;
-      VsgRegion2 pt;
+      VsgRegion2 rg;
 
       if (direction == DIRECTION_FORWARD)
         {
           /* create a new list of regions */
           for (i=0; i<region_count; i++)
             {
-              pt = pc->region.alloc (FALSE, pc->region.alloc_data);
+              rg = pc->region.alloc (FALSE, pc->region.alloc_data);
 
-              region->unpack (pt, &nfc->recv, region->unpack_data);
+              region->unpack (rg, &nfc->recv, region->unpack_data);
 
-              regions = g_slist_append (regions, pt);
+              regions = g_slist_append (regions, rg);
             }
 
           node->region_list = regions;
@@ -1412,9 +1473,10 @@ static void _visit_unpack_node (VsgPRTree2@t@Config *config,
           regions = node->region_list;
           while (regions != NULL)
             {
-              pt = (VsgRegion2) regions->data;
+              rg = (VsgRegion2) regions->data;
 
-              region->unpack (pt, &nfc->recv, region->unpack_data);
+              region->unpack (nfc->tmp_region, &nfc->recv, region->unpack_data);
+              region->reduce (nfc->tmp_region, rg, region->reduce_data);
 
               regions = g_slist_next (regions);
             }

@@ -206,6 +206,8 @@ struct _VsgNFConfig2@t@
   VsgPackedMsg recv;
   GHashTable *procs_msgs;
   gpointer tmp_node_data;
+  gpointer tmp_point;
+  gpointer tmp_region;
   gint forward_pending_nb;
   gint backward_pending_nb;
   gint pending_end_forward;
@@ -263,6 +265,13 @@ void vsg_nf_config2@t@_init (VsgNFConfig2@t@ *nfc,
                              VsgPRTree2@t@FarInteractionFunc far_func,
                              VsgPRTree2@t@InteractionFunc near_func,
                              gpointer user_data);
+
+void vsg_nf_config2@t@_tmp_alloc (VsgNFConfig2@t@ *nfc,
+                                 VsgPRTree2@t@Config *config);
+
+void vsg_nf_config2@t@_tmp_free (VsgNFConfig2@t@ *nfc,
+                                 VsgPRTree2@t@Config *config);
+
 #endif
 
 void vsg_nf_config2@t@_clean (VsgNFConfig2@t@ *nfc);

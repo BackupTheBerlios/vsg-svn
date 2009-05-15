@@ -230,11 +230,12 @@ void pt_visit_bw_pack (Pt *pt, VsgPackedMsg *pm,
 void pt_visit_bw_unpack (Pt *pt, VsgPackedMsg *pm,
                          gpointer user_data)
 {
-  glong count;
+  vsg_packed_msg_recv_read (pm, &pt->count, 1, MPI_LONG);
+}
 
-  vsg_packed_msg_recv_read (pm, &count, 1, MPI_LONG);
-
-  pt->count += count;
+void pt_visit_bw_reduce (Pt *a, Pt *b, gpointer user_data)
+{
+  b->count += a->count;
 }
 
 void empty_array (gpointer var, gpointer data)
@@ -251,9 +252,11 @@ static VsgPRTreeParallelConfig pconfig = {
    {(VsgMigrablePackDataFunc) pt_migrate_pack, NULL,
     (VsgMigrableUnpackDataFunc) pt_migrate_unpack, NULL},
    {(VsgMigrablePackDataFunc) pt_visit_fw_pack, NULL,
-    (VsgMigrableUnpackDataFunc) pt_visit_fw_unpack, NULL},
+    (VsgMigrableUnpackDataFunc) pt_visit_fw_unpack, NULL,
+    NULL, NULL},
    {(VsgMigrablePackDataFunc) pt_visit_bw_pack, NULL,
-    (VsgMigrableUnpackDataFunc) pt_visit_bw_unpack, NULL},
+    (VsgMigrableUnpackDataFunc) pt_visit_bw_unpack, NULL,
+    (VsgMigrableReductionDataFunc) pt_visit_bw_reduce, NULL},
   },
   /* Region VTable */
   {NULL, NULL, NULL, NULL, {NULL, NULL, NULL, NULL},
