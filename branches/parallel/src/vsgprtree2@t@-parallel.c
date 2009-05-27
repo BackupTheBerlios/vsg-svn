@@ -900,9 +900,6 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
   tree->config.remote_depth_dirty = TRUE;
 }
 
-/* #include <sys/types.h> */
-/* #include <unistd.h> */
-
 #define DIRECTION_FORWARD (0)
 #define DIRECTION_BACKWARD (1)
 
@@ -956,7 +953,7 @@ static void _wv_free_gfunc (WaitingVisitor *wv, gpointer data)
 typedef struct _VsgNFProcMsg VsgNFProcMsg;
 struct _VsgNFProcMsg {
   VsgPackedMsg send_pm;
-
+  gint dropped_visitors;
   GSList *forward_pending;
   GSList *backward_pending;
 
@@ -966,6 +963,8 @@ struct _VsgNFProcMsg {
 static void vsg_nf_proc_msg_init (VsgNFProcMsg *nfpm, MPI_Comm comm)
 {
   vsg_packed_msg_init (&nfpm->send_pm, comm);
+
+  nfpm->dropped_visitors = 0;
 
   nfpm->forward_pending = NULL;
   nfpm->backward_pending = NULL;
@@ -1543,6 +1542,21 @@ static void _do_send_backward_node (VsgPRTree2@t@ *tree,
 
   msg->position = 0;
 
+  if (nfpm->dropped_visitors > 0)
+    {
+      VsgPRTreeKey2@t@ k = vsg_prtree_key2@t@_root;
+
+/*               g_printerr ("%d : sending dropped number %d to %d\n", */
+/*                           nfc->rk, nfpm->dropped_visitors, wv->src); */
+
+      /* issue a false key followed with number of dropped visitors */
+      vsg_packed_msg_send_append (msg, &k, 1,
+                                  VSG_MPI_TYPE_PRTREE_KEY2@T@);
+      vsg_packed_msg_send_append (msg, &nfpm->dropped_visitors, 1,
+                                  MPI_INT);
+      nfpm->dropped_visitors = 0;
+    }
+
   vsg_packed_msg_send_append (msg, id, 1, VSG_MPI_TYPE_PRTREE_KEY2@T@);
   _visit_pack_node (node, msg, &tree->config, DIRECTION_BACKWARD, FALSE);
 
@@ -1613,7 +1627,6 @@ static void _propose_node_forward (VsgPRTree2@t@ *tree,
     }
 
 }
-
 static void _propose_node_backward (VsgPRTree2@t@ *tree,
                                     VsgNFConfig2@t@ *nfc,
                                     gint proc,
@@ -1800,20 +1813,20 @@ static gboolean _compute_visiting_node (VsgPRTree2@t@ *tree,
                                            _traverse_visiting_nf,
                                            &niaf);
 
-/*   if (niaf.done_flag == 0) _unused_visitors ++; */
-/*   _visitors ++; */
-
-/*   if (niaf.done_flag == 0) */
-/*     { */
+  if (niaf.done_flag == 0)
+    {
 /*       g_printerr ("%d : reject node [", nfc->rk); */
 /*       vsg_prtree_key2@t@_write (&wv->id, stderr); */
 /*       g_printerr ("]\n"); */
-/* /\*       _visiting_node_free (wv->node, &tree->config); *\/ */
-/* /\*       _waiting_visitor_free (wv); *\/ */
-/* /\*       g_slist_free_1 (first); *\/ */
 
-/* /\*       return FALSE; *\/ */
-/*     } */
+      VsgNFProcMsg *nfpm = vsg_nf_config2@t@_proc_msgs_lookup (nfc, wv->src);
+
+      nfpm->dropped_visitors ++;
+      _visiting_node_free (wv->node, &tree->config);
+      _waiting_visitor_free (wv);
+
+      return FALSE;
+    }
 /*   else */
 /*     { */
 /*       g_printerr ("%d : accepted node [", nfc->rk); */
@@ -1871,7 +1884,42 @@ static void vsg_prtree2@t@_nf_check_send (VsgPRTree2@t@ *tree,
 }
 
 /*
- * Probes for incoing messages. When called with @blocking == TRUE, will wait
+ * ensures a specific VsgNFProcMsg has sent its count of dropped visitors
+ */
+static void _send_final_dropped_visitors (gpointer key, VsgNFProcMsg *nfpm,
+                                          gint *remaining)
+{
+  if (nfpm->dropped_visitors > 0)
+    {
+      gint dst = GPOINTER_TO_INT (key);
+      VsgPRTreeKey2@t@ k = vsg_prtree_key2@t@_root;
+      gint flag;
+
+      MPI_Test (&nfpm->request, &flag, MPI_STATUS_IGNORE);
+
+      if (!flag)
+	{
+	  remaining ++;
+	  return;
+	}
+
+      nfpm->send_pm.position = 0;
+
+      /* issue a false key followed with number of dropped visitors */
+      vsg_packed_msg_send_append (&nfpm->send_pm, &k, 1,
+                                  VSG_MPI_TYPE_PRTREE_KEY2@T@);
+      vsg_packed_msg_send_append (&nfpm->send_pm, &nfpm->dropped_visitors, 1,
+                                  MPI_INT);
+      nfpm->dropped_visitors = 0;
+
+      vsg_packed_msg_isend (&nfpm->send_pm, dst, VISIT_BACKWARD_TAG,
+                            &nfpm->request);
+    }
+}
+
+static gint _dropped_count = 0;
+/*
+ * Probes for incoming messages. When called with @blocking == TRUE, will wait
  * until any receive happens. The time spent waiting will be used in
  * pending computations (of visitors) or in sending pending messages.
  */
@@ -1941,10 +1989,6 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
           {
             _propose_node_backward (tree, nfc, status.MPI_SOURCE, wv);
           }
-        else /* TODO: implement dropped visitors */
-          {
-            _propose_node_backward (tree, nfc, status.MPI_SOURCE, wv);
-          }
 
         nfc->all_fw_recvs ++;
 
@@ -1952,6 +1996,29 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
       case VISIT_BACKWARD_TAG:
         vsg_packed_msg_recv_read (&nfc->recv, &id, 1,
                                   VSG_MPI_TYPE_PRTREE_KEY2@T@);
+
+        /* detect special key for dropped visitors */
+        if (id.depth == 0)
+          {
+            gint i;
+            vsg_packed_msg_recv_read (&nfc->recv, &i, 1, MPI_INT);
+            nfc->pending_backward_msgs -= i;
+
+            _dropped_count += i;
+/*             g_printerr ("%d(%d) : bw dropped recv from %d - %d (%d left) ", */
+/*                         nfc->rk, getpid (), status.MPI_SOURCE, i, */
+/*                         nfc->pending_backward_msgs); */
+/*             vsg_prtree_key2@t@_write (&id, stderr); */
+/*             g_printerr ("\n"); */
+/*             fflush (stderr); */
+
+            /* if end of message reached, break */
+            if (nfc->recv.position >= nfc->recv.size) break;
+
+            /* else: unpack following node key */
+            vsg_packed_msg_recv_read (&nfc->recv, &id, 1,
+                                      VSG_MPI_TYPE_PRTREE_KEY2@T@);
+          }
 
         node = vsg_prtree2@t@node_key_lookup (tree->node, id);
 
@@ -2423,8 +2490,8 @@ vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
   MPI_Comm comm = tree->config.parallel_config.communicator;
   gint i, dst;
   gint msg = 0;
-  GTimer *timer = g_timer_new ();
-
+/*   GTimer *timer = g_timer_new (); */
+  gint dropped_remaining = 1;
 
 /*   g_printerr ("%d(%d) : parallel_end begin (fw pending wv=%d) (bw pending wv=%d)\n", */
 /*               nfc->rk, getpid (), */
@@ -2444,7 +2511,8 @@ vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
       MPI_Send (&msg, 0, MPI_INT, dst, END_FW_TAG, comm);
     }
 
-/*   g_printerr ("%d(%d) : end fw sent\n", nfc->rk, getpid ()); */
+/*   g_printerr ("%d : end fw sent (elapsed %f)\n", nfc->rk, */
+/*               g_timer_elapsed (timer, NULL)); */
 
   /* check all remaining messages */
   while (nfc->pending_end_forward > 0)
@@ -2454,25 +2522,38 @@ vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
       vsg_prtree2@t@_nf_check_receive (tree, nfc, MPI_ANY_TAG, TRUE);
     }
 
-/*   g_printerr ("%d(%d) : end fw received\n", nfc->rk, getpid ()); */
+/*   g_printerr ("%d : end fw received (elapsed %f)\n", nfc->rk, */
+/*               g_timer_elapsed (timer, NULL)); */
 
   /* now, no forward visitor should be left incoming */
 
   /* do all remaining stuff */
   while ((nfc->forward_pending_nb + nfc->backward_pending_nb) > 0)
     {
-/*       g_printerr ("%d(%d) : pending bw %d\n", */
-/*                   nfc->rk, getpid (), nfc->pending_backward_msgs); */
+/*       g_printerr ("%d : pending bw %d\n", */
+/*                   nfc->rk, nfc->pending_backward_msgs); */
       vsg_prtree2@t@_nf_check_send (tree, nfc);
       vsg_prtree2@t@_nf_check_receive (tree, nfc, MPI_ANY_TAG, FALSE);
     }
+
+  dropped_remaining = 1;
+  while (dropped_remaining > 0)
+    {
+      dropped_remaining = 0;
+      g_hash_table_foreach (nfc->procs_msgs,
+			    (GHFunc) _send_final_dropped_visitors,
+			    &dropped_remaining);
+    }
+/*   g_printerr ("%d : all bw send ok (elapsed %f) (dropped %d)\n", nfc->rk, */
+/*               g_timer_elapsed (timer, NULL), _dropped_count); */
 
   while (nfc->pending_backward_msgs > 0)
     {
       vsg_prtree2@t@_nf_check_receive (tree, nfc, MPI_ANY_TAG, TRUE);
     }
 
-/*   g_printerr ("%d(%d) : pending bw recv ok\n", nfc->rk, getpid ()); */
+/*   g_printerr ("%d : pending bw recv ok (elapsed %f)\n", nfc->rk, */
+/*               g_timer_elapsed (timer, NULL)); */
 
   g_hash_table_foreach (nfc->procs_msgs, (GHFunc) _wait_procs_msgs, NULL);
 
@@ -2499,7 +2580,7 @@ vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
 /*               _bw_pending_sum / (gdouble) _bw_pending_calls, */
 /*               _bw_pending_calls); */
 
-  g_timer_destroy (timer);
+/*   g_timer_destroy (timer); */
 }
 
 static guint8 _prtree2@t@node_mindepth (const VsgPRTree2@t@Node *node)
@@ -2646,7 +2727,7 @@ static gint contiguous_dist (VsgPRTree2@t@NodeInfo *node_info,
       cda->current_lcount ++;
 
       if (! vsg_prtree_key2@t@_is_ancestor (&cda->last_subtree_id,
-                                          &node_info->id))
+                                            &node_info->id))
         {
           VsgPRTree2@t@NodeInfo *ancestor = node_info;
 
@@ -2705,8 +2786,8 @@ void vsg_prtree2@t@_distribute_contiguous_leaves (VsgPRTree2@t@ *tree)
 
   /* accumulate number of local leaves in the local subtrees' roots */
   vsg_prtree2@t@_traverse (tree, G_PRE_ORDER,
-                         (VsgPRTree2@t@Func) _local_leaves_count,
-                         array);
+                           (VsgPRTree2@t@Func) _local_leaves_count,
+                           array);
 
   /* prepare reduced for storing the results of the Allreduce */
   reduced = g_array_sized_new (FALSE, TRUE, sizeof (gint), array->len);
@@ -2734,8 +2815,8 @@ void vsg_prtree2@t@_distribute_contiguous_leaves (VsgPRTree2@t@ *tree)
       cda.last_subtree_id = _dummy_key;
 
       vsg_prtree2@t@_distribute_nodes (tree,
-                                     (VsgPRTree2@t@DistributionFunc) contiguous_dist,
-                                     &cda);
+                                       (VsgPRTree2@t@DistributionFunc) contiguous_dist,
+                                       &cda);
 
 /*   g_printerr ("%d : reduced-len=%d current-index=%d\n", rk, reduced->len, cda.current_index); */
     }
