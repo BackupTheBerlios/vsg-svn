@@ -67,7 +67,7 @@ void vsg_prtree_key2@t@_deepest_common_ancestor (VsgPRTreeKey2@t@ *one,
                                                  VsgPRTreeKey2@t@ *other,
                                                  VsgPRTreeKey2@t@ *result);
 
-void vsg_prtree_key2@t@_build_child (VsgPRTreeKey2@t@ *ancestor,
+void vsg_prtree_key2@t@_build_child (VsgPRTreeKey2@t@ *father,
                                      vsgloc2 child_num,
                                      VsgPRTreeKey2@t@ *result);
 
