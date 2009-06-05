@@ -86,18 +86,50 @@ struct _VsgParallelStatus {
   guint32 proc:30;
 };
 
+/**
+ * VSG_PARALLEL_STATUS_IS_REMOTE:
+ * @status: a #VsgParallelStatus
+ *
+ * Convenience macro for questioning about @status storage type.
+ *
+ * Returns: #TRUE if @status is equal to #VSG_PARALLEL_REMOTE
+ */
 #define VSG_PARALLEL_STATUS_IS_REMOTE(status) ( \
 (status).storage == VSG_PARALLEL_REMOTE \
 )
 
+/**
+ * VSG_PARALLEL_STATUS_IS_LOCAL:
+ * @status: a #VsgParallelStatus
+ *
+ * Convenience macro for questioning about @status storage type.
+ *
+ * Returns: #TRUE if @status is equal to #VSG_PARALLEL_LOCAL
+ */
 #define VSG_PARALLEL_STATUS_IS_LOCAL(status) ( \
 (status).storage == VSG_PARALLEL_LOCAL \
 )
 
+/**
+ * VSG_PARALLEL_STATUS_IS_SHARED:
+ * @status: a #VsgParallelStatus
+ *
+ * Convenience macro for questioning about @status storage type.
+ *
+ * Returns: #TRUE if @status is equal to #VSG_PARALLEL_SHARED
+ */
 #define VSG_PARALLEL_STATUS_IS_SHARED(status) ( \
 (status).storage == VSG_PARALLEL_SHARED \
 )
 
+/**
+ * VSG_PARALLEL_STATUS_PROC:
+ * @status: a #VsgParallelStatus
+ *
+ * Convenience macro for questioning about @status processor number.
+ *
+ * Returns: @status.proc
+ */
 #define VSG_PARALLEL_STATUS_PROC(status) ( \
 (status).proc \
 )

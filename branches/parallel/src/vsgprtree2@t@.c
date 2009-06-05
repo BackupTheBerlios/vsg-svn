@@ -1330,6 +1330,42 @@ static void _clone_parallel_status (const VsgPRTree2@t@NodeInfo *node_info,
  * The #GBoxed #GType associated to #VsgPrtree2@t@.
  */
 
+/**
+ * VSG_PRTREE2@T@_NODE_INFO_IS_REMOTE:
+ * @node_info: a #VsgPRTree2@t@NodeInfo
+ *
+ * Convenience macro for questioning about @node_info storage type.
+ *
+ * Returns: #TRUE if @node_info has a storage type equal to #VSG_PARALLEL_REMOTE
+ */
+
+/**
+ * VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL:
+ * @node_info: a #VsgPRTree2@t@NodeInfo
+ *
+ * Convenience macro for questioning about @node_info storage type.
+ *
+ * Returns: #TRUE if @node_info has a storage type equal to #VSG_PARALLEL_LOCAL
+ */
+
+/**
+ * VSG_PRTREE2@T@_NODE_INFO_IS_SHARED:
+ * @node_info: a #VsgPRTree2@t@NodeInfo
+ *
+ * Convenience macro for questioning about @node_info storage type.
+ *
+ * Returns: #TRUE if @node_info has a storage type equal to #VSG_PARALLEL_SHARED
+ */
+
+/**
+ * VSG_PRTREE2@T@_NODE_INFO_PROC:
+ * @node_info: a #VsgPRTree2@t@NodeInfo
+ *
+ * Convenience macro for questioning about @node_info processor number.
+ *
+ * Returns: node_info processor number
+ */
+
 /*-------------------------------------------------------------------*/
 /* public functions */
 /*-------------------------------------------------------------------*/

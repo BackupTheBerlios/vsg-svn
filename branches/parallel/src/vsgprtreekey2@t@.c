@@ -7,6 +7,11 @@
 #include <glib/gprintf.h>
 
 /**
+ * SECTION: vsgprtreekey2@t@
+ * @short_description: 2D localization key for #VsgPRTree2@t@.
+ */
+
+/**
  * VsgPRTreeKey2@t@:
  * @x : A @key_type@ for storing x binary coordinate
  * @y : A @key_type@ for storing y binary coordinate

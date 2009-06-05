@@ -3,6 +3,13 @@
 #include "string.h"
 
 /**
+ * VSG_PACKED_MSG_STATIC_INIT:
+ * @comm: a #MPI_Comm
+ *
+ * Performs static initialization of a #VsgPackedMsg structure.
+ */
+
+/**
  * VsgPackedMsg:
  * @communicator: the MPI comunicator on which the #VsgPackedMsg is to be used.
  *
@@ -284,79 +291,4 @@ void vsg_packed_msg_free (VsgPackedMsg *pm)
   vsg_packed_msg_drop_buffer (pm);
 
   g_free (pm);
-}
-
-
-VsgSendChannel *vsg_send_channel_new (MPI_Comm comm, gint dst, gint tag,
-                                      guint bsize)
-{
-  VsgSendChannel *ret = g_malloc0 (sizeof (VsgSendChannel));
-
-  vsg_send_channel_init (ret, comm, dst, tag, bsize);
-
-  return ret;
-}
-
-void vsg_send_channel_init (VsgSendChannel *sc, MPI_Comm comm, gint dst,
-                            gint tag, guint bsize)
-{
-  g_return_if_fail (sc != NULL);
-
-  vsg_packed_msg_init (&sc->pm, comm);
-
-  sc->dst = dst;
-  sc->tag = tag;
-  sc->bsize = bsize;
-}
-
-VsgPackedMsg *vsg_send_channel_get_buffer (VsgSendChannel *sc)
-{
-  g_return_val_if_fail (sc != NULL, NULL);
-
-  return &sc->pm;
-}
-
-void vsg_send_channel_check_send (VsgSendChannel *sc)
-{
-  g_return_if_fail (sc != NULL);
-
-  if (sc->pm.position >= sc->bsize) vsg_send_channel_flush (sc);
-}
-
-void vsg_send_channel_append (VsgSendChannel *sc, gpointer buf,
-                              gint count, MPI_Datatype type)
-{
-  g_return_if_fail (sc != NULL);
-
-  vsg_packed_msg_send_append (&sc->pm, buf, count, type);
-
-  vsg_send_channel_check_send (sc);
-}
-
-void vsg_send_channel_flush (VsgSendChannel *sc)
-{
-  g_return_if_fail (sc != NULL);
-
-  if (sc->pm.position > 0)
-    vsg_packed_msg_send (&sc->pm, sc->dst, sc->tag);
-
-  sc->pm.position = 0;
-}
-
-
-
-/**
- * vsg_send_channel_free:
- * @sc: a #VsgSendChannel.
- *
- * deallocates @sc and all data associated with it.
- */
-void vsg_send_channel_free (VsgSendChannel *sc)
-{
-  g_return_if_fail (sc != NULL);
-
-  vsg_packed_msg_drop_buffer (&sc->pm);
-
-  g_free (sc);
-
 }

@@ -37,20 +37,20 @@ G_BEGIN_DECLS;
 #define VSG_TYPE_PRTREE2@T@ (vsg_prtree2@t@_get_type ())
 #define VSG_TYPE_PRTREE2@T@_NODE_INFO (vsg_prtree2@t@_node_info_get_type ())
 
-#define VSG_PRTREE2@T@_NODE_INFO_IS_REMOTE(node) ( \
-VSG_PARALLEL_STATUS_IS_REMOTE (node->parallel_status) \
+#define VSG_PRTREE2@T@_NODE_INFO_IS_REMOTE(node_info) ( \
+VSG_PARALLEL_STATUS_IS_REMOTE ((node_info)->parallel_status) \
 )
 
-#define VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL(node) ( \
-VSG_PARALLEL_STATUS_IS_LOCAL (node->parallel_status) \
+#define VSG_PRTREE2@T@_NODE_INFO_IS_LOCAL(node_info) ( \
+VSG_PARALLEL_STATUS_IS_LOCAL ((node_info)->parallel_status) \
 )
 
-#define VSG_PRTREE2@T@_NODE_INFO_IS_SHARED(node) ( \
-VSG_PARALLEL_STATUS_IS_SHARED (node->parallel_status) \
+#define VSG_PRTREE2@T@_NODE_INFO_IS_SHARED(node_info) ( \
+VSG_PARALLEL_STATUS_IS_SHARED ((node_info)->parallel_status) \
 )
 
-#define VSG_PRTREE2@T@_NODE_INFO_PROC(node) ( \
-VSG_PARALLEL_STATUS_PROC (node->parallel_status) \
+#define VSG_PRTREE2@T@_NODE_INFO_PROC(node_info) ( \
+VSG_PARALLEL_STATUS_PROC ((node_info)->parallel_status) \
 )
 
 /* typedefs */

@@ -1,5 +1,5 @@
 
-parallel_tests = commbuffer prtree2parallel prtree2paradist prtree2paranftrav sendchannel
+parallel_tests = commbuffer prtree2parallel prtree2paradist prtree2paranftrav
 parallel_sources = $(addsuffix .c, $(parallel_tests))
 
 if VSG_HAVE_MPI

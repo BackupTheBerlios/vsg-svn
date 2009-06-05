@@ -1,3 +1,19 @@
+<!-- ##### MACRO VSG_HAVE_MPI ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO VSG_SEND_CHANNEL_STATIC_INIT ##### -->
+<para>
+
+</para>
+
+@comm: 
+@dst: 
+@tag: 
+@bsize: 
+
 <!-- ##### USER_FUNCTION VsgPoint2dDistMarshall ##### -->
 <para>
 
@@ -123,6 +139,16 @@
 @center: 
 @data: 
 @Returns: 
+
+<!-- ##### STRUCT VsgSendChannel ##### -->
+<para>
+
+</para>
+
+@pm: 
+@dst: 
+@tag: 
+@bsize: 
 
 <!-- ##### FUNCTION vsg_matrix3dT_vec3mult ##### -->
 <para>
@@ -595,6 +621,67 @@
 @quat: 
 @from: 
 @to: 
+
+<!-- ##### FUNCTION vsg_send_channel_append ##### -->
+<para>
+
+</para>
+
+@sc: 
+@buf: 
+@count: 
+@type: 
+
+<!-- ##### FUNCTION vsg_send_channel_check_send ##### -->
+<para>
+
+</para>
+
+@sc: 
+
+<!-- ##### FUNCTION vsg_send_channel_flush ##### -->
+<para>
+
+</para>
+
+@sc: 
+
+<!-- ##### FUNCTION vsg_send_channel_free ##### -->
+<para>
+
+</para>
+
+@sc: 
+
+<!-- ##### FUNCTION vsg_send_channel_get_buffer ##### -->
+<para>
+
+</para>
+
+@sc: 
+@Returns: 
+
+<!-- ##### FUNCTION vsg_send_channel_init ##### -->
+<para>
+
+</para>
+
+@sc: 
+@comm: 
+@dst: 
+@tag: 
+@bsize: 
+
+<!-- ##### FUNCTION vsg_send_channel_new ##### -->
+<para>
+
+</para>
+
+@comm: 
+@dst: 
+@tag: 
+@bsize: 
+@Returns: 
 
 <!-- ##### FUNCTION vsg_vector2d_get_type ##### -->
 <para>

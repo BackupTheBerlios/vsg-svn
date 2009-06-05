@@ -15,19 +15,18 @@ vsg_init_gfloat
 
 <SECTION>
 <FILE>vsgmpi</FILE>
-VSG_HAVE_MPI
 
 vsg_mpi_error_output
 
 <SUBSECTION Standard>
+VSG_HAVE_MPI
 </SECTION>
+
 <SECTION>
 <FILE>vsgpackedmsg</FILE>
 VsgPackedMsg
-VsgSendChannel
 
 VSG_PACKED_MSG_STATIC_INIT
-VSG_SEND_CHANNEL_STATIC_INIT
 
 vsg_packed_msg_init
 vsg_packed_msg_new
@@ -44,14 +43,6 @@ vsg_packed_msg_drop_buffer
 vsg_packed_msg_set_reference
 
 vsg_packed_msg_free
-
-vsg_send_channel_new
-vsg_send_channel_init
-vsg_send_channel_append
-vsg_send_channel_check_send
-vsg_send_channel_flush
-vsg_send_channel_get_buffer
-vsg_send_channel_free
 
 <SUBSECTION Standard>
 </SECTION>

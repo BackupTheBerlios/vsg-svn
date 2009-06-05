@@ -59,7 +59,7 @@ vsgprtree2d
 
 </para>
 
-@node: 
+@node_info: 
 
 
 <!-- ##### MACRO VSG_PRTREE2D_NODE_INFO_IS_REMOTE ##### -->
@@ -67,7 +67,7 @@ vsgprtree2d
 
 </para>
 
-@node: 
+@node_info: 
 
 
 <!-- ##### MACRO VSG_PRTREE2D_NODE_INFO_IS_SHARED ##### -->
@@ -75,7 +75,7 @@ vsgprtree2d
 
 </para>
 
-@node: 
+@node_info: 
 
 
 <!-- ##### MACRO VSG_PRTREE2D_NODE_INFO_PROC ##### -->
@@ -83,7 +83,7 @@ vsgprtree2d
 
 </para>
 
-@node: 
+@node_info: 
 
 
 <!-- ##### USER_FUNCTION VsgPoint2dLocFunc ##### -->

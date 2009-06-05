@@ -5,6 +5,8 @@
 
 /**
  * VsgCommBuffer:
+ *
+ * An opaque structure. Manipulate only through following functions.
  */
 struct _VsgCommBuffer
 {
@@ -21,6 +23,9 @@ struct _VsgCommBuffer
  * vsg_comm_buffer_new:
  * @comm: a MPI communicator.
  *
+ * Allocates a new #VsgCommBuffer.
+ *
+ * Returns: a #VsgCommBuffer
  */
 VsgCommBuffer *vsg_comm_buffer_new (MPI_Comm comm)
 {
@@ -57,6 +62,9 @@ VsgCommBuffer *vsg_comm_buffer_new (MPI_Comm comm)
  * @buf: pointer to the beginning of data to be stored.
  * @count: number of @type data to store.
  * @type: type of the data to be stored.
+ *
+ * Appends some data to be sent with @cb. If @dst is negative, @buf
+ * will be appended to all processor buffers
  */
 void vsg_comm_buffer_send_append (VsgCommBuffer *cb, gint dst, gpointer buf,
 				  gint count, MPI_Datatype type)
@@ -87,6 +95,8 @@ void vsg_comm_buffer_send_append (VsgCommBuffer *cb, gint dst, gpointer buf,
  * @buf: pointer to the beginning of data to be read.
  * @count: number of @type data to read.
  * @type: type of the data to be read.
+ *
+ * Reads some data from a particular receive bufferin @cb.
  */
 void vsg_comm_buffer_recv_read (VsgCommBuffer *cb, gint src, gpointer buf,
 				gint count, MPI_Datatype type)
@@ -103,6 +113,8 @@ void vsg_comm_buffer_recv_read (VsgCommBuffer *cb, gint src, gpointer buf,
 /**
  * vsg_comm_buffer_share:
  * @cb: A #VsgCommBuffer instance.
+ *
+ * Performs all send and receive operations recorded in @cb.
  */
 void vsg_comm_buffer_share (VsgCommBuffer *cb)
 {
@@ -150,6 +162,9 @@ void vsg_comm_buffer_share (VsgCommBuffer *cb)
  * vsg_comm_buffer_set_bcast:
  * @cb: A #VsgCommBuffer instance.
  * @model: the message data to pass to other processors.
+ *
+ * Sets @cb to be like a broadcast send without extra copying of the
+ * send data.
  */
 void vsg_comm_buffer_set_bcast (VsgCommBuffer *cb, VsgPackedMsg *model)
 {
@@ -166,6 +181,15 @@ void vsg_comm_buffer_set_bcast (VsgCommBuffer *cb, VsgPackedMsg *model)
     }
 }
 
+/**
+ * vsg_comm_buffer_get_send_buffer:
+ * @cb: a #VsgCommBuffer
+ * @dst: desired buffer processor number
+ *
+ * Requests one of the send buffers of @cb.
+ *
+ * Returns: a handle to the send buffer.
+ */
 VsgPackedMsg * vsg_comm_buffer_get_send_buffer (VsgCommBuffer *cb, gint dst)
 {
   g_return_val_if_fail (cb != NULL, NULL);
@@ -177,6 +201,15 @@ VsgPackedMsg * vsg_comm_buffer_get_send_buffer (VsgCommBuffer *cb, gint dst)
   return &cb->send[dst];
 }
 
+/**
+ * vsg_comm_buffer_get_recv_buffer:
+ * @cb: a #VsgCommBuffer
+ * @src: desired buffer processor number
+ *
+ * Requests one of the receive buffers of @cb.
+ *
+ * Returns: a handle to the receive buffer.
+ */
 VsgPackedMsg * vsg_comm_buffer_get_recv_buffer (VsgCommBuffer *cb, gint src)
 {
   g_return_val_if_fail (cb != NULL, NULL);
@@ -192,6 +225,8 @@ VsgPackedMsg * vsg_comm_buffer_get_recv_buffer (VsgCommBuffer *cb, gint src)
  * vsg_comm_buffer_drop_send_buffer:
  * @cb: A #VsgCommBuffer instance.
  * @dst: the task id which buffer is to be deleted.
+ *
+ * Deletes memory associated with one particular send buffer.
  */
 void vsg_comm_buffer_drop_send_buffer (VsgCommBuffer *cb, gint dst)
 {
@@ -209,6 +244,8 @@ void vsg_comm_buffer_drop_send_buffer (VsgCommBuffer *cb, gint dst)
  * vsg_comm_buffer_drop_recv_buffer:
  * @cb: A #VsgCommBuffer instance.
  * @src: the task id which buffer is to be deleted.
+ *
+ * Deletes memory associated with one particular receive buffer.
  */
 void vsg_comm_buffer_drop_recv_buffer (VsgCommBuffer *cb, gint src)
 {
@@ -225,6 +262,8 @@ void vsg_comm_buffer_drop_recv_buffer (VsgCommBuffer *cb, gint src)
 /**
  * vsg_comm_buffer_drop_send_buffers:
  * @cb: A #VsgCommBuffer instance.
+ *
+ * Deletes memory associated with all send buffers in @cb.
  */
 void vsg_comm_buffer_drop_send_buffers (VsgCommBuffer *cb)
 {
@@ -241,6 +280,8 @@ void vsg_comm_buffer_drop_send_buffers (VsgCommBuffer *cb)
 /**
  * vsg_comm_buffer_drop_recv_buffers:
  * @cb: A #VsgCommBuffer instance.
+ *
+ * Deletes memory associated with all receive buffers in @cb.
  */
 void vsg_comm_buffer_drop_recv_buffers (VsgCommBuffer *cb)
 {
@@ -257,6 +298,8 @@ void vsg_comm_buffer_drop_recv_buffers (VsgCommBuffer *cb)
 /**
  * vsg_comm_buffer_drop_buffers:
  * @cb: A #VsgCommBuffer instance.
+ *
+ * Deletes memory associated with all buffers in @cb.
  */
 void vsg_comm_buffer_drop_buffers (VsgCommBuffer *cb)
 {
@@ -267,6 +310,8 @@ void vsg_comm_buffer_drop_buffers (VsgCommBuffer *cb)
 /**
  * vsg_comm_buffer_free:
  * @cb: A #VsgCommBuffer instance.
+ *
+ * Frees @cb.
  */
 void vsg_comm_buffer_free (VsgCommBuffer *cb)
 {

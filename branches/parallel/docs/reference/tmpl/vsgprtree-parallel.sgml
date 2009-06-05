@@ -22,11 +22,10 @@ vsgprtree-parallel
 
 </para>
 
-@communicator: 
-@padding: 
 @point: 
 @region: 
 @node_data: 
+@communicator: 
 
 <!-- ##### STRUCT VsgParallelMigrateVTable ##### -->
 <para>

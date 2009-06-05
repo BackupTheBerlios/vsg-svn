@@ -24,7 +24,6 @@ AT_CHECK([test "$DO_MPI_TESTS" = 1 || exit 77])
 AT_CHECK([mpiexec -n 2 commbuffer], 0)
 AT_CHECK([mpiexec -n 3 commbuffer], 0)
 AT_CHECK([mpiexec -n 4 commbuffer], 0)
-AT_CHECK([mpiexec -n 2 sendchannel], 0)
 AT_CLEANUP
 
 AT_SETUP(2D Parallel tree creation)

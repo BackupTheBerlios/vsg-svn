@@ -51,7 +51,21 @@ typedef void (*VsgMigrablePackDataFunc) (gpointer var, VsgPackedMsg *pm,
 
 typedef void (*VsgMigrableUnpackDataFunc) (gpointer var, VsgPackedMsg *pm,
                                            gpointer user_data);
+
 /* structs */
+
+/**
+ * VsgParallelMigrateVTable:
+ * @pack: a packing function
+ * @pack_data: user provided arbitrary data to be used as a @pack argument
+ * @unpack: a unpacking function
+ * @unpack_data: user provided arbitrary data to be used as an @unpack argument
+ * @reduce: a reduction function
+ * @reduce_data: user provided arbitrary data to be used as a @reduce argument
+ *
+ * a set of functions to manipulate a datatype through
+ * pack, unpack and reduce operations.
+ */
 struct _VsgParallelMigrateVTable {
   VsgMigrablePackDataFunc pack;
   gpointer pack_data;
@@ -65,6 +79,22 @@ struct _VsgParallelMigrateVTable {
 
 #endif
 
+/**
+ * VsgParallelVTable:
+ * @alloc: an allocation function
+ * @alloc_data: user provided arbitrary data to be used as a @alloc argument
+ * @destroy: a deallocation function
+ * @destroy_data: user provided arbitrary data to be used as a @destroy argument
+ * @migrate: a #VsgParallelMigrateVTable. WARNING: Only available when
+ * VSG_HAVE_MPI is defined.
+ * @visit_forward: a #VsgParallelMigrateVTable. WARNING: Only available when
+ * VSG_HAVE_MPI is defined.
+ * @visit_backward: a #VsgParallelMigrateVTable. WARNING: Only available when
+ * VSG_HAVE_MPI is defined.
+ *
+ * a set of functions for manipulate some data type with allocate,
+ * deallocate and migration operations.
+ */
 struct _VsgParallelVTable {
 
   /* memory management functions */
@@ -84,16 +114,24 @@ struct _VsgParallelVTable {
 #endif
 };
 
+/**
+ * VsgPRTreeParallelConfig:
+ * @point: a #VsgParallelVTable for #Vsgpoint
+ * @region:  a #VsgParallelVTable for #VsgRegion
+ * @node_data:  a #VsgParallelVTable for node's user data.
+ * @communicator:  a #MPI_Comm. WARNING: Only available when
+ * VSG_HAVE_MPI is defined.
+ *
+ * a configuration for parallel operations on #VsgPRTree**. 
+ */
 struct _VsgPRTreeParallelConfig {
-#ifdef VSG_HAVE_MPI
-  MPI_Comm communicator;
-#else
-  gpointer padding;
-#endif
-
   VsgParallelVTable point;
   VsgParallelVTable region;
   VsgParallelVTable node_data;
+
+#ifdef VSG_HAVE_MPI
+  MPI_Comm communicator;
+#endif
 };
 
 G_END_DECLS;

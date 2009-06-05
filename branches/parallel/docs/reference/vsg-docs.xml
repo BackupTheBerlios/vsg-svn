@@ -225,6 +225,7 @@
   <chapter id="spatial-filters">
     <title id="spatial-filters.title">Spatial filters</title>
       <xi:include href="xml/vsgprtree-common.xml"/>
+      <xi:include href="xml/vsgprtree-parallel.xml"/>
       <xi:include href="xml/vsgprtree2-common.xml"/>
       <xi:include href="xml/vsgprtreekey2d.xml"/>
       <xi:include href="xml/vsgprtree2d.xml"/>
