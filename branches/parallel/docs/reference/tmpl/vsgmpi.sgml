@@ -9,14 +9,19 @@ vsgmpi
 
 </para>
 
-
 <!-- ##### SECTION See_Also ##### -->
 <para>
 
 </para>
 
-
 <!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### MACRO VSG_HAVE_MPI ##### -->
+<para>
+
+</para>
+
 
 
 <!-- ##### MACRO vsg_mpi_error_output ##### -->

@@ -3,10 +3,6 @@
 vsg_init
 </SECTION>
 
-<FILE>vsgmpi</FILE>
-VSG_HAVE_MPI
-</SECTION>
-
 <SECTION>
 <FILE>vsgd</FILE>
 vsg_init_gdouble
@@ -19,6 +15,8 @@ vsg_init_gfloat
 
 <SECTION>
 <FILE>vsgmpi</FILE>
+VSG_HAVE_MPI
+
 vsg_mpi_error_output
 
 <SUBSECTION Standard>
