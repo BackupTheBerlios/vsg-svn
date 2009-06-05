@@ -55,3 +55,35 @@ vsgprtree-common
 @VSG_PARALLEL_LOCAL: 
 @VSG_PARALLEL_REMOTE: 
 
+<!-- ##### MACRO VSG_PARALLEL_STATUS_IS_LOCAL ##### -->
+<para>
+
+</para>
+
+@status: 
+
+
+<!-- ##### MACRO VSG_PARALLEL_STATUS_IS_REMOTE ##### -->
+<para>
+
+</para>
+
+@status: 
+
+
+<!-- ##### MACRO VSG_PARALLEL_STATUS_IS_SHARED ##### -->
+<para>
+
+</para>
+
+@status: 
+
+
+<!-- ##### MACRO VSG_PARALLEL_STATUS_PROC ##### -->
+<para>
+
+</para>
+
+@status: 
+
+
