@@ -544,24 +544,6 @@ vsgprtree2f
 @prtree2f: 
 
 
-<!-- ##### FUNCTION vsg_prtree2f_distribute_nodes ##### -->
-<para>
-
-</para>
-
-@tree: 
-@func: 
-@user_data: 
-
-
-<!-- ##### FUNCTION vsg_prtree2f_migrate_flush ##### -->
-<para>
-
-</para>
-
-@tree: 
-
-
 <!-- ##### FUNCTION vsg_prtree2f_set_parallel ##### -->
 <para>
 
@@ -578,6 +560,24 @@ vsgprtree2f
 
 @tree: 
 @pconfig: 
+
+
+<!-- ##### FUNCTION vsg_prtree2f_migrate_flush ##### -->
+<para>
+
+</para>
+
+@tree: 
+
+
+<!-- ##### FUNCTION vsg_prtree2f_distribute_nodes ##### -->
+<para>
+
+</para>
+
+@tree: 
+@func: 
+@user_data: 
 
 
 <!-- ##### FUNCTION vsg_prtree2f_shared_nodes_allreduce ##### -->

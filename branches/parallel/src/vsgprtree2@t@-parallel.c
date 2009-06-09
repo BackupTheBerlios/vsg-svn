@@ -6,6 +6,19 @@
 
 #include "string.h"
 
+/**
+ * VsgPRTree2@t@DistributionFunc:
+ * @node_info: a #VsgPRTree2@t@NodeInfo
+ * @user_data: user provided arbitrary data
+ *
+ * allows user to choose which processor number a tree node
+ * presented with @node_info is given to.
+ *
+ * WARNING: only available when VSG_HAVE_MPI is defined.
+ *
+ * Returns: destination processor number
+ */
+
 typedef struct _VTableAndMsg VTableAndMsg;
 
 struct _VTableAndMsg
@@ -31,6 +44,19 @@ static void _send_shared_region (VsgRegion2 rg, VTableAndMsg *vm)
   vm->vtable->migrate.pack (rg, vm->msg, vm->vtable->migrate.pack_data);
 }
 
+/**
+ * vsg_prtree2@t@_set_parallel: 
+ * @tree: a #VsgPRTree2@t@
+ * @pconfig: the #VsgPRTreeParallelConfig to use with @tree
+ *
+ * performs necessary transformations and communications to set @tree
+ * in a parallel state. This means points and region merging to
+ * processor #0.
+ *
+ * WARNING: only available when VSG_HAVE_MPI is defined.
+ *
+ * NOTE: this is a collective communication function.
+ */
 void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
                                   VsgPRTreeParallelConfig *pconfig)
 {
@@ -155,6 +181,15 @@ void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
     }
 }
 
+/**
+ * vsg_prtree2@t@_get_parallel:
+ * @tree: a #VsgPRTree2@t@
+ * @pconfig: the #VsgPRTreeParallelConfig to copy to
+ *
+ * inquires the parallel configuration of @tree and copies it to @pconfig.
+ *
+ * WARNING: only available when VSG_HAVE_MPI is defined.
+ */
 void vsg_prtree2@t@_get_parallel (VsgPRTree2@t@ *tree,
                                   VsgPRTreeParallelConfig *pconfig)
 {
@@ -224,6 +259,19 @@ static void _migrate_traverse_region_send (VsgPRTree2@t@Node *node,
 /*   fprintf (file, "%p ", rg); */
 /* } */
 
+/**
+ * vsg_prtree2@t@_migrate_flush:
+ * @tree: a #VsgPRTree2@t@
+ *
+ * verifies if points or region were inserted in remote regions of the
+ * tree and performs all needed communications (migrations) to ensure
+ * that all those nodes and regions become resident of their correct
+ * node (ie: processor which owns their home node).
+ *
+ * NOTE: this is a collective communication function.
+ *
+ * WARNING: only available when VSG_HAVE_MPI is defined.
+ */
 void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
 {
   MPI_Comm comm;
@@ -730,6 +778,20 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
   node->parallel_status.proc = dst;
 }
 
+/**
+ * vsg_prtree2@t@_distribute_nodes:
+ * @tree: a #VsgPRTree2@t@
+ * @func: distribution function to use
+ * @user_data: data to pass to @func
+ *
+ * performs the parallel distribution of nodes specified with
+ * @func. @func will be called once on every local leaf and its result
+ * will determine the destination processor of this node.
+ *
+ * NOTE: this is a collective communication function.
+ *
+ * WARNING: only available when VSG_HAVE_MPI is defined.
+ */
 void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
                                       VsgPRTree2@t@DistributionFunc func,
                                       gpointer user_data)
@@ -2439,6 +2501,10 @@ _shared_nodes_allreduce_internal (VsgPRTree2@t@ *tree,
  * copies the semantic of the MPI_Allreduce operation on user_data for all
  * shared nodes of a tree. Reduction operator is given by the user
  * through @data_vtable.
+ *
+ * NOTE: this is a collective communication function.
+ *
+ * WARNING: only available when VSG_HAVE_MPI is defined.
  */
 void
 vsg_prtree2@t@_shared_nodes_allreduce (VsgPRTree2@t@ *tree,
@@ -2767,6 +2833,10 @@ static const VsgPRTreeKey2@t@ _dummy_key = {0, 0, 255};
  * numbered successively in an ordinary traversal of @tree. This means
  * that this distribution is subject to the current children ordering
  * of the tree.
+ *
+ * NOTE: this is a collective communication function.
+ *
+ * WARNING: only available when VSG_HAVE_MPI is defined.
  */
 void vsg_prtree2@t@_distribute_contiguous_leaves (VsgPRTree2@t@ *tree)
 {
@@ -2854,6 +2924,10 @@ static gint scatter_dist (VsgPRTree2@t@NodeInfo *node_info, ScatterData *sd)
  * are encountered in a regular traversal (ie. first leaf for
  * processor 0, second leaf for processor 1, etc... and cycling when
  * the number of processors is reached).
+ *
+ * NOTE: this is a collective communication function.
+ *
+ * WARNING: only available when VSG_HAVE_MPI is defined.
  */
 void vsg_prtree2@t@_distribute_scatter_leaves (VsgPRTree2@t@ *tree)
 {
@@ -2885,6 +2959,10 @@ static gint concentrate_dist (VsgPRTree2@t@NodeInfo *node_info, gint *dst)
  *
  * Performs parallel distribution of the nodes in @tree so as all
  * nodes will be sent to the processor @dst.
+ *
+ * NOTE: this is a collective communication function.
+ *
+ * WARNING: only available when VSG_HAVE_MPI is defined.
  */
 void vsg_prtree2@t@_distribute_concentrate (VsgPRTree2@t@ *tree, gint dst)
 {

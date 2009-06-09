@@ -498,6 +498,8 @@ static void hilbert2_order (gpointer node_key, gint *children,
  * @user_data: the data eventually attached to this node.
  * @father_info: link to this node's father's #VsgPRTree2@t@NodeInfo. NULL if root node.
  * @isleaf: a #gboolean set if the node is a leaf.
+ * @id: the key representing this node in the tree hierarchy.
+ * @parallel_status: parallel status of this node.
  *
  * A structure provided to expose a #VsgPrtree2@t@ node during a traversal
  * process. Since @user_data and @children_user_data are a user controlled
