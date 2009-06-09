@@ -260,8 +260,8 @@ VsgParallelVTable
 VsgMigrableAllocDataFunc
 VsgMigrableDestroyDataFunc
 VsgMigrablePackDataFunc
-VsgMigrableReductionDataFunc
 VsgMigrableUnpackDataFunc
+VsgMigrableReductionDataFunc
 
 <SUBSECTION Standard>
 </SECTION>
@@ -310,13 +310,13 @@ vsg_prtree_key2d_distance
 vsg_prtree_key2d_equals
 vsg_prtree_key2d_first_different_index
 vsg_prtree_key2d_get_father
-vsg_prtree_key2d_get_mpi_type
 vsg_prtree_key2d_is_ancestor
 vsg_prtree_key2d_is_neighbour
 vsg_prtree_key2d_loc2
 vsg_prtree_key2d_write
 
 <SUBSECTION Standard>
+vsg_prtree_key2d_get_mpi_type
 </SECTION>
 
 <SECTION>
@@ -423,13 +423,13 @@ vsg_prtree_key2f_distance
 vsg_prtree_key2f_equals
 vsg_prtree_key2f_first_different_index
 vsg_prtree_key2f_get_father
-vsg_prtree_key2f_get_mpi_type
 vsg_prtree_key2f_is_ancestor
 vsg_prtree_key2f_is_neighbour
 vsg_prtree_key2f_loc2
 vsg_prtree_key2f_write
 
 <SUBSECTION Standard>
+vsg_prtree_key2f_get_mpi_type
 </SECTION>
 
 <SECTION>

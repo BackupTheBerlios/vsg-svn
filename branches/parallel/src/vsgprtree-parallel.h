@@ -36,19 +36,71 @@ typedef struct _VsgPRTreeParallelConfig VsgPRTreeParallelConfig;
 typedef struct _VsgParallelMigrateVTable VsgParallelMigrateVTable;
 typedef struct _VsgParallelVTable VsgParallelVTable;
 
+/**
+ * VsgMigrableAllocDataFunc:
+ * @resident: a flag passed to the function which indicates the status
+ * of the data to be allocated
+ * @user_data: arbitrary data provided by the user
+ *
+ * allocates new migrable data. The @resident flag is #TRUE when the
+ * requested allocation will be resident (result of a parallel
+ * migration). Otherwise, data is to be considered somehow volatile.
+ *
+ * Returns: allocated data
+ */
 typedef gpointer (*VsgMigrableAllocDataFunc) (gboolean resident,
                                               gpointer user_data);
 
+/**
+ * VsgMigrableDestroyDataFunc:
+ * @data: data to be deallocated
+ * @resident: a flag passed to the function which indicates the status
+ * of the data to be destroyed
+ * @user_data: arbitrary data provided by the user
+ *
+ * deallocates @data. @resident is a reminder of the value passed when
+ * allocating this particular @data.
+ */
 typedef void (*VsgMigrableDestroyDataFunc) (gpointer data, gboolean resident,
                                             gpointer user_data);
 
+/**
+ * VsgMigrableReductionDataFunc:
+ * @a: source data
+ * @b: destination data
+ * @user_data: arbitrary data provided by the user
+ *
+ * performs a reduction operation on some datatype. Semantic of the
+ * operation is to be compared to @b = @a + @b.
+ */
 typedef void (*VsgMigrableReductionDataFunc) (gpointer a, gpointer b,
                                               gpointer user_data);
 
 #ifdef VSG_HAVE_MPI
+
+/**
+ * VsgMigrablePackDataFunc:
+ * @var: data to pack
+ * @pm: a #VsgPackedMsg
+ * @user_data: arbitrary data provided by the user
+ *
+ * performs data packing of @var to a #VsgPackedMsg @pm.
+ *
+ * WARNING: this type is only allowed when #VSG_HAVE_MPI is defined.
+ */
 typedef void (*VsgMigrablePackDataFunc) (gpointer var, VsgPackedMsg *pm,
                                          gpointer user_data);
 
+/**
+ * VsgMigrableUnpackDataFunc:
+ * @var: data to unpack
+ * @pm: a #VsgPackedMsg
+ * @user_data: arbitrary data provided by the user
+ *
+ * performs data unpacking of @var from a #VsgPackedMsg @pm.
+ *
+ * WARNING: this type is only allowed when #VSG_HAVE_MPI is defined.
+ */
 typedef void (*VsgMigrableUnpackDataFunc) (gpointer var, VsgPackedMsg *pm,
                                            gpointer user_data);
 

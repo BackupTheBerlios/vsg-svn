@@ -488,6 +488,20 @@
 @marshall: 
 @locdata: 
 
+<!-- ##### FUNCTION vsg_prtree_key2d_get_mpi_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vsg_prtree_key2f_get_mpi_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
 <!-- ##### FUNCTION vsg_prtrtee2d_get_tolerance ##### -->
 <para>
 

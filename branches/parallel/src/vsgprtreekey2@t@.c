@@ -21,6 +21,25 @@
  * A structure for manupilating VsgPRTree2@t@ nodes coordinates.
  */
 
+/**
+ * VSG_PRTREE_KEY2@T@_BITS:
+ *
+ * number of bits in a #VsgPRTreeKey2@t@.
+ */
+
+/**
+ * VSG_PRTREE_KEY2@T@_INDEX_MASK:
+ * @index: an integer
+ *
+ * an integer mask with @index first bits set to 1.
+ */
+
+/**
+ * VSG_PRTREE_KEY2@T@_SIZE:
+ *
+ * size of a #VsgPRTreeKey2@t@.
+ */
+
 typedef struct _BitMaskData BitMaskData;
 
 struct _BitMaskData {
@@ -416,6 +435,15 @@ gboolean vsg_prtree_key2@t@_ancestor_order_unsafe (VsgPRTreeKey2@t@ *key,
   return kloc <= cloc;
 }
 
+/**
+ * vsg_prtree_key2@t@_equals:
+ * @one: a #VsgPRTreeKey2@t@.
+ * @other: a #VsgPRTreeKey2@t@.
+ *
+ * compares @one with @other.
+ *
+ * Returns: #TRUE when @one and @other are identical
+ */
 gboolean vsg_prtree_key2@t@_equals (VsgPRTreeKey2@t@ *one,
                                     VsgPRTreeKey2@t@ *other)
 {
@@ -423,17 +451,42 @@ gboolean vsg_prtree_key2@t@_equals (VsgPRTreeKey2@t@ *one,
   return one->depth == other->depth && one->x == other->x && one->y == other->y;
 }
 
+/**
+ * vsg_prtree_key2@t@_copy:
+ * @dst: a #VsgPRTreeKey2@t@.
+ * @src: a #VsgPRTreeKey2@t@.
+ *
+ * Copies @src to @dst.
+ */
 void vsg_prtree_key2@t@_copy (VsgPRTreeKey2@t@ *dst, VsgPRTreeKey2@t@ *src)
 {
   _key_copy (dst, src);
 }
 
+/**
+ * vsg_prtree_key2@t@_get_father:
+ * @key: a #VsgPRTreeKey2@t@.
+ * @father: a #VsgPRTreeKey2@t@.
+ *
+ * sets @father to the value of @key's direct ancestor (ie: the same
+ * as @key shortened by 1 level).
+ */
 void vsg_prtree_key2@t@_get_father (VsgPRTreeKey2@t@ *key,
                                     VsgPRTreeKey2@t@ *father)
 {
   _key_scale_down (key, 1, father);
 }
 
+/**
+ * vsg_prtree_key2@t@_is_neighbour:
+ * @one: a #VsgPRTreeKey2@t@.
+ * @other: a #VsgPRTreeKey2@t@.
+ *
+ * evaluates proximity of @one and @other.
+ * WARNING: if the keys are not of the same depth, behaviour is undefined.
+ *
+ * Returns: #TRUE if @one and @other are neighbours
+ */
 gboolean vsg_prtree_key2@t@_is_neighbour (VsgPRTreeKey2@t@ *one,
                                           VsgPRTreeKey2@t@ *other)
 {
@@ -441,6 +494,15 @@ gboolean vsg_prtree_key2@t@_is_neighbour (VsgPRTreeKey2@t@ *one,
     ((one->y - other->y) <= 1 || (other->y - one->y) <= 1);
 }
 
+/**
+ * vsg_prtree_key2@t@_is_ancestor:
+ * @ancestor: a #VsgPRTreeKey2@t@.
+ * @child: a #VsgPRTreeKey2@t@.
+ *
+ * ancetry query on two keys.
+ *
+ * Returns: if @child is a descendant of @ancestor.
+ */
 gboolean vsg_prtree_key2@t@_is_ancestor (VsgPRTreeKey2@t@ *ancestor,
                                          VsgPRTreeKey2@t@ *child)
 {

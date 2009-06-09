@@ -82,16 +82,6 @@ vsgprtree-parallel
 @user_data: 
 
 
-<!-- ##### USER_FUNCTION VsgMigrableReductionDataFunc ##### -->
-<para>
-
-</para>
-
-@a: 
-@b: 
-@user_data: 
-
-
 <!-- ##### USER_FUNCTION VsgMigrableUnpackDataFunc ##### -->
 <para>
 
@@ -99,6 +89,16 @@ vsgprtree-parallel
 
 @var: 
 @pm: 
+@user_data: 
+
+
+<!-- ##### USER_FUNCTION VsgMigrableReductionDataFunc ##### -->
+<para>
+
+</para>
+
+@a: 
+@b: 
 @user_data: 
 
 
