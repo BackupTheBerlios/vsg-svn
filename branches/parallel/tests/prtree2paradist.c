@@ -167,19 +167,25 @@ static void rg_migrate_unpack (Circle *rg, VsgPackedMsg *pm,
 }
 
 static VsgPRTreeParallelConfig pconfig = {
-  MPI_COMM_WORLD,
+  /* Point VTable */
   {pt_alloc, NULL,
    pt_destroy, NULL,
    {(VsgMigrablePackDataFunc) pt_migrate_pack, NULL,
     (VsgMigrablePackDataFunc) pt_migrate_unpack, NULL
    },
   },
+  /* Region VTable */
   {rg_alloc, NULL,
    rg_destroy, NULL,
    {(VsgMigrablePackDataFunc) rg_migrate_pack, NULL,
    (VsgMigrablePackDataFunc) rg_migrate_unpack, NULL,
    },
   },
+  /* NodeData VTable */
+  {NULL, NULL, NULL, NULL, {NULL, NULL, NULL, NULL},
+  },
+  /*communicator */
+  MPI_COMM_WORLD,
 };
 
 static void _pt_write (VsgVector2d *pt, FILE *file)

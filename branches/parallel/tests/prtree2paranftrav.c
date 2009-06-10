@@ -245,7 +245,6 @@ void empty_array (gpointer var, gpointer data)
 
 
 static VsgPRTreeParallelConfig pconfig = {
-  MPI_COMM_WORLD,
   /* Point VTable */
   {(VsgMigrableAllocDataFunc) pt_alloc, NULL,
    (VsgMigrableDestroyDataFunc) pt_destroy, NULL,
@@ -273,6 +272,8 @@ static VsgPRTreeParallelConfig pconfig = {
     (VsgMigrableUnpackDataFunc) nc_visit_bw_unpack, NULL,
     (VsgMigrableReductionDataFunc) nc_visit_bw_reduce, NULL},
   },
+  /*communicator */
+  MPI_COMM_WORLD,
 };
 
 
