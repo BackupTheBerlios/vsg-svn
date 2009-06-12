@@ -507,6 +507,42 @@ static void _prtree2@t@node_insert_point(VsgPRTree2@t@Node *node,
   _prtree2@t@node_insert_point_list(node, point_list, config);
 }
 
+static gint
+_prtree2@t@node_insert_point_local (VsgPRTree2@t@Node *node,
+                                    VsgPoint2 point,
+                                    const VsgPRTree2@t@Config *config)
+{
+  gint len = 0;
+
+#ifdef VSG_HAVE_MPI
+  if (PRTREE2@T@NODE_IS_REMOTE (node))
+    {
+      return -1;
+    }
+#endif
+
+  if (PRTREE2@T@NODE_ISLEAF (node))
+    {
+      GSList *point_list = g_slist_alloc();
+
+      point_list->data = (gpointer) point;
+
+      len += _prtree2@t@leaf_insert_point_list (node, point_list, config);
+    }
+  else
+    {
+      vsgloc2 i;
+
+      i = CALL_POINT2@T@_LOC (config, point, &node->center);
+
+      len += _prtree2@t@node_insert_point_local (PRTREE2@T@NODE_CHILD (node, i),
+                                                 point, config);
+      if (len > 0) node->point_count += len;
+    }
+
+  return len;
+}
+
 void vsg_prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
                                   const VsgPRTree2@t@Config *config)
 {
@@ -1840,7 +1876,7 @@ guint vsg_prtree2@t@_depth (const VsgPRTree2@t@ *prtree2@t@)
 }
 
 /**
- * vsg_prtree2@t@_point_count
+ * vsg_prtree2@t@_point_count:
  * @prtree2@t@: a #VsgPRTree2@t@
  *
  * Computes the number of #VsgPoint2 currently stored in @prtree2@t@.
@@ -1872,7 +1908,7 @@ guint vsg_prtree2@t@_region_count (const VsgPRTree2@t@ *prtree2@t@)
 }
 
 /**
- * vsg_prtree2@t@_insert_point
+ * vsg_prtree2@t@_insert_point:
  * @prtree2@t@: a #VsgPRTree2@t@
  * @point: a #VsgPoint2
  *
@@ -1935,6 +1971,47 @@ void vsg_prtree2@t@_insert_point (VsgPRTree2@t@ *prtree2@t@,
   else
     _prtree2@t@node_insert_point (prtree2@t@->node, point,
                                   config);
+}
+
+/**
+ * vsg_prtree2@t@_insert_point_local:
+ * @prtree2@t@: a #VsgPRTree2@t@
+ * @point: a #VsgPoint2
+ *
+ * tries to locally store @point reference in prtree2@t@. If
+ * @prtree2@t@ is in a parallel state and @point falls in a remote
+ * area, then, @point will not be stored and #FALSE will be returned.
+ *
+ * Returns: #TRUE when @point is stored locally in the tree. #FALSE
+ * when @point could not be stored.
+ */
+gboolean vsg_prtree2@t@_insert_point_local (VsgPRTree2@t@ *prtree2@t@,
+                                            VsgPoint2 point)
+{
+  const VsgVector2@t@ *lbound;
+  const VsgVector2@t@ *ubound;
+  const VsgPRTree2@t@Config *config;
+
+#ifdef VSG_CHECK_PARAMS
+  g_return_val_if_fail (prtree2@t@ != NULL, FALSE);
+  g_return_val_if_fail (point != NULL, FALSE);
+#endif
+
+  config = &prtree2@t@->config;
+
+  lbound = &prtree2@t@->node->lbound;
+  ubound = &prtree2@t@->node->ubound;
+
+  if (CALL_POINT2@T@_LOC (config, point, lbound) != VSG_LOC2_NE ||
+      CALL_POINT2@T@_LOC (config, point, ubound) != VSG_LOC2_SW)
+    {
+      /* PARALLEL_TODO: handle this case? */
+
+      return FALSE;
+    }
+
+  return
+    _prtree2@t@node_insert_point_local (prtree2@t@->node, point, config) >= 0;
 }
 
 /**

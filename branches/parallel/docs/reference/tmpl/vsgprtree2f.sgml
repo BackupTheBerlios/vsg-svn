@@ -383,6 +383,16 @@ vsgprtree2f
 @point: 
 
 
+<!-- ##### FUNCTION vsg_prtree2f_insert_point_local ##### -->
+<para>
+
+</para>
+
+@prtree2f: 
+@point: 
+@Returns: 
+
+
 <!-- ##### FUNCTION vsg_prtree2f_remove_point ##### -->
 <para>
 

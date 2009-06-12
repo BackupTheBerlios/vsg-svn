@@ -196,6 +196,9 @@ guint vsg_prtree2@t@_region_count (const VsgPRTree2@t@ *prtree2@t@);
 void vsg_prtree2@t@_insert_point (VsgPRTree2@t@ *prtree2@t@,
                                   VsgPoint2 point);
 
+gboolean vsg_prtree2@t@_insert_point_local (VsgPRTree2@t@ *prtree2@t@,
+                                            VsgPoint2 point);
+
 gboolean vsg_prtree2@t@_remove_point (VsgPRTree2@t@ *prtree2@t@,
                                       VsgPoint2 point);
 

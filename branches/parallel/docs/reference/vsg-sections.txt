@@ -367,6 +367,7 @@ vsg_prtree2d_depth
 vsg_prtree2d_point_count
 vsg_prtree2d_region_count
 vsg_prtree2d_insert_point
+vsg_prtree2d_insert_point_local
 vsg_prtree2d_remove_point
 vsg_prtree2d_insert_region
 vsg_prtree2d_remove_region
@@ -480,6 +481,7 @@ vsg_prtree2f_depth
 vsg_prtree2f_point_count
 vsg_prtree2f_region_count
 vsg_prtree2f_insert_point
+vsg_prtree2f_insert_point_local
 vsg_prtree2f_remove_point
 vsg_prtree2f_insert_region
 vsg_prtree2f_remove_region

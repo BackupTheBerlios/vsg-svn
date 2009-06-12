@@ -624,6 +624,57 @@ void _random_fill (VsgPRTree2d *tree, guint np)
   g_rand_free (rand);
 }
 
+/* fadster algorithm for random distribution */
+static void _random2_fill (VsgPRTree2d *tree, guint np)
+{
+  gint i;
+  Pt *pt;
+  VsgVector2d lb, ub;
+  GRand *rand = g_rand_new_with_seed (_random_seed);
+
+  vsg_prtree2d_get_bounds (tree, &lb, &ub);
+
+  pt = pt_alloc (TRUE, NULL);
+
+  for (i=0; i< np; i++)
+    {
+      gdouble x1, y1;
+      gint c;
+
+      x1 = g_rand_double_range (rand, lb.x, ub.x);
+      y1 = g_rand_double_range (rand, lb.y, ub.y);
+      c = i+1;
+
+      pt->vector.x = x1;
+      pt->vector.y = y1;
+      pt->weight = c;
+
+      _ref_count += c;
+
+      if (vsg_prtree2d_insert_point_local (tree, pt))
+        {
+          if (i % 10000 == 0 && _verbose)
+            g_printerr ("%d: insert %dth point\n", rk, i);
+
+          pt = pt_alloc (TRUE, NULL);
+        }
+
+      if (i%(_flush_interval*10) == 0)
+        {
+          if (_verbose && rk == 0)
+            g_printerr ("%d: contiguous dist before %dth point\n", rk, i);
+          _distribute (tree);
+        }
+    }
+
+  pt_destroy (pt, TRUE, NULL);
+
+  _distribute (tree);
+
+  g_rand_free (rand);
+}
+
+/* faster algorithm for circle distribution */
 void _circle_fill (VsgPRTree2d *tree, guint np)
 {
   gint i;
@@ -668,6 +719,49 @@ void _circle_fill (VsgPRTree2d *tree, guint np)
   _distribute (tree);
 }
 
+void _circle2_fill (VsgPRTree2d *tree, guint np)
+{
+  gint i;
+  Pt *pt;
+  const gdouble r = 0.95;
+  gdouble dtheta = 2. * G_PI / (np-1);
+  gdouble theta0 = 0.;
+
+  pt = pt_alloc (TRUE, NULL);
+
+  for (i=0; i<np; i++)
+    {
+      gint c;
+
+      c = i+1;
+
+      _ref_count += c;
+
+      pt->vector.x = r * cos (theta0 + i * dtheta);
+      pt->vector.y = r * sin (theta0 + i * dtheta);
+      pt->weight = c;
+
+      if (vsg_prtree2d_insert_point_local (tree, pt))
+        {
+          if (i % 10000 == 0 && _verbose)
+            g_printerr ("%d: insert %dth point\n", rk, i);
+
+          pt = pt_alloc (TRUE, NULL);
+        }
+
+      if (i%(_flush_interval*10) == 0)
+        {
+          if (_verbose && rk == 0)
+            g_printerr ("%d: contiguous dist before %dth point\n", rk, i);
+          _distribute (tree);
+        }
+    }
+
+  pt_destroy (pt, TRUE, NULL);
+
+  _distribute (tree);
+}
+
 static
 void parse_args (int argc, char **argv)
 {
@@ -708,7 +802,15 @@ void parse_args (int argc, char **argv)
 
 	  arg = (iarg<argc) ? argv[iarg] : NULL;
 
-	  if (g_ascii_strncasecmp (arg, "random", 6) == 0)
+	  if (g_ascii_strncasecmp (arg, "random2", 7) == 0)
+            {
+              _fill = _random2_fill;      
+            }
+          else if (g_ascii_strncasecmp (arg, "circle2", 7) == 0)
+            {
+              _fill = _circle2_fill;
+            }
+           else if (g_ascii_strncasecmp (arg, "random", 6) == 0)
             {
               _fill = _random_fill;      
             }
@@ -716,7 +818,7 @@ void parse_args (int argc, char **argv)
             {
               _fill = _circle_fill;      
             }
-          else
+          else 
             {
               g_printerr ("Invalid fill function name \"%s\"\n", arg);
             }
