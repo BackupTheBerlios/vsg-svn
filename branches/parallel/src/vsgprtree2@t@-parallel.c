@@ -223,6 +223,7 @@ static void _migrate_traverse_point_send (VsgPRTree2@t@Node *node,
                                           VsgPRTree2@t@NodeInfo *node_info,
                                           MigrateData *md)
 {
+  /* check for points in remote nodes */
   if (PRTREE2@T@NODE_IS_REMOTE (node) &&
       node_info->parallel_status.proc != md->rk)
     {
@@ -241,6 +242,7 @@ static void _migrate_traverse_region_send (VsgPRTree2@t@Node *node,
                                            VsgPRTree2@t@NodeInfo *node_info,
                                            MigrateData *md)
 {
+  /* check for regions in remote nodes */
   if (PRTREE2@T@NODE_IS_REMOTE (node) &&
       node_info->parallel_status.proc != md->rk)
     {
@@ -253,11 +255,6 @@ static void _migrate_traverse_region_send (VsgPRTree2@t@Node *node,
       node->region_list = NULL;
     }
 }
-
-/* static void _print_region (gpointer rg, FILE *file) */
-/* { */
-/*   fprintf (file, "%p ", rg); */
-/* } */
 
 /**
  * vsg_prtree2@t@_migrate_flush:
@@ -411,6 +408,7 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
   tree->config.remote_depth_dirty = TRUE;
 }
 
+/* For fixing point and region counts in a interior node */
 static void _prtree2@t@node_fix_counts_local (VsgPRTree2@t@Node *node)
 {
   /* *warning*: not a recursive function. Children counts are assumed valid */
@@ -1331,7 +1329,7 @@ static void _visiting_node_free (VsgPRTree2@t@Node *node,
  */
 static void _visit_pack_node (VsgPRTree2@t@Node *node, VsgPackedMsg *msg,
                               VsgPRTree2@t@Config *config,
-                              gint8 direction, gboolean shared)
+                              gint8 direction)
 {
   VsgPRTreeParallelConfig *pc = &config->parallel_config;
   VsgParallelMigrateVTable *node_data_migrate;
@@ -1409,10 +1407,6 @@ static void _visit_pack_node (VsgPRTree2@t@Node *node, VsgPackedMsg *msg,
 
       g_slist_foreach (node->region_list, (GFunc) send, &vm);
     }
-
-  if (direction == DIRECTION_BACKWARD && ! shared)
-    _visiting_node_free (node, config);
-
 }
 
 /*
@@ -1557,7 +1551,7 @@ static void _do_send_forward_node (VsgPRTree2@t@ *tree,
   msg->position = 0;
 
   vsg_packed_msg_send_append (msg, id, 1, VSG_MPI_TYPE_PRTREE_KEY2@T@);
-  _visit_pack_node (node, msg, &tree->config, DIRECTION_FORWARD, FALSE);
+  _visit_pack_node (node, msg, &tree->config, DIRECTION_FORWARD);
 
   vsg_packed_msg_isend (msg, proc, VISIT_FORWARD_TAG, &nfpm->request);
 
@@ -1620,7 +1614,8 @@ static void _do_send_backward_node (VsgPRTree2@t@ *tree,
     }
 
   vsg_packed_msg_send_append (msg, id, 1, VSG_MPI_TYPE_PRTREE_KEY2@T@);
-  _visit_pack_node (node, msg, &tree->config, DIRECTION_BACKWARD, FALSE);
+  _visit_pack_node (node, msg, &tree->config, DIRECTION_BACKWARD);
+  _visiting_node_free (node, &tree->config);
 
   vsg_packed_msg_isend (msg, proc, VISIT_BACKWARD_TAG, &nfpm->request);
 
