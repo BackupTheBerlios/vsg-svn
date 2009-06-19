@@ -19,29 +19,318 @@
  * Returns: destination processor number
  */
 
-typedef struct _VTableAndMsg VTableAndMsg;
+typedef struct _ForeachPackData ForeachPackData;
 
-struct _VTableAndMsg
+struct _ForeachPackData
 {
-  VsgParallelVTable *vtable;
+  VsgParallelMigrateVTable *migrate;
+
+  VsgMigrableAllocDataFunc alloc;
+  gpointer alloc_data;
+
+  VsgMigrableDestroyDataFunc destroy;
+  gpointer destroy_data;
+
+  gboolean resident;
+
   VsgPackedMsg *msg;
 };
 
-static void _send_point (VsgPoint2 pt, VTableAndMsg *vm)
+#define FPD_STATIC_INIT(vtable, msg_type, resident, msg) {     \
+    &((vtable)->msg_type),                                              \
+      (vtable)->alloc,                                                  \
+      (vtable)->alloc_data,                                             \
+      (vtable)->destroy,                                                \
+      (vtable)->destroy_data,                                           \
+      (resident),                                                       \
+      (msg),                                                            \
+      }
+
+#define FPD_DATA_MIGRATE(pconfig, msg)                 \
+  FPD_STATIC_INIT (&(pconfig)->node_data, migrate, TRUE, msg)
+
+#define FPD_DATA_VISIT_FORWARD(pconfig, msg)                   \
+  FPD_STATIC_INIT (&(pconfig)->node_data, visit_forward, FALSE, msg)
+
+#define FPD_DATA_VISIT_BACKWARD(pconfig, msg)                  \
+  FPD_STATIC_INIT (&(pconfig)->node_data, visit_backward, FALSE, msg)
+
+#define FPD_POINT_MIGRATE(pconfig, msg)                 \
+  FPD_STATIC_INIT (&(pconfig)->point, migrate, TRUE, msg)
+
+#define FPD_POINT_VISIT_FORWARD(pconfig, msg)                   \
+  FPD_STATIC_INIT (&(pconfig)->point, visit_forward, FALSE, msg)
+
+#define FPD_POINT_VISIT_BACKWARD(pconfig, msg)                  \
+  FPD_STATIC_INIT (&(pconfig)->point, visit_backward, FALSE, msg)
+
+#define FPD_REGION_MIGRATE(pconfig, msg)                \
+  FPD_STATIC_INIT (&(pconfig)->region, migrate, TRUE, msg)
+
+#define FPD_REGION_VISIT_FORWARD(pconfig, msg)                  \
+  FPD_STATIC_INIT (&(pconfig)->region, visit_forward, FALSE, msg)
+
+#define FPD_REGION_VISIT_BACKWARD(pconfig, msg)                 \
+  FPD_STATIC_INIT (&(pconfig)->region, visit_backward, FALSE, msg)
+
+static void _foreach_pack (gpointer obj, ForeachPackData *fpd)
 {
-  vm->vtable->migrate.pack (pt, vm->msg, vm->vtable->migrate.pack_data);
-  vm->vtable->destroy (pt, TRUE, vm->vtable->destroy_data);
+  fpd->migrate->pack (obj, fpd->msg, fpd->migrate->pack_data);
 }
 
-static void _send_region (VsgRegion2 rg, VTableAndMsg *vm)
+static void _foreach_pack_and_destroy (gpointer obj, ForeachPackData *fpd)
 {
-  vm->vtable->migrate.pack (rg, vm->msg, vm->vtable->migrate.pack_data);
-  vm->vtable->destroy (rg, TRUE, vm->vtable->destroy_data);
+  fpd->migrate->pack (obj, fpd->msg, fpd->migrate->pack_data);
+  fpd->destroy (obj, fpd->resident, fpd->destroy_data);
 }
 
-static void _send_shared_region (VsgRegion2 rg, VTableAndMsg *vm)
+static gpointer _alloc_and_unpack (ForeachPackData *fpd)
 {
-  vm->vtable->migrate.pack (rg, vm->msg, vm->vtable->migrate.pack_data);
+  gpointer obj = fpd->alloc (fpd->resident, fpd->alloc_data);
+
+  fpd->migrate->unpack (obj, fpd->msg, fpd->migrate->unpack_data);
+
+  return obj;
+}
+
+static GSList *_alloc_and_unpack_list (ForeachPackData *fpd, gint length)
+{
+  GSList *objlist = NULL;
+  gint i;
+
+  for (i=0; i<length; i ++)
+    {
+      gpointer obj = _alloc_and_unpack (fpd);
+
+      objlist  = g_slist_prepend (objlist, obj);
+    }
+
+  return objlist;
+}
+
+static void _unpack_and_reduce (gpointer obj, ForeachPackData *fpd,
+                                gpointer tmp_obj)
+{
+  fpd->migrate->unpack (tmp_obj, fpd->msg, fpd->migrate->unpack_data);
+  fpd->migrate->reduce (tmp_obj, obj, fpd->migrate->reduce_data);
+}
+
+static void _unpack_and_reduce_list (GSList *objlist, ForeachPackData *fpd,
+                                     gpointer tmp_obj)
+{
+  while (objlist != NULL)
+    {
+      gpointer obj = objlist->data;
+
+      _unpack_and_reduce (obj, fpd, tmp_obj);
+
+      objlist = g_slist_next (objlist);
+    }
+}
+
+typedef struct _NodePackData NodePackData;
+
+struct _NodePackData
+{
+  ForeachPackData data_fpd;
+  ForeachPackData pt_fpd;
+  ForeachPackData rg_fpd;
+};
+
+#define NPD_STATIC_INIT(pconfig, msg_type, resident, msg) {             \
+    FPD_STATIC_INIT(&(pconfig)->node_data, msg_type, resident, msg),    \
+      FPD_STATIC_INIT(&(pconfig)->point, msg_type, resident, msg),      \
+      FPD_STATIC_INIT(&(pconfig)->region, msg_type, resident, msg),     \
+}
+
+#define NPD_MIGRATE(pconfig, msg)               \
+  NPD_STATIC_INIT (pconfig, migrate, TRUE, msg)
+
+#define NPD_VISIT_FORWARD(pconfig, msg)                 \
+  NPD_STATIC_INIT (pconfig, visit_forward, FALSE, msg)
+
+#define NPD_VISIT_BACKWARD(pconfig, msg)                \
+  NPD_STATIC_INIT (pconfig, visit_backward, FALSE, msg)
+
+static void _migrate_node_pack_header (VsgPRTree2@t@NodeInfo *info,
+                                       VsgPackedMsg *msg, gint dst,
+                                       VsgPRTree2@t@Config *config)
+{
+  vsg_packed_msg_send_append (msg, &info->id, 1, VSG_MPI_TYPE_PRTREE_KEY2@T@);
+  vsg_packed_msg_send_append (msg, &dst, 1, MPI_INT);
+}
+
+static void _node_pack (VsgPRTree2@t@Node *node, NodePackData *npd)
+{
+  VsgPackedMsg *msg = npd->pt_fpd.msg;                        
+  gint datapresent, point_count, region_count;
+
+  datapresent = npd->data_fpd.migrate->pack != NULL && node->user_data != NULL;
+  point_count = 0;
+  if (PRTREE2@T@NODE_ISLEAF (node) && npd->pt_fpd.migrate->pack != NULL)
+    point_count = node->point_count;
+
+  region_count = 0;
+  if (npd->rg_fpd.migrate->pack != NULL)
+    region_count = g_slist_length (node->region_list); /* use region number
+                                                        * at this level only.
+                                                        */
+
+  /* pack message definition: */
+  vsg_packed_msg_send_append (msg, &datapresent, 1, MPI_INT);
+  vsg_packed_msg_send_append (msg, &point_count, 1, MPI_INT);
+  vsg_packed_msg_send_append (msg, &region_count, 1, MPI_INT);
+
+  /* pack the node data */
+  if (datapresent)
+    {
+      _foreach_pack (node->user_data, &npd->data_fpd);
+    }
+
+  /* pack the points */
+  if (point_count > 0)
+    {
+      g_slist_foreach (PRTREE2@T@NODE_LEAF (node).point,
+                       (GFunc) _foreach_pack,
+                       &npd->pt_fpd);
+    }
+
+  /* pack the regions */
+  if (region_count > 0)
+    {
+      g_slist_foreach (node->region_list, (GFunc) _foreach_pack, &npd->rg_fpd);
+    }
+}
+
+static void _node_pack_and_destroy (VsgPRTree2@t@Node *node, NodePackData *npd)
+{
+  VsgPackedMsg *msg = npd->pt_fpd.msg;                        
+  gint datapresent, point_count, region_count;
+
+  datapresent = npd->data_fpd.migrate->pack != NULL && node->user_data != NULL;
+  point_count = 0;
+  if (npd->pt_fpd.migrate->pack != NULL && PRTREE2@T@NODE_ISLEAF (node))
+    point_count = node->point_count;
+
+  region_count = 0;
+  if (npd->rg_fpd.migrate->pack != NULL)
+    region_count = g_slist_length (node->region_list); /* use region number
+                                                        * at this level only.
+                                                        */
+
+  /* pack message definition: */
+  vsg_packed_msg_send_append (msg, &datapresent, 1, MPI_INT);
+  vsg_packed_msg_send_append (msg, &point_count, 1, MPI_INT);
+  vsg_packed_msg_send_append (msg, &region_count, 1, MPI_INT);
+
+  /* pack the node data */
+  if (datapresent)
+    {
+      _foreach_pack_and_destroy (node->user_data, &npd->data_fpd);
+
+      node->user_data = NULL;
+    }
+
+  /* pack the points */
+  if (point_count > 0)
+    {
+      g_slist_foreach (PRTREE2@T@NODE_LEAF (node).point,
+                       (GFunc) _foreach_pack_and_destroy,
+                       &npd->pt_fpd);
+
+      g_slist_free (PRTREE2@T@NODE_LEAF (node).point);
+      PRTREE2@T@NODE_LEAF (node).point = NULL;
+      node->point_count = 0;
+    }
+
+  /* pack the regions */
+  if (region_count > 0)
+    {
+      g_slist_foreach (node->region_list, (GFunc) _foreach_pack_and_destroy,
+                       &npd->rg_fpd);
+
+      g_slist_free (node->region_list);
+      node->region_list = NULL;
+      node->region_count = 0;
+    }
+}
+
+static void _node_unpack (VsgPRTree2@t@Node *node, NodePackData *npd)
+{
+  VsgPackedMsg *msg = npd->pt_fpd.msg;
+  gint datapresent, point_count, region_count;
+
+  /* load node contents */
+
+  vsg_packed_msg_recv_read (msg, &datapresent, 1, MPI_INT);
+  vsg_packed_msg_recv_read (msg, &point_count, 1, MPI_INT);
+  vsg_packed_msg_recv_read (msg, &region_count, 1, MPI_INT);
+
+  if (datapresent)
+    {
+      if (node->user_data != NULL)
+        {
+          npd->data_fpd.destroy (node->user_data, npd->data_fpd.resident,
+                                 npd->data_fpd.destroy_data);
+        }
+      else
+        {
+          g_assert (node->parallel_status.storage == VSG_PARALLEL_REMOTE);
+        }
+
+      node->user_data = _alloc_and_unpack (&npd->data_fpd);
+    }
+
+  if (point_count > 0)
+    {
+      g_assert (PRTREE2@T@NODE_ISLEAF (node));
+
+      PRTREE2@T@NODE_LEAF (node).point = _alloc_and_unpack_list (&npd->pt_fpd,
+                                                                 point_count);
+
+      node->point_count = point_count;
+    }
+
+  if (region_count > 0)
+    {
+      node->region_list = _alloc_and_unpack_list (&npd->rg_fpd, region_count);
+      node->region_count = region_count;
+    }
+}
+
+static void _node_unpack_and_reduce (VsgPRTree2@t@Node *node, NodePackData *npd,
+                                     VsgNFConfig2@t@ *nfc)
+{
+  VsgPackedMsg *msg = npd->pt_fpd.msg;
+  gint datapresent, point_count, region_count;
+
+  /* load node contents */
+  vsg_packed_msg_recv_read (msg, &datapresent, 1, MPI_INT);
+  vsg_packed_msg_recv_read (msg, &point_count, 1, MPI_INT);
+  vsg_packed_msg_recv_read (msg, &region_count, 1, MPI_INT);
+
+  if (datapresent)
+    {
+      _unpack_and_reduce (node->user_data, &npd->data_fpd, nfc->tmp_node_data);
+    }
+
+  if (point_count > 0)
+    {
+      g_assert (PRTREE2@T@NODE_ISLEAF (node));
+      g_assert (point_count == node->point_count);
+
+      _unpack_and_reduce_list (PRTREE2@T@NODE_LEAF (node).point, &npd->pt_fpd,
+                               nfc->tmp_point);
+
+    }
+
+  if (region_count > 0)
+    {
+      g_assert (region_count == g_slist_length (node->region_list));
+
+      _unpack_and_reduce_list (node->region_list, &npd->rg_fpd,
+                               nfc->tmp_region);
+    }
 }
 
 /**
@@ -86,13 +375,16 @@ void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
       gint cnt;
       VsgPackedMsg pt_send = VSG_PACKED_MSG_STATIC_INIT (comm);
       VsgPackedMsg rg_send = VSG_PACKED_MSG_STATIC_INIT (comm);
-      VTableAndMsg pt_vm = {&tree->config.parallel_config.point, &pt_send};
-      VTableAndMsg rg_vm = {&tree->config.parallel_config.region, &rg_send};
+      ForeachPackData pt_fpd =
+        FPD_POINT_MIGRATE (&tree->config.parallel_config, &pt_send);
+      ForeachPackData rg_fpd =
+        FPD_REGION_MIGRATE (&tree->config.parallel_config, &rg_send);
 
       /* send points to 0 */
       cnt = vsg_prtree2@t@_point_count (tree);
       vsg_packed_msg_send_append (&pt_send, &cnt, 1, MPI_INT);
-      vsg_prtree2@t@_foreach_point (tree, (GFunc) _send_point, &pt_vm);
+      vsg_prtree2@t@_foreach_point (tree, (GFunc) _foreach_pack_and_destroy,
+                                    &pt_fpd);
 
       vsg_packed_msg_send (&pt_send, 0, 1001);
       vsg_packed_msg_drop_buffer (&pt_send);
@@ -108,8 +400,8 @@ void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
       /* send regions to 0 */
       cnt = vsg_prtree2@t@_region_count (tree);
       vsg_packed_msg_send_append (&rg_send, &cnt, 1, MPI_INT);
-      vsg_prtree2@t@_foreach_region (tree, (GFunc) _send_region,
-                                     &rg_vm);
+      vsg_prtree2@t@_foreach_region (tree, (GFunc) _foreach_pack_and_destroy,
+                                     &rg_fpd);
 
       vsg_packed_msg_send (&rg_send, 0, 1002);
       vsg_packed_msg_drop_buffer (&rg_send);
@@ -214,7 +506,7 @@ static vsgrloc2 _selector_skip_local_nodes (VsgRegion2 *selector,
 typedef struct _MigrateData MigrateData;
 struct _MigrateData
 {
-  VsgParallelVTable *vtable;
+  VsgPRTreeParallelConfig *pconfig;
   gint rk;
   VsgCommBuffer *cb;
 };
@@ -229,10 +521,10 @@ static void _migrate_traverse_point_send (VsgPRTree2@t@Node *node,
     {
       VsgPackedMsg *pm = 
         vsg_comm_buffer_get_send_buffer (md->cb, node->parallel_status.proc);
-      VTableAndMsg vm = {md->vtable, pm};
+      ForeachPackData fpd = FPD_POINT_MIGRATE (md->pconfig, pm);
 
       g_slist_foreach (PRTREE2@T@NODE_LEAF (node).point,
-                       (GFunc) _send_point, &vm);
+                       (GFunc) _foreach_pack_and_destroy, &fpd);
       g_slist_free (PRTREE2@T@NODE_LEAF (node).point);
       PRTREE2@T@NODE_LEAF (node).point = NULL;
     }
@@ -248,9 +540,10 @@ static void _migrate_traverse_region_send (VsgPRTree2@t@Node *node,
     {
       VsgPackedMsg *pm = 
         vsg_comm_buffer_get_send_buffer (md->cb, node->parallel_status.proc);
-      VTableAndMsg vm = {md->vtable, pm};
+      ForeachPackData fpd = FPD_REGION_MIGRATE (md->pconfig, pm);
 
-      g_slist_foreach (node->region_list, (GFunc) _send_region, &vm);
+      g_slist_foreach (node->region_list, (GFunc) _foreach_pack_and_destroy,
+                       &fpd);
       g_slist_free (node->region_list);
       node->region_list = NULL;
     }
@@ -271,17 +564,17 @@ static void _migrate_traverse_region_send (VsgPRTree2@t@Node *node,
  */
 void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
 {
+  VsgPRTreeParallelConfig *pconfig = &tree->config.parallel_config;
   MPI_Comm comm;
   VsgCommBuffer *cb;
   VsgPackedMsg pm = VSG_PACKED_MSG_NULL;
   MigrateData md;
   VsgParallelVTable *pt_vtable;
   VsgParallelVTable *rg_vtable;
-  VTableAndMsg vm;
   gint src, rk, sz;
 
   g_return_if_fail (tree != NULL);
-  comm = tree->config.parallel_config.communicator;
+  comm = pconfig->communicator;
   g_return_if_fail (comm != MPI_COMM_NULL);
   
   MPI_Comm_rank (comm, &rk);
@@ -290,10 +583,10 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
   cb = vsg_comm_buffer_new (comm);
   vsg_packed_msg_init (&pm, comm);
 
-  pt_vtable = &tree->config.parallel_config.point;
-  rg_vtable = &tree->config.parallel_config.region;
+  pt_vtable = &pconfig->point;
+  rg_vtable = &pconfig->region;
 
-  md.vtable = pt_vtable;
+  md.pconfig = pconfig;
   md.rk = rk;
   md.cb = cb;
 
@@ -337,19 +630,14 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
 
   if (rg_vtable->migrate.pack != NULL)
     {
+      ForeachPackData fpd = FPD_REGION_MIGRATE (pconfig, &pm);
       /* send the pending shared VsgRegion to every other processor */
       vsg_packed_msg_init (&pm, comm);
 
-      vm.vtable = rg_vtable;
-      vm.msg = &pm;
-
-/*       g_printerr ("%d: pending shared regions: ", rk); */
-/*       g_slist_foreach (tree->pending_shared_regions, */
-/*                        (GFunc) _print_region, stderr); */
-/*       g_printerr ("\n"); */
+/*       g_printerr ("%d: pending shared regions\n", rk); */
 
       g_slist_foreach (tree->pending_shared_regions,
-                       (GFunc) _send_shared_region, &vm);
+                       (GFunc) _foreach_pack, &fpd);
 
       g_slist_free (tree->pending_shared_regions);
       tree->pending_shared_regions = NULL;
@@ -361,7 +649,6 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
       vsg_packed_msg_drop_buffer (&pm);
 
       /* send the pending (in "remote" nodes) VsgRegion to their destination */
-      md.vtable = rg_vtable;
       md.rk = rk;
       md.cb = cb;
 
@@ -432,85 +719,6 @@ static void _prtree2@t@node_fix_counts_local (VsgPRTree2@t@Node *node)
 
   node->point_count = pcnt;
   node->region_count = rcnt + g_slist_length (node->region_list);
-}
-
-static void _migrate_pack_node_header (VsgPRTree2@t@NodeInfo *info,
-                                       VsgPackedMsg *msg, gint dst,
-                                       VsgPRTree2@t@Config *config)
-{
-  vsg_packed_msg_send_append (msg, &info->id, 1, VSG_MPI_TYPE_PRTREE_KEY2@T@);
-  vsg_packed_msg_send_append (msg, &dst, 1, MPI_INT);
-}
-
-static void _migrate_pack_node (VsgPRTree2@t@Node *node, VsgPackedMsg *msg,
-                                VsgPRTree2@t@Config *config,
-                                gboolean shared)
-{
-  VsgPRTreeParallelConfig *pc = &config->parallel_config;
-  gint datapresent, point_count, region_count;
-
-  datapresent = pc->node_data.migrate.pack != NULL && node->user_data != NULL;
-  point_count = 0;
-  if (PRTREE2@T@NODE_ISLEAF (node))
-    point_count = node->point_count;
-  region_count = g_slist_length (node->region_list); /* use region number
-                                                      * at this level only.
-                                                      */
-
-  /* pack message definition: */
-  vsg_packed_msg_send_append (msg, &datapresent, 1, MPI_INT);
-  vsg_packed_msg_send_append (msg, &point_count, 1, MPI_INT);
-  vsg_packed_msg_send_append (msg, &region_count, 1, MPI_INT);
-
-  /* pack the node data */
-  if (datapresent)
-    {
-      pc->node_data.migrate.pack (node->user_data, msg,
-                                  pc->node_data.migrate.pack_data);
-
-      if (! shared)
-        {
-          if (pc->node_data.destroy)
-            pc->node_data.destroy (node->user_data, TRUE,
-                                   pc->node_data.destroy_data);
-          else
-            g_boxed_free (config->user_data_type, node->user_data);
-
-          node->user_data = NULL;
-        }
-    }
-
-  /* pack the points */
-  if (point_count > 0)
-    {
-      VTableAndMsg vm = {&pc->point, msg};
-      g_slist_foreach (PRTREE2@T@NODE_LEAF (node).point, (GFunc) _send_point,
-                       &vm);
-
-      g_slist_free (PRTREE2@T@NODE_LEAF (node).point);
-      PRTREE2@T@NODE_LEAF (node).point = NULL;
-    }
-  node->point_count = 0; /* remove non local points count */
-
-  /* pack the regions */
-  if (region_count > 0)
-    {
-      VTableAndMsg vm = {&pc->region, msg};
-
-      if (shared)
-        g_slist_foreach (node->region_list, (GFunc) _send_shared_region, &vm);
-      else
-        {
-          g_slist_foreach (node->region_list, (GFunc) _send_region, &vm);
-
-          g_slist_free (node->region_list);
-          node->region_list = NULL;
-          node->region_count = 0;
-        }
-    }
-
-  if (shared) _prtree2@t@node_fix_counts_local (node);
-    
 }
 
 static gint _prtree2@t@node_get_children_proc (VsgPRTree2@t@Node *node)
@@ -634,19 +842,34 @@ static void _traverse_distribute_nodes (VsgPRTree2@t@Node *node,
     {
       if (old_storage == VSG_PARALLEL_LOCAL)
         {
-          VsgPackedMsg *msg;
-
           /* tell all processors about the migration. */
-          _migrate_pack_node_header (node_info, dd->bcast, dst, dd->config);
+          _migrate_node_pack_header (node_info, dd->bcast, dst, dd->config);
+
+/*           g_printerr ("%d : packing dst=%d id=", dd->rk, dst); */
+/*           vsg_prtree_key2@t@_write (&node_info->id, stderr); */
+/*           g_printerr ("\n"); */
 
           /* choose between ptp communication or bcast */
-          if (new_storage == VSG_PARALLEL_REMOTE)
-            msg = vsg_comm_buffer_get_send_buffer (dd->cb, dst);
-          else
-            msg = dd->bcast;
+          if (new_storage == VSG_PARALLEL_SHARED)
+            {
+              VsgPackedMsg *msg = dd->bcast;
+              NodePackData npd = NPD_MIGRATE (&(dd->config->parallel_config),
+                                              msg);
 
-          /* write node to the corresponding message */
-          _migrate_pack_node (node, msg, dd->config, dst < 0);
+              /* pack node to destination */
+              _node_pack (node, &npd);
+
+              _prtree2@t@node_fix_counts_local (node);
+            }
+          else
+            {
+              VsgPackedMsg *msg = vsg_comm_buffer_get_send_buffer (dd->cb, dst);
+              NodePackData npd = NPD_MIGRATE (&(dd->config->parallel_config),
+                                              msg);
+
+              /* pack node to destination */
+              _node_pack_and_destroy (node, &npd);
+            }
         }
 
     }
@@ -663,14 +886,12 @@ static void _traverse_distribute_nodes (VsgPRTree2@t@Node *node,
   node->parallel_status.proc = dst;
 }
 
-void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
-                                      const VsgPRTree2@t@Config *config,
-                                      VsgParallelStorage storage,
-                                      gint dst,
-                                      VsgPRTreeKey2@t@ key,
-                                      gpointer user_data,
-                                      GSList *points,
-                                      GSList *regions)
+static void _node_insert_child (VsgPRTree2@t@Node *node,
+                                const VsgPRTree2@t@Config *config,
+                                VsgParallelStorage storage,
+                                gint dst,
+                                VsgPRTreeKey2@t@ key,
+                                NodePackData *npd)
 {
   if (key.depth > 0)
     {
@@ -704,9 +925,8 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
 
       key.depth --;
 
-      vsg_prtree2@t@node_insert_child (PRTREE2@T@NODE_CHILD (node, child),
-                                       config, storage, dst, key, user_data,
-                                       points, regions);
+      _node_insert_child (PRTREE2@T@NODE_CHILD (node, child),
+                          config, storage, dst, key, npd);
 
       _prtree2@t@node_fix_counts_local (node);
 
@@ -737,38 +957,10 @@ void vsg_prtree2@t@node_insert_child (VsgPRTree2@t@Node *node,
     {
       _flatten_remote (node, config);
     }
-
-  if (user_data != NULL)
+  else
     {
-      if (node->user_data != NULL)
-        {
-          const VsgPRTreeParallelConfig *pc = &config->parallel_config;
-
-          /* destroy precedent user_data */
-          if (pc->node_data.destroy)
-            pc->node_data.destroy (node->user_data, TRUE,
-                                   pc->node_data.destroy_data);
-          else
-            g_boxed_free (config->user_data_type, node->user_data);
-        }
-      else
-        {
-          g_assert (node->parallel_status.storage == VSG_PARALLEL_REMOTE);
-        }
-
-      node->user_data = user_data;
+      _node_unpack (node, npd);
     }
-
-  if (points != NULL)
-    {
-      g_assert (PRTREE2@T@NODE_ISLEAF (node));
-
-      PRTREE2@T@NODE_LEAF (node).point =
-        g_slist_concat (points, PRTREE2@T@NODE_LEAF (node).point);
-    }
-
-  if (regions != NULL)
-    node->region_list = g_slist_concat (regions, node->region_list);
 
   _prtree2@t@node_fix_counts_local (node);
 
@@ -871,60 +1063,17 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
 /*           g_printerr ("] dst=%d\n", dst); */
 
           if (dst == rk || dst < 0)
-            { /* we are destination of thi message (bcast or not) */
+            { /* we are destination of this message (bcast or not) */
               VsgParallelStorage storage =
                 (dst >= 0) ? VSG_PARALLEL_LOCAL : VSG_PARALLEL_SHARED;
               VsgPackedMsg *unpack = (dst >= 0) ? msg : hdrmsg;
-              gpointer data = NULL;
-              GSList *points = NULL;
-              GSList *regions = NULL;
-              gint datapresent, point_count, region_count, i;
+              NodePackData npd = NPD_MIGRATE (pc, unpack);
 
               /* load node contents */
 
-              vsg_packed_msg_recv_read (unpack, &datapresent, 1, MPI_INT);
-              vsg_packed_msg_recv_read (unpack, &point_count, 1, MPI_INT);
-              vsg_packed_msg_recv_read (unpack, &region_count, 1, MPI_INT);
-/*               g_printerr ("%d: unpacking src=%d : d=%d p=%d r=%d\n", */
-/*                           rk, src, datapresent, point_count, region_count); */
+              _node_insert_child (tree->node, &tree->config,
+                                   storage, dst, id, &npd);
 
-              if (datapresent)
-                {
-                  /* create a temporary node_data */
-                  data = pc->node_data.alloc (FALSE, pc->node_data.alloc_data);
-
-                  pc->node_data.migrate.unpack (data, unpack,
-                                                pc->node_data.migrate.unpack_data);
-                }
-
-              g_assert (point_count == 0 || storage == VSG_PARALLEL_LOCAL);
-
-              for (i=0; i<point_count; i++)
-                {
-                  VsgPoint2 pt =
-                    pc->point.alloc (TRUE, pc->point.alloc_data);
-
-                  pc->point.migrate.unpack (pt, unpack,
-                                            pc->point.migrate.unpack_data);
-
-                  points = g_slist_prepend (points, pt);
-                }
-
-              for (i=0; i<region_count; i++)
-                {
-                  VsgRegion2 pt =
-                    pc->region.alloc (TRUE, pc->region.alloc_data);
-
-                  pc->region.migrate.unpack (pt, unpack,
-                                             pc->region.migrate.unpack_data);
-
-                  regions = g_slist_prepend (regions, pt);
-                }
-
-              /* insert the node in the tree */
-              vsg_prtree2@t@node_insert_child (tree->node, &tree->config,
-                                               storage, dst, id, data,
-                                               points, regions);
             }
           else
             {
@@ -933,10 +1082,9 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
                */
 
               /* insert the node in remote mode */
-              vsg_prtree2@t@node_insert_child (tree->node, &tree->config,
-                                               VSG_PARALLEL_REMOTE, dst,
-                                               id, NULL, NULL, NULL);
-              
+              _node_insert_child (tree->node, &tree->config,
+                                  VSG_PARALLEL_REMOTE, dst,
+                                  id, NULL);
             }
 
 /*           g_printerr ("%d: unpacking done\n", rk); */
@@ -1205,18 +1353,6 @@ static VsgNFProcMsg * vsg_nf_config2@t@_proc_msgs_lookup (VsgNFConfig2@t@ *nfc,
   return nfpm;
 }
 
-static void _visit_forward_pack (gpointer data, VTableAndMsg *vm)
-{
-  vm->vtable->visit_forward.pack (data, vm->msg,
-                                  vm->vtable->visit_forward.pack_data);
-}
-
-static void _visit_backward_pack (gpointer data, VTableAndMsg *vm)
-{
-  vm->vtable->visit_backward.pack (data, vm->msg,
-                                   vm->vtable->visit_backward.pack_data);
-}
-
 static void _visit_destroy_point (VsgPoint2 pt, VsgParallelVTable *vtable)
 {
   vtable->destroy (pt, FALSE, vtable->destroy_data);
@@ -1235,8 +1371,6 @@ static VsgPRTree2@t@Node *_new_visiting_node (VsgPRTree2@t@ *tree,
                                               VsgPRTreeKey2@t@ *id,
                                               gint src)
 {
-  VsgPRTree2@t@Config *config = &tree->config;
-  VsgPRTreeParallelConfig *pc = &config->parallel_config;
   VsgPRTree2@t@Node *node;
   VsgVector2@t@ *lb = &tree->node->lbound;
   VsgVector2@t@ *ub = &tree->node->ubound;
@@ -1264,20 +1398,6 @@ static VsgPRTree2@t@Node *_new_visiting_node (VsgPRTree2@t@ *tree,
 
   /* allocate new node without node's user_data */
   node = vsg_prtree2@t@node_alloc (&newlb, &newub, NULL);
-
-  /* separately allocate node's user_data */
-  if (pc->node_data.alloc != NULL)
-    {
-      /* allocate non resident data */
-      node->user_data = pc->node_data.alloc (FALSE, pc->node_data.alloc_data);
-    }
-  else
-    {
-      /* fallback with the GBoxed method */
-      if (config->user_data_type != G_TYPE_NONE)
-        node->user_data = g_boxed_copy (config->user_data_type,
-                                     config->user_data_model);
-    }
 
   node->parallel_status.storage = VSG_PARALLEL_REMOTE;
   node->parallel_status.proc = src;
@@ -1323,221 +1443,6 @@ static void _visiting_node_free (VsgPRTree2@t@Node *node,
   vsg_prtree2@t@node_free (node, config);
 }
 
-/*
- * Packs a node into a VsgPackedMsg according to the diirection specified and
- * wether the node is to be deallocated when done or not.
- */
-static void _visit_pack_node (VsgPRTree2@t@Node *node, VsgPackedMsg *msg,
-                              VsgPRTree2@t@Config *config,
-                              gint8 direction)
-{
-  VsgPRTreeParallelConfig *pc = &config->parallel_config;
-  VsgParallelMigrateVTable *node_data_migrate;
-  GFunc send;
-
-  gint8 datapresent;
-  gint point_count;
-  gint region_count;
-  gboolean do_data, do_point, do_region;
-
-  if (direction == DIRECTION_FORWARD)
-    {
-      /* configure for forward sends and check availability of functions */
-      node_data_migrate = &pc->node_data.visit_forward;
-      send = (GFunc) _visit_forward_pack;
-
-      do_data = node_data_migrate->pack != NULL &&
-        node_data_migrate->unpack != NULL;
-      do_point = pc->point.visit_forward.pack != NULL &&
-        pc->point.visit_forward.unpack != NULL;
-      do_region = pc->region.visit_forward.pack != NULL &&
-        pc->region.visit_forward.unpack != NULL;
-    }
-  else
-    {
-      /* configure for backward sends and check availability of functions */
-      node_data_migrate = &pc->node_data.visit_backward;
-      send = (GFunc) _visit_backward_pack;
-
-      do_data = node_data_migrate->pack != NULL &&
-        node_data_migrate->unpack != NULL;
-      do_point = pc->point.visit_backward.pack != NULL &&
-        pc->point.visit_backward.unpack != NULL;
-      do_region = pc->region.visit_backward.pack != NULL &&
-        pc->region.visit_backward.unpack != NULL;
-    }
-
-  datapresent = do_data && node->user_data != NULL;
-
-  point_count = 0;
-  if (do_point && PRTREE2@T@NODE_ISLEAF (node))
-    point_count = node->point_count;
-
-  region_count = 0;
-  if (do_region)
-    region_count = g_slist_length (node->region_list); /* use region number
-                                                        * at this level only.
-                                                        */
-
-  /* pack message definition: */
-  vsg_packed_msg_send_append (msg, &datapresent, 1, MPI_BYTE);
-  vsg_packed_msg_send_append (msg, &point_count, 1, MPI_INT);
-  vsg_packed_msg_send_append (msg, &region_count, 1, MPI_INT);
-
-  /* pack the node data */
-  if (datapresent)
-    {
-      node_data_migrate->pack (node->user_data, msg,
-                               node_data_migrate->pack_data);
-    }
-
-  /* pack the points */
-  if (point_count > 0)
-    {
-      VTableAndMsg vm = {&pc->point, msg};
-      g_slist_foreach (PRTREE2@T@NODE_LEAF (node).point, send,
-                       &vm);
-
-    }
-
-  /* pack the regions */
-  if (region_count > 0)
-    {
-      VTableAndMsg vm = {&pc->region, msg};
-
-      g_slist_foreach (node->region_list, (GFunc) send, &vm);
-    }
-}
-
-/*
- * Reads a node from a VsgPackedMsg and stores it into a VsgPRTree2@t@Node
- * according to the value of the @direction argument.
- */
-static void _visit_unpack_node (VsgPRTree2@t@Config *config,
-                                VsgPRTree2@t@Node *node,
-                                VsgNFConfig2@t@ *nfc,
-                                gint8 direction)
-{
-  VsgPRTreeParallelConfig *pc = &config->parallel_config;
-  gint8 datapresent;
-  gint i, point_count, region_count;
-  VsgParallelMigrateVTable *point;
-  VsgParallelMigrateVTable *region;
-  VsgParallelMigrateVTable *node_data;
-
-  if (direction == DIRECTION_FORWARD)
-    {
-      point = &pc->point.visit_forward;
-      region = &pc->region.visit_forward;
-      node_data = &pc->node_data.visit_forward;
-    }
-  else
-    {
-      point = &pc->point.visit_backward;
-      region = &pc->region.visit_backward;
-      node_data = &pc->node_data.visit_backward;
-    }
-
-  /* unpack message definition */
-  vsg_packed_msg_recv_read (&nfc->recv, &datapresent, 1, MPI_BYTE);
-  vsg_packed_msg_recv_read (&nfc->recv, &point_count, 1, MPI_INT);
-  vsg_packed_msg_recv_read (&nfc->recv, &region_count, 1, MPI_INT);
-
-  /* unpack user_data */
-  if (datapresent)
-    {
-      if (direction == DIRECTION_FORWARD)
-        {
-          node_data->unpack (node->user_data, &nfc->recv,
-                             node_data->unpack_data);
-        }
-      else
-        {
-           node_data->unpack (nfc->tmp_node_data, &nfc->recv,
-                              node_data->unpack_data);
-           node_data->reduce (nfc->tmp_node_data, node->user_data,
-                              node_data->reduce_data);
-        }
-    }
-
-  /* unpack the points */
-  if (PRTREE2@T@NODE_ISLEAF(node) && point_count > 0)
-    {
-      GSList *points = NULL;
-      VsgPoint2 pt;
-
-      if (direction == DIRECTION_FORWARD)
-        {
-          /* create a new list of points */
-          for (i=0; i<point_count; i++)
-            {
-              pt = pc->point.alloc (FALSE, pc->point.alloc_data);
-
-              point->unpack (pt, &nfc->recv, point->unpack_data);
-
-              points = g_slist_append (points, pt);
-            }
-
-          PRTREE2@T@NODE_LEAF(node).point = points;
-          node->point_count = point_count;
-        }
-      else
-        {
-          g_assert (point_count == node->point_count);
-
-          /* unpack on existing points */
-          points = PRTREE2@T@NODE_LEAF(node).point;
-          while (points != NULL)
-            {
-              pt = (VsgPoint2) points->data;
-
-              point->unpack (nfc->tmp_point, &nfc->recv, point->unpack_data);
-              point->reduce (nfc->tmp_point, pt, point->reduce_data);
-
-              points = g_slist_next (points);
-            }
-        }
-    }
-
-  /* unpack the regions */
-  if (region_count > 0)
-    {
-      GSList *regions = NULL;
-      VsgRegion2 rg;
-
-      if (direction == DIRECTION_FORWARD)
-        {
-          /* create a new list of regions */
-          for (i=0; i<region_count; i++)
-            {
-              rg = pc->region.alloc (FALSE, pc->region.alloc_data);
-
-              region->unpack (rg, &nfc->recv, region->unpack_data);
-
-              regions = g_slist_append (regions, rg);
-            }
-
-          node->region_list = regions;
-          node->region_count = region_count;
-        }
-      else
-        {
-          g_assert (region_count == g_slist_length (node->region_list));
-
-          /* unpack on existing regions */
-          regions = node->region_list;
-          while (regions != NULL)
-            {
-              rg = (VsgRegion2) regions->data;
-
-              region->unpack (nfc->tmp_region, &nfc->recv, region->unpack_data);
-              region->reduce (nfc->tmp_region, rg, region->reduce_data);
-
-              regions = g_slist_next (regions);
-            }
-        }
-    }
-}
 
 static void _do_send_forward_node (VsgPRTree2@t@ *tree,
                                    VsgNFConfig2@t@ *nfc,
@@ -1547,11 +1452,12 @@ static void _do_send_forward_node (VsgPRTree2@t@ *tree,
                                    gint proc)
 {
   VsgPackedMsg *msg = &nfpm->send_pm;
+  NodePackData npd = NPD_VISIT_FORWARD (&tree->config.parallel_config, msg);
 
   msg->position = 0;
 
   vsg_packed_msg_send_append (msg, id, 1, VSG_MPI_TYPE_PRTREE_KEY2@T@);
-  _visit_pack_node (node, msg, &tree->config, DIRECTION_FORWARD);
+  _node_pack (node, &npd);
 
   vsg_packed_msg_isend (msg, proc, VISIT_FORWARD_TAG, &nfpm->request);
 
@@ -1589,6 +1495,7 @@ static void _do_send_backward_node (VsgPRTree2@t@ *tree,
                                     gint proc)
 {
   VsgPackedMsg *msg = &nfpm->send_pm;
+  NodePackData npd = NPD_VISIT_BACKWARD (&tree->config.parallel_config, msg);
 
 /*   gint _bw_pending_length = g_slist_length (nfpm->backward_pending); */
 
@@ -1614,8 +1521,8 @@ static void _do_send_backward_node (VsgPRTree2@t@ *tree,
     }
 
   vsg_packed_msg_send_append (msg, id, 1, VSG_MPI_TYPE_PRTREE_KEY2@T@);
-  _visit_pack_node (node, msg, &tree->config, DIRECTION_BACKWARD);
-  _visiting_node_free (node, &tree->config);
+  _node_pack_and_destroy (node, &npd);
+  vsg_prtree2@t@node_free (node, &tree->config);
 
   vsg_packed_msg_isend (msg, proc, VISIT_BACKWARD_TAG, &nfpm->request);
 
@@ -2026,7 +1933,10 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
 
       switch (status.MPI_TAG) {
       case VISIT_FORWARD_TAG:
-        vsg_packed_msg_recv_read (&nfc->recv, &id, 1,
+        {
+          NodePackData npd = NPD_VISIT_FORWARD (pc, &nfc->recv);
+
+          vsg_packed_msg_recv_read (&nfc->recv, &id, 1,
                                   VSG_MPI_TYPE_PRTREE_KEY2@T@);
 
 /*         g_printerr ("%d(%d) : fw recv from %d - ", nfc->rk, getpid (), */
@@ -2035,20 +1945,20 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
 /*         g_printerr ("\n"); */
 /*         fflush (stderr); */
 
-        node = _new_visiting_node (tree, &id, status.MPI_SOURCE);
+          node = _new_visiting_node (tree, &id, status.MPI_SOURCE);
 
-        wv = _waiting_visitor_new (node, &id, status.MPI_SOURCE);
+          wv = _waiting_visitor_new (node, &id, status.MPI_SOURCE);
 
-        _visit_unpack_node (config, node, nfc, DIRECTION_FORWARD);
+          _node_unpack (node, &npd);
 
         /* compute nf interactions with local tree */
-        if (_compute_visiting_node (tree, nfc, wv))
-          {
-            _propose_node_backward (tree, nfc, status.MPI_SOURCE, wv);
-          }
+          if (_compute_visiting_node (tree, nfc, wv))
+            {
+              _propose_node_backward (tree, nfc, status.MPI_SOURCE, wv);
+            }
 
-        nfc->all_fw_recvs ++;
-
+          nfc->all_fw_recvs ++;
+        }
         break;
       case VISIT_BACKWARD_TAG:
         vsg_packed_msg_recv_read (&nfc->recv, &id, 1,
@@ -2087,7 +1997,10 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
 
         g_assert (PRTREE2@T@NODE_IS_LOCAL (node));
 
-        _visit_unpack_node (config, node, nfc, DIRECTION_BACKWARD);
+        {
+          NodePackData npd = NPD_VISIT_BACKWARD (pc, &nfc->recv);
+          _node_unpack_and_reduce (node, &npd, nfc);
+        }
 
         nfc->pending_backward_msgs --;
 /*             g_printerr ("bw recv(%d)\n", nfc->rk); */

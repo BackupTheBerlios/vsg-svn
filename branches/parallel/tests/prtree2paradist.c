@@ -149,7 +149,7 @@ static void rg_migrate_pack (Circle *rg, VsgPackedMsg *pm,
 {
 /*   g_printerr ("%d: pack circle {c=", rk); */
 /*   vsg_vector2d_write (&rg->center, stderr); */
-/*   g_printerr (" r=%lf}\n", rg->radius); */
+/*   g_printerr (" r=%lf} (pos=%d)\n", rg->radius, pm->position); */
 
   vsg_packed_msg_send_append (pm, &rg->center, 1, VSG_MPI_TYPE_VECTOR2D);
   vsg_packed_msg_send_append (pm, &rg->radius, 1, MPI_DOUBLE);
@@ -171,18 +171,27 @@ static VsgPRTreeParallelConfig pconfig = {
   {pt_alloc, NULL,
    pt_destroy, NULL,
    {(VsgMigrablePackDataFunc) pt_migrate_pack, NULL,
-    (VsgMigrablePackDataFunc) pt_migrate_unpack, NULL
+    (VsgMigrableUnpackDataFunc) pt_migrate_unpack, NULL,
+    NULL, NULL,
    },
+   {NULL, NULL, NULL, NULL, NULL, NULL},
+   {NULL, NULL, NULL, NULL, NULL, NULL},
   },
   /* Region VTable */
   {rg_alloc, NULL,
    rg_destroy, NULL,
    {(VsgMigrablePackDataFunc) rg_migrate_pack, NULL,
-   (VsgMigrablePackDataFunc) rg_migrate_unpack, NULL,
+   (VsgMigrableUnpackDataFunc) rg_migrate_unpack, NULL,
+    NULL, NULL,
    },
+   {NULL, NULL, NULL, NULL, NULL, NULL},
+   {NULL, NULL, NULL, NULL, NULL, NULL},
   },
   /* NodeData VTable */
-  {NULL, NULL, NULL, NULL, {NULL, NULL, NULL, NULL},
+  {NULL, NULL, NULL, NULL,
+   {NULL, NULL, NULL, NULL, NULL, NULL},
+   {NULL, NULL, NULL, NULL, NULL, NULL},
+   {NULL, NULL, NULL, NULL, NULL, NULL},
   },
   /*communicator */
   MPI_COMM_WORLD,
