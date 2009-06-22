@@ -1130,11 +1130,47 @@ struct _WaitingVisitor {
   gint src;
 };
 
+#define _USE_G_SLICES GLIB_CHECK_VERSION (2, 10, 0)
+
+#if ! _USE_G_SLICES
+static GMemChunk *_waiting_visitor_mem_chunk = 0;
+
+/* static functions: */
+static void _waiting_visitor_finalize ();
+static WaitingVisitor *_waiting_visitor_alloc ();
+
+static void _waiting_visitor_finalize ()
+{
+  if (_waiting_visitor_mem_chunk)
+    {
+      g_mem_chunk_destroy (_waiting_visitor_mem_chunk);
+      _waiting_visitor_mem_chunk = 0;
+    }
+}
+
+static WaitingVisitor *_waiting_visitor_alloc ()
+{
+  if (!_waiting_visitor_mem_chunk)
+    {
+      _waiting_visitor_mem_chunk = g_mem_chunk_create (WaitingVisitor,
+                                                       16, G_ALLOC_ONLY);
+      g_atexit (_waiting_visitor_finalize);
+
+    }
+  return g_chunk_new (WaitingVisitor, _waiting_visitor_mem_chunk);
+}
+
+#endif
+
 static WaitingVisitor *_waiting_visitor_new (VsgPRTree2@t@Node *node,
                                              VsgPRTreeKey2@t@ *id,
                                              gint src)
 {
+#if _USE_G_SLICES
   WaitingVisitor *wv = g_slice_new (WaitingVisitor);
+#else
+  WaitingVisitor *wv = _waiting_visitor_alloc ();
+#endif
 
   wv->node = node;
   wv->id = *id;
@@ -1146,7 +1182,11 @@ static WaitingVisitor *_waiting_visitor_new (VsgPRTree2@t@Node *node,
 
 static void _waiting_visitor_free (WaitingVisitor *wv)
 {
+#if _USE_G_SLICES
   g_slice_free (WaitingVisitor, wv);
+#else
+  g_chunk_free (wv, _waiting_visitor_mem_chunk);
+#endif
 }
 
 static void _wv_free_gfunc (WaitingVisitor *wv, gpointer data)

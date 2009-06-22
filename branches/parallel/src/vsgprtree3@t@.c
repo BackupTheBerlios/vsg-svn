@@ -25,10 +25,14 @@
 
 #include <string.h>
 
+#define PRTREE3@T@LEAF_MAXSIZE 5
+
+#define _USE_G_SLICES GLIB_CHECK_VERSION (2, 10, 0)
+
+#if ! _USE_G_SLICES
+
 #define VSG_PRTREE3@T@_PREALLOC 32
 #define PRTREE3@T@NODE_PREALLOC 256
-
-#define PRTREE3@T@LEAF_MAXSIZE 5
 
 /* Nodes allocation */
 
@@ -50,16 +54,22 @@ static void _prtree3@t@_finalize ()
       vsg_prtree3@t@node_mem_chunk = 0;
     }
 }
+#endif /* ! _USE_G_SLICES */
 
 void vsg_prtree3@t@_init()
 {
+#if ! _USE_G_SLICES
   g_atexit (_prtree3@t@_finalize);
+#endif
 }
 
 static VsgPRTree3@t@ *_prtree3@t@_alloc ()
 {
   VsgPRTree3@t@ *ret;
 
+#if _USE_G_SLICES
+  ret = g_slice_new (VsgPRTree3@t@);
+#else
   if (!vsg_prtree3@t@_mem_chunk)
     {
       vsg_prtree3@t@_mem_chunk = g_mem_chunk_create (VsgPRTree3@t@,
@@ -74,6 +84,7 @@ static VsgPRTree3@t@ *_prtree3@t@_alloc ()
   vsg_prtree3@t@_instances_count ++;
 
   ret = g_chunk_new (VsgPRTree3@t@, vsg_prtree3@t@_mem_chunk);
+#endif /* ! _USE_G_SLICES */
 
   ret->config.user_data_type = G_TYPE_NONE;
   ret->config.user_data_model = NULL;
@@ -89,6 +100,9 @@ static void _prtree3@t@_dealloc (VsgPRTree3@t@ *prtree3@t@)
                     prtree3@t@->config.user_data_model);
     }
 
+#if _USE_G_SLICES
+  g_slice_free (VsgPRTree3@t@, prtree3@t@);
+#else
   g_chunk_free (prtree3@t@, vsg_prtree3@t@_mem_chunk);
   vsg_prtree3@t@_instances_count --;
 
@@ -96,6 +110,7 @@ static void _prtree3@t@_dealloc (VsgPRTree3@t@ *prtree3@t@)
     {
       _prtree3@t@_finalize ();
     }
+#endif /* ! _USE_G_SLICES */
 }
 
 static
@@ -104,7 +119,11 @@ VsgPRTree3@t@Node *_prtree3@t@node_alloc (const VsgVector3@t@ *lbound,
                                           const VsgPRTree3@t@Config *config)
 {
   VsgPRTree3@t@Node *ret;
+#if _USE_G_SLICES
+  ret = g_slice_new (VsgPRTree3@t@Node);
+#else
   ret = g_chunk_new (VsgPRTree3@t@Node, vsg_prtree3@t@node_mem_chunk);
+#endif
 
   ret->region_list = NULL;
 
@@ -140,7 +159,11 @@ static void _prtree3@t@node_dealloc (VsgPRTree3@t@Node *prtree3@t@node,
                     prtree3@t@node->user_data);
     }
 
+#if _USE_G_SLICES
+  g_slice_free (VsgPRTree3@t@Node, prtree3@t@node);
+#else
   g_chunk_free (prtree3@t@node, vsg_prtree3@t@node_mem_chunk);
+#endif
 }
 
 static VsgPRTree3@t@Node *_leaf_alloc (const VsgVector3@t@ *lbound,
@@ -1107,7 +1130,7 @@ _z_order_data (gpointer key, gint *children, gpointer *children_keys,
 /**
  * VSG_TYPE_PRTREE3@T@:
  *
- * The #GBoxed #GType associated to #VsgPrtree3@t@.
+ * The #GBoxed #GType associated to #VsgPRTree3@t@.
  */
 
 /*-------------------------------------------------------------------*/
@@ -1121,7 +1144,7 @@ GType vsg_prtree3@t@_get_type (void)
   if (!prtree3@t@_type)
     {
       prtree3@t@_type =
-        g_boxed_type_register_static ("VsgPrtree3@t@",
+        g_boxed_type_register_static ("VsgPRTree3@t@",
                                       (GBoxedCopyFunc) vsg_prtree3@t@_clone,
                                       (GBoxedFreeFunc) vsg_prtree3@t@_free);
 
@@ -1956,7 +1979,7 @@ VsgRegion3 vsg_prtree3@t@_find_deep_region (VsgPRTree3@t@ *prtree3@t@,
  * vsg_prtree3@t@_traverse:
  * @prtree3@t@: a #VsgPRTree3@t@.
  * @order: traverse order.
- * @func: a #VsgPrtree3@t@Func.
+ * @func: a #VsgPRTree3@t@Func.
  * @user_data: a #gpointer data to be apssed to @func.
  *
  * Performs a traversal of @prtree3@t@, executing @func on each of its nodes
@@ -1977,7 +2000,7 @@ void vsg_prtree3@t@_traverse (VsgPRTree3@t@ *prtree3@t@,
  * @prtree3@t@: a #VsgPRTree3@t@.
  * @order: traverse order.
  * @selector: a #VsgRegion3
- * @func: a #VsgPrtree3@t@Func.
+ * @func: a #VsgPRTree3@t@Func.
  * @user_data: a #gpointer data to be apssed to @func.
  *
  * Performs a traversal of @prtree3@t@, executing @func on each of its nodes

@@ -26,6 +26,10 @@
 
 #include <glib/gprintf.h>
 
+#define _USE_G_SLICES GLIB_CHECK_VERSION (2, 10, 0)
+
+#if ! _USE_G_SLICES
+
 #define VSG_VECTOR2@T@_PREALLOC 8192
 
 static GMemChunk *vsg_vector2@t@_mem_chunk = 0;
@@ -57,10 +61,13 @@ static VsgVector2@t@ *_vector2@t@_alloc ()
 
   return g_chunk_new (VsgVector2@t@, vsg_vector2@t@_mem_chunk);
 }
+#endif /* ! _USE_G_SLICES */
+
 
 /* private function */
 void vsg_vector2@t@_init ()
 {
+#if ! _USE_G_SLICES
   static gboolean wasinit = FALSE;
 
   if (! wasinit)
@@ -68,6 +75,7 @@ void vsg_vector2@t@_init ()
       wasinit = TRUE;
       g_atexit (vsg_vector2@t@_finalize);
     }
+#endif /* ! _USE_G_SLICES */
 }
 
 /* public functions */
@@ -127,7 +135,11 @@ MPI_Datatype vsg_vector2@t@_get_mpi_type (void)
  */
 VsgVector2@t@ *vsg_vector2@t@_new(@type@ x, @type@ y)
 {
+#if _USE_G_SLICES
+  VsgVector2@t@ *result = g_slice_new (VsgVector2@t@);
+#else
   VsgVector2@t@ *result = _vector2@t@_alloc ();
+#endif
 
   vsg_vector2@t@_set(result, x, y);
 
@@ -147,12 +159,16 @@ void vsg_vector2@t@_free (VsgVector2@t@ *vec)
   g_return_if_fail (vec != NULL);
 #endif
 
+#if _USE_G_SLICES
+  g_slice_free (VsgVector2@t@, vec);
+#else
   g_chunk_free (vec, vsg_vector2@t@_mem_chunk);
 
   vsg_vector2@t@_instances_count --;
 
   if (vsg_vector2@t@_instances_count == 0)
     vsg_vector2@t@_finalize ();
+#endif /* _USE_G_SLICES */
 }
 
 /**
@@ -209,7 +225,12 @@ VsgVector2@t@ *vsg_vector2@t@_clone (const VsgVector2@t@ *src)
   g_return_val_if_fail (src != NULL, NULL);
 #endif
 
+#if _USE_G_SLICES
+  dst = g_slice_new (VsgVector2@t@);
+#else
   dst = _vector2@t@_alloc ();
+#endif
+
   vsg_vector2@t@_copy (src, dst);
 
   return dst;

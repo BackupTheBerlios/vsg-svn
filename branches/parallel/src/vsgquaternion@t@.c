@@ -24,6 +24,10 @@
 #include <math.h>
 #include <glib/gprintf.h>
 
+#define _USE_G_SLICES GLIB_CHECK_VERSION (2, 10, 0)
+
+#if ! _USE_G_SLICES
+
 #define VSG_QUATERNION@T@_PREALLOC 128
 
 static GMemChunk *vsg_quaternion@t@_mem_chunk = 0;
@@ -54,10 +58,12 @@ static VsgQuaternion@t@ *_quaternion@t@_alloc ()
 
   return g_chunk_new (VsgQuaternion@t@, vsg_quaternion@t@_mem_chunk);
 }
+#endif /* ! _USE_G_SLICES */
 
 /* private function */
 void vsg_quaternion@t@_init ()
 {
+#if ! _USE_G_SLICES
   static gboolean wasinit = FALSE;
 
   if (! wasinit)
@@ -65,6 +71,7 @@ void vsg_quaternion@t@_init ()
       wasinit = TRUE;
       g_atexit (vsg_quaternion@t@_finalize);
     }
+#endif /* ! _USE_G_SLICES */
 }
 
 /* public functions */
@@ -129,7 +136,11 @@ VsgQuaternion@t@ *vsg_quaternion@t@_new (@type@ x,
                                          @type@ z,
                                          @type@ w)
 {
+#if _USE_G_SLICES
+  VsgQuaternion@t@ *result = g_slice_new (VsgQuaternion@t@);
+#else
   VsgQuaternion@t@ *result = _quaternion@t@_alloc ();
+#endif
 
   vsg_quaternion@t@_set (result, x, y, z, w);
 
@@ -149,12 +160,16 @@ void vsg_quaternion@t@_free (VsgQuaternion@t@ *quat)
   g_return_if_fail (quat != NULL);
 #endif
 
+#if _USE_G_SLICES
+  g_slice_free (VsgQuaternion@t@, quat);
+#else
   g_chunk_free (quat, vsg_quaternion@t@_mem_chunk);
 
   vsg_quaternion@t@_instances_count --;
 
   if (vsg_quaternion@t@_instances_count == 0)
     vsg_quaternion@t@_finalize ();
+#endif /* _USE_G_SLICES */
 }
 
 /**
@@ -166,7 +181,11 @@ void vsg_quaternion@t@_free (VsgQuaternion@t@ *quat)
  */
 VsgQuaternion@t@ *vsg_quaternion@t@_identity_new ()
 {
+#if _USE_G_SLICES
+  VsgQuaternion@t@ *result = g_slice_new (VsgQuaternion@t@);
+#else
   VsgQuaternion@t@ *result = _quaternion@t@_alloc ();
+#endif
 
   vsg_quaternion@t@_identity (result);
 
@@ -541,7 +560,11 @@ VsgQuaternion@t@ *vsg_quaternion@t@_clone (const VsgQuaternion@t@ *src)
   g_return_val_if_fail (src != NULL, NULL);
 #endif
 
+#if _USE_G_SLICES
+  dst = g_slice_new (VsgQuaternion@t@);
+#else
   dst = _quaternion@t@_alloc ();
+#endif
 
   vsg_quaternion@t@_copy (src, dst);
 

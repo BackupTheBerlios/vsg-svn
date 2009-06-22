@@ -26,10 +26,14 @@
 #include <string.h>
 #include <glib/gprintf.h>
 
+#define PRTREE2@T@LEAF_MAXSIZE 5
+
+#define _USE_G_SLICES GLIB_CHECK_VERSION (2, 10, 0)
+
+#if ! _USE_G_SLICES
+
 #define VSG_PRTREE2@T@_PREALLOC 32
 #define PRTREE2@T@NODE_PREALLOC 256
-
-#define PRTREE2@T@LEAF_MAXSIZE 5
 
 /* Nodes allocation */
 
@@ -51,6 +55,7 @@ static void _prtree2@t@_finalize ()
       vsg_prtree2@t@node_mem_chunk = 0;
     }
 }
+#endif /* ! _USE_G_SLICES */
 
 /* keep in sync with vsgprtreekey2@t@.c */
 void vsgprtree_key2@t@_init ();
@@ -58,13 +63,18 @@ void vsgprtree_key2@t@_init ();
 void vsg_prtree2@t@_init()
 {
   vsgprtree_key2@t@_init ();
+#if ! _USE_G_SLICES
   g_atexit (_prtree2@t@_finalize);
+#endif
 }
 
 static VsgPRTree2@t@ *_prtree2@t@_alloc ()
 {
   VsgPRTree2@t@ *ret;
 
+#if _USE_G_SLICES
+  ret = g_slice_new (VsgPRTree2@t@);
+#else
   if (!vsg_prtree2@t@_mem_chunk)
     {
       vsg_prtree2@t@_mem_chunk = g_mem_chunk_create (VsgPRTree2@t@,
@@ -81,6 +91,7 @@ static VsgPRTree2@t@ *_prtree2@t@_alloc ()
   vsg_prtree2@t@_instances_count ++;
 
   ret = g_chunk_new (VsgPRTree2@t@, vsg_prtree2@t@_mem_chunk);
+#endif /* ! _USE_G_SLICES */
 
   ret->config.user_data_type = G_TYPE_NONE;
   ret->config.user_data_model = NULL;
@@ -105,6 +116,9 @@ static void _prtree2@t@_dealloc (VsgPRTree2@t@ *prtree2@t@)
   if (prtree2@t@->pending_shared_regions != NULL)
     g_slist_free (prtree2@t@->pending_shared_regions);
 
+#if _USE_G_SLICES
+  g_slice_free (VsgPRTree2@t@, prtree2@t@);
+#else
   g_chunk_free (prtree2@t@, vsg_prtree2@t@_mem_chunk);
   vsg_prtree2@t@_instances_count --;
 
@@ -112,6 +126,7 @@ static void _prtree2@t@_dealloc (VsgPRTree2@t@ *prtree2@t@)
     {
       _prtree2@t@_finalize ();
     }
+#endif /* ! _USE_G_SLICES */
 }
 
 VsgPRTree2@t@Node *
@@ -120,7 +135,12 @@ vsg_prtree2@t@node_alloc_no_data (const VsgVector2@t@ *lbound,
                                   const VsgPRTree2@t@Config *config)
 {
   VsgPRTree2@t@Node *ret;
+
+#if _USE_G_SLICES
+  ret = g_slice_new (VsgPRTree2@t@Node);
+#else
   ret = g_chunk_new (VsgPRTree2@t@Node, vsg_prtree2@t@node_mem_chunk);
+#endif
 
   ret->region_list = NULL;
 
@@ -175,7 +195,11 @@ static void _prtree2@t@node_dealloc (VsgPRTree2@t@Node *prtree2@t@node,
                     prtree2@t@node->user_data);
     }
 
+#if _USE_G_SLICES
+  g_slice_free (VsgPRTree2@t@Node, prtree2@t@node);
+#else
   g_chunk_free (prtree2@t@node, vsg_prtree2@t@node_mem_chunk);
+#endif
 }
 
 static VsgPRTree2@t@Node *_leaf_alloc (const VsgVector2@t@ *lbound,

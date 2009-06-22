@@ -34,6 +34,10 @@
 * ((mat) -> components + i + 3*j) \
 )
 
+#define _USE_G_SLICES GLIB_CHECK_VERSION (2, 10, 0)
+
+#if ! _USE_G_SLICES
+
 #define VSG_MATRIX3@T@_PREALLOC 128
 
 static const @type@ degrad = M_PI / 180.;
@@ -66,10 +70,12 @@ static VsgMatrix3@t@ *_matrix3@t@_alloc ()
 
   return g_chunk_new (VsgMatrix3@t@, vsg_matrix3@t@_mem_chunk);
 }
+#endif /* ! _USE_G_SLICES */
 
 /* private function */
 void vsg_matrix3@t@_init ()
 {
+#if ! _USE_G_SLICES
   static gboolean wasinit = FALSE;
 
   if (! wasinit)
@@ -77,6 +83,7 @@ void vsg_matrix3@t@_init ()
       wasinit = TRUE;
       g_atexit (vsg_matrix3@t@_finalize);
     }
+#endif /* ! _USE_G_SLICES */
 }
 
 /* public functions */
@@ -146,7 +153,11 @@ VsgMatrix3@t@ *vsg_matrix3@t@_new (@type@ a00, @type@ a01,
                                    @type@ a20, @type@ a21,
                                    @type@ a22)
 {
+#if _USE_G_SLICES
+  VsgMatrix3@t@ *result = g_slice_new (VsgMatrix3@t@);
+#else
   VsgMatrix3@t@ *result = _matrix3@t@_alloc ();
+#endif
 
   vsg_matrix3@t@_set (result,
                       a00, a01, a02, a10, a11, a12, a20, a21, a22);
@@ -166,12 +177,16 @@ void vsg_matrix3@t@_free (VsgMatrix3@t@ *mat)
   g_return_if_fail (mat != NULL);
 #endif
 
+#if _USE_G_SLICES
+  g_slice_free (VsgMatrix3@t@, mat);
+#else
   g_chunk_free (mat, vsg_matrix3@t@_mem_chunk);
 
   vsg_matrix3@t@_instances_count --;
 
   if (vsg_matrix3@t@_instances_count == 0)
     vsg_matrix3@t@_finalize ();
+#endif /* _USE_G_SLICES */
 }
 
 /**
@@ -184,7 +199,11 @@ void vsg_matrix3@t@_free (VsgMatrix3@t@ *mat)
  */
 VsgMatrix3@t@ *vsg_matrix3@t@_identity_new ()
 {
+#if _USE_G_SLICES
+  VsgMatrix3@t@ *result = g_slice_new (VsgMatrix3@t@);
+#else
   VsgMatrix3@t@ *result = _matrix3@t@_alloc ();
+#endif
 
   vsg_matrix3@t@_identity (result);
 
@@ -338,7 +357,11 @@ VsgMatrix3@t@ *vsg_matrix3@t@_clone (const VsgMatrix3@t@ *src)
   g_return_val_if_fail (src != NULL, NULL);
 #endif
 
+#if _USE_G_SLICES
+  dst = g_slice_new (VsgMatrix3@t@);
+#else
   dst = _matrix3@t@_alloc ();
+#endif
 
   vsg_matrix3@t@_copy (src, dst);
 
