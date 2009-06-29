@@ -2,7 +2,7 @@
 
 # some files are exclusively used by parallel version of the library
 if VSG_HAVE_MPI
-parallel_headers = vsgpackedmsg.h vsgcommbuffer.h vsgprtree-parallel.h
+parallel_headers = vsgpackedmsg.h vsgcommbuffer.h
 parallel_private_headers = vsgcommbuffer-private.h
 parallel_sources = vsgpackedmsg.c vsgcommbuffer.c
 libvsgd_la_parallel_headers = vsgprtree2d-parallel.h
@@ -17,12 +17,11 @@ libvsgd_la_parallel_headers =
 libvsgd_la_parallel_sources = 
 libvsgf_la_parallel_headers = 
 libvsgf_la_parallel_sources = 
-xxx = 
 endif
 
 # common files
 libvsg_common_headers = $(parallel_headers) vsgprtree-common.h \
-vsgprtree2-common.h vsgprtree3-common.h vsgmpi.h
+vsgprtree2-common.h vsgprtree3-common.h vsgmpi.h vsgprtree-parallel.h
 libvsg_common_noinst_headers = $(parallel_private_headers)
 
 libvsg_duplicated_sources = $(parallel_sources)
