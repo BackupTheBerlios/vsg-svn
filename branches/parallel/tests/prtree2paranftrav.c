@@ -1181,8 +1181,6 @@ gint main (gint argc, gchar ** argv)
                            (VsgPoint2dDistFunc) vsg_vector2d_dist,
                            NULL, _maxbox);
 
-  vsg_prtree2d_set_node_data (tree, TYPE_NODE_COUNTER, &counter);
-
   if (_hilbert)
     {
       /* configure for hilbert curve order traversal */

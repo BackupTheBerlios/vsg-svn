@@ -1106,6 +1106,9 @@ void visitfunc2@t@ (PyObject *obj,
   /* else do nothing */
 }
 
+/* keep in sync with vsgprtree2@t@.c */
+gboolean _vsg_prtree2@t@_check_user_data_model (VsgPRTree2@t@ *tree);
+
 static int
 _wrap_vsg_prtree2@t@_tp_traverse(PyObject *self, visitproc visit, void *arg)
 {
@@ -1126,10 +1129,10 @@ _wrap_vsg_prtree2@t@_tp_traverse(PyObject *self, visitproc visit, void *arg)
     {
       if (visit (tree->config.region_loc_data, arg) < 0) return -1;
     }
-
-  if (tree->config.user_data_model != NULL)
+  if (_vsg_prtree2@t@_check_user_data_model (tree))
     {
-      if (visit (tree->config.user_data_model, arg) < 0) return -1;
+      if (visit (tree->config.parallel_config.node_data.alloc_data,
+		 arg) < 0) return -1;
     }
 
   if (tree->config.children_order_data != NULL)

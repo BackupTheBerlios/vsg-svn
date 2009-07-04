@@ -362,6 +362,7 @@ vsg_prtree2d_set_children_order
 vsg_prtree2d_get_tolerance
 vsg_prtree2d_set_tolerance
 vsg_prtree2d_set_node_data
+vsg_prtree2d_set_node_data_vtable
 vsg_prtree2d_get_bounds
 vsg_prtree2d_depth
 vsg_prtree2d_point_count
@@ -476,6 +477,7 @@ vsg_prtree2f_set_children_order
 vsg_prtree2f_get_tolerance
 vsg_prtree2f_set_tolerance
 vsg_prtree2f_set_node_data
+vsg_prtree2f_set_node_data_vtable
 vsg_prtree2f_get_bounds
 vsg_prtree2f_depth
 vsg_prtree2f_point_count

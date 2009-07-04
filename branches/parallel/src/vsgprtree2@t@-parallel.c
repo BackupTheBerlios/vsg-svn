@@ -359,9 +359,6 @@ void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
   g_return_if_fail (tree != NULL);
   g_return_if_fail (pconfig != NULL);
 
-  memcpy (&tree->config.parallel_config, pconfig,
-          sizeof (VsgPRTreeParallelConfig));
-
   comm = pconfig->communicator;
   pt_vtable = &pconfig->point;
   rg_vtable = &pconfig->region;
@@ -376,9 +373,9 @@ void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
       VsgPackedMsg pt_send = VSG_PACKED_MSG_STATIC_INIT (comm);
       VsgPackedMsg rg_send = VSG_PACKED_MSG_STATIC_INIT (comm);
       ForeachPackData pt_fpd =
-        FPD_POINT_MIGRATE (&tree->config.parallel_config, &pt_send);
+        FPD_POINT_MIGRATE (pconfig, &pt_send);
       ForeachPackData rg_fpd =
-        FPD_REGION_MIGRATE (&tree->config.parallel_config, &rg_send);
+        FPD_REGION_MIGRATE (pconfig, &rg_send);
 
       /* send points to 0 */
       cnt = vsg_prtree2@t@_point_count (tree);
@@ -409,8 +406,7 @@ void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
       /* Transform root node to an empty remote */
       vsg_prtree2@t@node_free (tree->node, &tree->config);
 
-      tree->node = vsg_prtree2@t@node_alloc_no_data (&bounds[0], &bounds[1],
-                                                     &tree->config);
+      tree->node = vsg_prtree2@t@node_alloc_no_data (&bounds[0], &bounds[1]);
 
       tree->node->parallel_status.storage = VSG_PARALLEL_REMOTE;
       tree->node->parallel_status.proc = 0;
@@ -471,6 +467,12 @@ void vsg_prtree2@t@_set_parallel (VsgPRTree2@t@ *tree,
         }
 
     }
+
+  vsg_prtree2@t@_set_node_data_vtable (tree, &pconfig->node_data);
+
+  memcpy (&tree->config.parallel_config, pconfig,
+          sizeof (VsgPRTreeParallelConfig));
+
 }
 
 /**
@@ -781,8 +783,6 @@ static void _flatten_remote (VsgPRTree2@t@Node *node,
       if (pc->node_data.destroy)
         pc->node_data.destroy (node->user_data, TRUE,
                                pc->node_data.destroy_data);
-      else
-        g_boxed_free (config->user_data_type, node->user_data);
 
       node->user_data = NULL;
     }
@@ -911,11 +911,6 @@ static void _node_insert_child (VsgPRTree2@t@Node *node,
                 {
                   node->user_data =
                     pc->node_data.alloc (TRUE, pc->node_data.alloc_data);
-                }
-              else if (config->user_data_type != G_TYPE_NONE)
-                {
-                  node->user_data = g_boxed_copy (config->user_data_type,
-                                                  config->user_data_model);
                 }
             }
 
@@ -1298,11 +1293,6 @@ void vsg_nf_config2@t@_tmp_alloc (VsgNFConfig2@t@ *nfc,
       nfc->tmp_node_data = pc->node_data.alloc (FALSE,
                                                 pc->node_data.alloc_data);
     }
-  else if (config->user_data_type != G_TYPE_NONE)
-    {
-      nfc->tmp_node_data = g_boxed_copy (config->user_data_type,
-                                         config->user_data_model);
-    }
 
   if (pc->point.alloc != NULL)
     {
@@ -1325,10 +1315,6 @@ void vsg_nf_config2@t@_tmp_free (VsgNFConfig2@t@ *nfc,
     {
       pc->node_data.destroy (nfc->tmp_node_data, FALSE,
                              pc->node_data.destroy_data);
-    }
-  else if (config->user_data_type != G_TYPE_NONE)
-    {
-      g_boxed_free (config->user_data_type,nfc->tmp_node_data);
     }
 
   nfc->tmp_node_data = NULL;
@@ -1437,7 +1423,7 @@ static VsgPRTree2@t@Node *_new_visiting_node (VsgPRTree2@t@ *tree,
     }
 
   /* allocate new node without node's user_data */
-  node = vsg_prtree2@t@node_alloc (&newlb, &newub, NULL);
+  node = vsg_prtree2@t@node_alloc_no_data (&newlb, &newub);
 
   node->parallel_status.storage = VSG_PARALLEL_REMOTE;
   node->parallel_status.proc = src;
@@ -1458,8 +1444,6 @@ static void _visiting_node_free (VsgPRTree2@t@Node *node,
       if (pc->node_data.destroy)
         pc->node_data.destroy (node->user_data, FALSE,
                                pc->node_data.destroy_data);
-      else
-        g_boxed_free (config->user_data_type, node->user_data);
 
       node->user_data = NULL;
     }
@@ -1977,12 +1961,12 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
           NodePackData npd = NPD_VISIT_FORWARD (pc, &nfc->recv);
 
           vsg_packed_msg_recv_read (&nfc->recv, &id, 1,
-                                  VSG_MPI_TYPE_PRTREE_KEY2@T@);
+                                    VSG_MPI_TYPE_PRTREE_KEY2@T@);
 
-/*         g_printerr ("%d(%d) : fw recv from %d - ", nfc->rk, getpid (), */
-/*                     status.MPI_SOURCE); */
-/*         vsg_prtree_key2@t@_write (&id, stderr); */
-/*         g_printerr ("\n"); */
+/*           g_printerr ("%d : fw recv from %d - ", nfc->rk, */
+/*                       status.MPI_SOURCE); */
+/*           vsg_prtree_key2@t@_write (&id, stderr); */
+/*           g_printerr ("\n"); */
 /*         fflush (stderr); */
 
           node = _new_visiting_node (tree, &id, status.MPI_SOURCE);
@@ -1991,13 +1975,14 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
 
           _node_unpack (node, &npd);
 
-        /* compute nf interactions with local tree */
+          /* compute nf interactions with local tree */
           if (_compute_visiting_node (tree, nfc, wv))
             {
               _propose_node_backward (tree, nfc, status.MPI_SOURCE, wv);
             }
 
           nfc->all_fw_recvs ++;
+
         }
         break;
       case VISIT_BACKWARD_TAG:
@@ -2466,11 +2451,6 @@ vsg_prtree2@t@_shared_nodes_allreduce (VsgPRTree2@t@ *tree,
       tmp_node_data =
         pconfig->node_data.alloc (FALSE, pconfig->node_data.alloc_data);
     }
-  else if (tree->config.user_data_type != G_TYPE_NONE)
-    {
-      tmp_node_data = g_boxed_copy (tree->config.user_data_type,
-                                    tree->config.user_data_model);
-    }
 
   _shared_nodes_allreduce_internal (tree, data_vtable, tmp_node_data);
 
@@ -2478,10 +2458,6 @@ vsg_prtree2@t@_shared_nodes_allreduce (VsgPRTree2@t@ *tree,
     {
       pconfig->node_data.destroy (tmp_node_data, FALSE,
                                   pconfig->node_data.destroy_data);
-    }
-  else if (tree->config.user_data_type != G_TYPE_NONE)
-    {
-      g_boxed_free (tree->config.user_data_type, tmp_node_data);
     }
 }
 

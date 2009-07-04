@@ -165,9 +165,6 @@ struct _VsgPRTree2@t@Config {
   /* spatial tolerance */
   @type@ tolerance;
 
-  /* user node data */
-  gpointer user_data_model;
-  GType user_data_type;
 
   /* children order in traversals */
   VsgChildrenOrderDataFunc children_order;
@@ -227,8 +224,7 @@ void vsg_prtree2@t@node_free (VsgPRTree2@t@Node *node,
 
 VsgPRTree2@t@Node *
 vsg_prtree2@t@node_alloc_no_data (const VsgVector2@t@ *lbound,
-                                  const VsgVector2@t@ *ubound,
-                                  const VsgPRTree2@t@Config *config);
+                                  const VsgVector2@t@ *ubound);
 
 VsgPRTree2@t@Node *
 vsg_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,

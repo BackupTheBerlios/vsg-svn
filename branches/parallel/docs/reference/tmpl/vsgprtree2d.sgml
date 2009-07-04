@@ -337,6 +337,15 @@ vsgprtree2d
 @user_data_model: 
 
 
+<!-- ##### FUNCTION vsg_prtree2d_set_node_data_vtable ##### -->
+<para>
+
+</para>
+
+@prtree2d: 
+@vtable: 
+
+
 <!-- ##### FUNCTION vsg_prtree2d_get_bounds ##### -->
 <para>
 

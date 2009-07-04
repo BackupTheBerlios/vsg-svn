@@ -73,7 +73,7 @@ static VsgPRTree2@t@ *_prtree2@t@_alloc ()
   VsgPRTree2@t@ *ret;
 
 #if _USE_G_SLICES
-  ret = g_slice_new (VsgPRTree2@t@);
+  ret = g_slice_new0 (VsgPRTree2@t@);
 #else
   if (!vsg_prtree2@t@_mem_chunk)
     {
@@ -90,11 +90,8 @@ static VsgPRTree2@t@ *_prtree2@t@_alloc ()
 
   vsg_prtree2@t@_instances_count ++;
 
-  ret = g_chunk_new (VsgPRTree2@t@, vsg_prtree2@t@_mem_chunk);
+  ret = g_chunk_new0 (VsgPRTree2@t@, vsg_prtree2@t@_mem_chunk);
 #endif /* ! _USE_G_SLICES */
-
-  ret->config.user_data_type = G_TYPE_NONE;
-  ret->config.user_data_model = NULL;
 
 #ifdef VSG_HAVE_MPI
   ret->config.parallel_config.communicator = MPI_COMM_NULL;
@@ -107,11 +104,10 @@ static VsgPRTree2@t@ *_prtree2@t@_alloc ()
 
 static void _prtree2@t@_dealloc (VsgPRTree2@t@ *prtree2@t@)
 {
-  if (prtree2@t@->config.user_data_type != G_TYPE_NONE)
-    {
-      g_boxed_free (prtree2@t@->config.user_data_type,
-                    prtree2@t@->config.user_data_model);
-    }
+  VsgParallelVTable vtable = {0,};
+
+  /* set */
+  vsg_prtree2@t@_set_node_data_vtable (prtree2@t@, &vtable);
 
   if (prtree2@t@->pending_shared_regions != NULL)
     g_slist_free (prtree2@t@->pending_shared_regions);
@@ -131,8 +127,7 @@ static void _prtree2@t@_dealloc (VsgPRTree2@t@ *prtree2@t@)
 
 VsgPRTree2@t@Node *
 vsg_prtree2@t@node_alloc_no_data (const VsgVector2@t@ *lbound,
-                                  const VsgVector2@t@ *ubound,
-                                  const VsgPRTree2@t@Config *config)
+                                  const VsgVector2@t@ *ubound)
 {
   VsgPRTree2@t@Node *ret;
 
@@ -164,36 +159,32 @@ vsg_prtree2@t@node_alloc_no_data (const VsgVector2@t@ *lbound,
 }
 
 static void _node_alloc_data (VsgPRTree2@t@Node *node,
-                              const VsgPRTree2@t@Config *config)
+                              const VsgPRTreeParallelConfig *pc)
 {
-  if (config != NULL && config->user_data_type != G_TYPE_NONE)
-    {
-      node->user_data = g_boxed_copy (config->user_data_type,
-                                     config->user_data_model);
-    }
+  if (pc->node_data.alloc != NULL)
+    node->user_data = pc->node_data.alloc (TRUE, pc->node_data.alloc_data);
+
 }
 
 VsgPRTree2@t@Node *vsg_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
                                              const VsgVector2@t@ *ubound,
                                              const VsgPRTree2@t@Config *config)
 {
-  VsgPRTree2@t@Node *ret = vsg_prtree2@t@node_alloc_no_data (lbound, ubound,
-                                                             config);
+  VsgPRTree2@t@Node *ret = vsg_prtree2@t@node_alloc_no_data (lbound, ubound);
 
-  _node_alloc_data (ret, config);
+  _node_alloc_data (ret, &config->parallel_config);
 
   return ret;
 }
 
 static void _prtree2@t@node_dealloc (VsgPRTree2@t@Node *prtree2@t@node,
-                                     const VsgPRTree2@t@Config *config)
+                                     const VsgPRTreeParallelConfig *pc)
 {
-  if (config != NULL && config->user_data_type != G_TYPE_NONE &&
-      prtree2@t@node->user_data != NULL)
-    {
-      g_boxed_free (config->user_data_type,
-                    prtree2@t@node->user_data);
-    }
+  if (pc->node_data.destroy != NULL &&
+      ! PRTREE2@T@NODE_IS_REMOTE (prtree2@t@node))
+    pc->node_data.destroy (prtree2@t@node->user_data, TRUE,
+                           pc->node_data.destroy_data);
+
 
 #if _USE_G_SLICES
   g_slice_free (VsgPRTree2@t@Node, prtree2@t@node);
@@ -207,13 +198,12 @@ static VsgPRTree2@t@Node *_leaf_alloc (const VsgVector2@t@ *lbound,
                                        const VsgParallelStatus parallel_status,
                                        const VsgPRTree2@t@Config *config)
 {
-  VsgPRTree2@t@Node *node = vsg_prtree2@t@node_alloc_no_data (lbound, ubound,
-                                                              config);
+  VsgPRTree2@t@Node *node = vsg_prtree2@t@node_alloc_no_data (lbound, ubound);
 
 #ifdef VSG_HAVE_MPI
   if (!VSG_PARALLEL_STATUS_IS_REMOTE (parallel_status))
 #endif
-    _node_alloc_data (node, config);
+    _node_alloc_data (node, &config->parallel_config);
 
   node->variable.isint = 0;
 
@@ -624,7 +614,7 @@ void vsg_prtree2@t@node_free (VsgPRTree2@t@Node *node,
 
   g_slist_free (node->region_list);
 
-  _prtree2@t@node_dealloc (node, config);
+  _prtree2@t@node_dealloc (node, &config->parallel_config);
 }
 
 static guint _prtree2@t@node_depth (const VsgPRTree2@t@Node *node)
@@ -1028,34 +1018,28 @@ _prtree2@t@node_find_deep_region (VsgPRTree2@t@Node *node,
   return result;
 }
 
-void _prtree2@t@node_update_user_data_type (VsgPRTree2@t@Node *node,
-                                            GType new_type,
-                                            gpointer new_model,
-                                            const VsgPRTree2@t@Config *config)
+static void
+_prtree2@t@node_update_user_data_vtable (VsgPRTree2@t@Node *node,
+                                         VsgParallelVTable *old_vtable,
+                                         VsgParallelVTable *new_vtable)
 {
-  if (config->user_data_type != G_TYPE_NONE)
-    {
-      g_boxed_free (config->user_data_type, node->user_data);
-    }
+  if (old_vtable->destroy != NULL && node->user_data != NULL)
+    old_vtable->destroy (node->user_data, TRUE, old_vtable->destroy_data);
 
-  if (new_type != G_TYPE_NONE)
-    {
-      node->user_data = g_boxed_copy (new_type, new_model);
-    }
+  if (new_vtable->alloc != NULL && ! PRTREE2@T@NODE_IS_REMOTE (node))
+    node->user_data = new_vtable->alloc (TRUE, new_vtable->alloc_data);
   else
-    {
-      node->user_data = NULL;
-    }
+    node->user_data = NULL;
 
-  if (PRTREE2@T@NODE_ISINT (node) && ! PRTREE2@T@NODE_IS_REMOTE (node))
+
+  if (PRTREE2@T@NODE_ISINT (node))
     {
       vsgloc2 i;
 
       for (i=0; i<4; i++)
         {
-          _prtree2@t@node_update_user_data_type
-            (PRTREE2@T@NODE_CHILD (node, i),
-             new_type, new_model, config);
+          _prtree2@t@node_update_user_data_vtable
+            (PRTREE2@T@NODE_CHILD (node, i), old_vtable, new_vtable);
         }
 
     }
@@ -1345,6 +1329,29 @@ static void _clone_parallel_status (const VsgPRTree2@t@NodeInfo *node_info,
     }
 }
 
+typedef struct _GTypeAndModel GTypeAndModel;
+struct _GTypeAndModel {
+  GType data_type;
+  gpointer data_model;
+};
+
+static gpointer _gtype_node_data_alloc (gboolean resident, GTypeAndModel *gam)
+{
+  return g_boxed_copy (gam->data_type, gam->data_model);
+}
+
+static void _gtype_node_data_destroy (gpointer data, gboolean resident,
+                                 GTypeAndModel *gam)
+{
+  g_boxed_free (gam->data_type, data);
+}
+
+gboolean _vsg_prtree2@t@_check_user_data_model (VsgPRTree2@t@ *tree)
+{
+  return tree->config.parallel_config.node_data.alloc == 
+    (VsgMigrableAllocDataFunc) _gtype_node_data_alloc;
+}
+
 /*-------------------------------------------------------------------*/
 /* typedefs and structure doc */
 /*-------------------------------------------------------------------*/
@@ -1524,6 +1531,7 @@ void vsg_prtree2@t@_free (VsgPRTree2@t@ *prtree2@t@)
 #endif
 
   vsg_prtree2@t@node_free (prtree2@t@->node, &prtree2@t@->config);
+  prtree2@t@->node = NULL;
 
   _prtree2@t@_dealloc (prtree2@t@);
 }
@@ -1548,13 +1556,6 @@ VsgPRTree2@t@ *vsg_prtree2@t@_clone (VsgPRTree2@t@ *prtree2@t@)
 
   res = _prtree2@t@_alloc ();
 
-  res->config.user_data_type = prtree2@t@->config.user_data_type;
-
-  if (res->config.user_data_type != G_TYPE_NONE)
-    res->config.user_data_model =
-      g_boxed_copy (res->config.user_data_type,
-                    prtree2@t@->config.user_data_model);
-
   res->config.point_loc_func = prtree2@t@->config.point_loc_func;
   res->config.point_loc_data = prtree2@t@->config.point_loc_data;
 
@@ -1571,6 +1572,23 @@ VsgPRTree2@t@ *vsg_prtree2@t@_clone (VsgPRTree2@t@ *prtree2@t@)
   res->config.children_order = prtree2@t@->config.children_order;
   res->config.children_order_data = prtree2@t@->config.children_order_data;
   res->config.root_key = prtree2@t@->config.root_key;
+
+  memcpy (&res->config.parallel_config, &prtree2@t@->config.parallel_config,
+          sizeof (VsgPRTreeParallelConfig));
+  if (prtree2@t@->config.parallel_config.node_data.alloc ==
+      (VsgMigrableAllocDataFunc) _gtype_node_data_alloc)
+    {
+      GTypeAndModel *src =
+        (GTypeAndModel *) prtree2@t@->config.parallel_config.node_data.alloc_data;
+      GTypeAndModel *gam = g_malloc (sizeof (GTypeAndModel));
+
+      gam->data_type = src->data_type;
+      gam->data_model = g_boxed_copy (src->data_type, src->data_model);
+
+      res->config.parallel_config.node_data.alloc_data = gam;
+      res->config.parallel_config.node_data.destroy_data = gam;
+    }
+
 
   res->node = _leaf_alloc(&prtree2@t@->node->lbound,
                           &prtree2@t@->node->ubound,
@@ -1827,37 +1845,76 @@ void vsg_prtree2@t@_set_node_data (VsgPRTree2@t@ *prtree2@t@,
                                    GType user_data_type,
                                    gpointer user_data_model)
 {
+  VsgParallelVTable vtable= {0,};
+  GTypeAndModel *gam;
 #ifdef VSG_CHECK_PARAMS
   g_return_if_fail (prtree2@t@ != NULL);
 #endif
 
-  if (user_data_type != G_TYPE_NONE)
+  if (user_data_type == G_TYPE_NONE)
     {
-      g_return_if_fail (g_type_is_a (user_data_type, G_TYPE_BOXED));
-      g_return_if_fail (user_data_model != NULL);
-
-      user_data_model = g_boxed_copy (user_data_type, user_data_model);
-    }
-  else
-    {
-      user_data_model = NULL;
+      vsg_prtree2@t@_set_node_data_vtable (prtree2@t@, &vtable);
+      return;
     }
 
-  _prtree2@t@node_update_user_data_type (prtree2@t@->node,
-                                         user_data_type,
-                                         user_data_model,
-                                         &prtree2@t@->config);
+  g_return_if_fail (g_type_is_a (user_data_type, G_TYPE_BOXED));
+  g_return_if_fail (user_data_model != NULL);
 
-  if (prtree2@t@->config.user_data_type != G_TYPE_NONE)
+  user_data_model = g_boxed_copy (user_data_type, user_data_model);
+
+  gam = g_malloc (sizeof (GTypeAndModel));
+
+  gam->data_type = user_data_type;
+  gam->data_model = user_data_model;
+
+  vtable.alloc = (VsgMigrableAllocDataFunc) _gtype_node_data_alloc;
+  vtable.alloc_data = gam;
+  vtable.destroy = (VsgMigrableDestroyDataFunc) _gtype_node_data_destroy;
+  vtable.destroy_data = gam;
+
+  vsg_prtree2@t@_set_node_data_vtable (prtree2@t@, &vtable);
+}
+
+/**
+ * vsg_prtree2@t@_set_node_data_vtable:
+ * @prtree2@t@: a #VsgPRTree2@t@
+ * @vtable: VsgParallelVTable.
+ *
+ * Sets the user data vtable for allocating and destroying node_data at every
+ * node of prtree2@t@.
+ */
+void vsg_prtree2@t@_set_node_data_vtable (VsgPRTree2@t@ *prtree2@t@,
+                                          VsgParallelVTable *vtable)
+{
+  VsgParallelVTable *node_data_vtable;
+
+#ifdef VSG_CHECK_PARAMS
+  g_return_if_fail (prtree2@t@ != NULL);
+  g_return_if_fail (vtable != NULL);
+#endif
+
+  node_data_vtable = &prtree2@t@->config.parallel_config.node_data;
+
+  if (node_data_vtable->alloc_data != NULL &&
+      node_data_vtable->alloc == (VsgMigrableAllocDataFunc)
+      _gtype_node_data_alloc)
     {
-      g_boxed_free (prtree2@t@->config.user_data_type,
-                    prtree2@t@->config.user_data_model);
+      GTypeAndModel *gam = node_data_vtable->alloc_data;
 
-      prtree2@t@->config.user_data_type = G_TYPE_NONE;
+      _gtype_node_data_destroy (gam->data_model, FALSE, gam);
+
+      g_free (gam);
+
+      node_data_vtable->alloc = NULL;
+      node_data_vtable->destroy = NULL;
     }
 
-  prtree2@t@->config.user_data_type = user_data_type;
-  prtree2@t@->config.user_data_model = user_data_model;
+  if (prtree2@t@->node)
+    _prtree2@t@node_update_user_data_vtable (prtree2@t@->node, node_data_vtable,
+                                             vtable);
+
+  memcpy (node_data_vtable, vtable, sizeof (VsgParallelVTable));
+
 }
 
 /**

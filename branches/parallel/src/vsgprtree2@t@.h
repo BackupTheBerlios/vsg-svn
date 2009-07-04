@@ -27,6 +27,8 @@
 
 #include <vsg/vsgprtree-common.h>
 
+#include <vsg/vsgprtree-parallel.h>
+
 #include <vsg/vsgprtree2-common.h>
 
 #include <vsg/vsgprtreekey2@t@.h>
@@ -182,6 +184,9 @@ void vsg_prtree2@t@_set_tolerance (VsgPRTree2@t@ *prtree2@t@,
 void vsg_prtree2@t@_set_node_data (VsgPRTree2@t@ *prtree2@t@,
                                    GType user_data_type,
                                    gpointer user_data_model);
+
+void vsg_prtree2@t@_set_node_data_vtable (VsgPRTree2@t@ *prtree2@t@,
+                                          VsgParallelVTable *vtable);
 
 void vsg_prtree2@t@_get_bounds (VsgPRTree2@t@ *prtree2@t@,
                                 VsgVector2@t@ *lbound,
