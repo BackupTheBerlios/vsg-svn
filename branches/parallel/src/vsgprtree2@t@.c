@@ -467,8 +467,6 @@ _prtree2@t@node_insert_point_list(VsgPRTree2@t@Node *node,
       PRTREE2@T@NODE_LEAF (node).point =
         g_slist_concat (point, PRTREE2@T@NODE_LEAF (node).point);
 
-      /* PARALLEL_TODO: set flag signaling waiting messages in config */
-
       return 0;
     }
 #endif
@@ -841,10 +839,6 @@ _prtree2@t@node_insert_region_list (VsgPRTree2@t@Node *node,
       /* store outgoing regions into remote nodes. */
       node->region_list = g_slist_concat (node->region_list, region_list);
 
-      /* PARALLEL_TODO: set flag signaling waiting messages in config */
-      /* PARALLEL_TODO: avoid multiple migrations of the same region towards
-       * the same processor.
-       */
       return 0;
     }
 #endif
