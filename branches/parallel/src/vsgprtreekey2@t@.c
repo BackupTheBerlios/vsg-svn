@@ -282,7 +282,7 @@ void vsg_prtree_key2@t@_deepest_common_ancestor (VsgPRTreeKey2@t@ *one,
 
 /**
  * vsg_prtree_key2@t@_build_child:
- * @father : resulting VsgPRTreeKey2@t@.
+ * @father : a VsgPRTreeKey2@t@.
  * @child_num : a vsgloc2.
  * @result : resulting VsgPRTreeKey2@t@.
  *
@@ -305,6 +305,34 @@ void vsg_prtree_key2@t@_build_child (VsgPRTreeKey2@t@ *father,
 
       result->depth = father->depth+1;
     }
+}
+
+/**
+ * vsg_prtree_key2@t@_build_father:
+ * @child : a VsgPRTreeKey2@t@.
+ * @child_num : a vsgloc2.
+ * @result : resulting VsgPRTreeKey2@t@.
+ *
+ * Builds a new key from @child and the child number @child_num. @result is
+ * returned such that @child is its direct child of number @child_num.
+ */
+void vsg_prtree_key2@t@_build_father (VsgPRTreeKey2@t@ *child,
+                                      vsgloc2 child_num,
+                                      VsgPRTreeKey2@t@ *result)
+{
+  if (child == NULL)
+    {
+      result->depth = 1;
+      result->x = (child_num & VSG_LOC2_X);
+      result->y = (child_num & VSG_LOC2_Y)>>1;
+
+      return;
+    }
+
+  result->x = child->x | ((child_num & VSG_LOC2_X)<<child->depth);
+  result->y = child->y | (((child_num & VSG_LOC2_Y)>>1)<<child->depth);
+  
+  result->depth = child->depth+1;
 }
 
 /**

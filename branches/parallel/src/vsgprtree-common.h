@@ -87,6 +87,26 @@ struct _VsgParallelStatus {
 };
 
 /**
+ * vsg_parallel_status_local:
+ *
+ * #VsgParallelStatus constant representing local data.
+ */
+static const VsgParallelStatus vsg_parallel_status_local = {
+  VSG_PARALLEL_LOCAL,
+  0,
+};
+
+/**
+ * vsg_parallel_status_shared:
+ *
+ * #VsgParallelStatus constant representing shared data.
+ */
+static const VsgParallelStatus vsg_parallel_status_shared = {
+  VSG_PARALLEL_SHARED,
+  -1,
+};
+
+/**
  * VSG_PARALLEL_STATUS_IS_REMOTE:
  * @status: a #VsgParallelStatus
  *

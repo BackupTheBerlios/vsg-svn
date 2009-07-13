@@ -1150,7 +1150,6 @@ gint main (gint argc, gchar ** argv)
 
   VsgVector2d lb;
   VsgVector2d ub;
-  NodeCounter counter = {0, 0};
   GTimer *timer = NULL;
 
   MPI_Init (&argc, &argv);
@@ -1208,6 +1207,32 @@ gint main (gint argc, gchar ** argv)
     }
 
   _fill (tree, _np);
+
+  /* try one exterior point */
+  if (sz > 1)
+    {
+      if (rk == 1)
+        {
+          Pt *pt;
+
+          _ref_count += _np+1;
+
+          pt = pt_alloc (TRUE, NULL);
+          pt->vector.x = ub.x+1.;
+          pt->vector.y = ub.y+1.;
+          pt->weight = _np+1;
+
+          vsg_prtree2d_insert_point (tree, pt);
+        }
+      else
+        {
+          _ref_count += _np+1;
+        }
+
+      vsg_prtree2d_migrate_flush (tree);
+      _distribute (tree);
+    }
+
 
   if (_verbose)
     {

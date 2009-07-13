@@ -551,6 +551,22 @@ static void _migrate_traverse_region_send (VsgPRTree2@t@Node *node,
     }
 }
 
+static void _copy_node (VsgPRTree2@t@Node *dst, VsgPRTree2@t@Node *src)
+{
+  memcpy (dst, src, sizeof (VsgPRTree2@t@Node));
+}
+
+typedef void (*VsgPRTree2@t@NodeFunc) (VsgPRTree2@t@Node *node,
+                                       gpointer user_data);
+
+static void _node_insert_child (VsgPRTree2@t@Node *node,
+                                const VsgPRTree2@t@Config *config,
+                                VsgParallelStorage storage,
+                                gint dst,
+                                VsgPRTreeKey2@t@ key,
+                                VsgPRTree2@t@NodeFunc replace_func,
+                                gpointer replace_data);
+
 /**
  * vsg_prtree2@t@_migrate_flush:
  * @tree: a #VsgPRTree2@t@
@@ -574,6 +590,8 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
   VsgParallelVTable *pt_vtable;
   VsgParallelVTable *rg_vtable;
   gint src, rk, sz;
+  VsgPRTreeKey2@t@ extk;
+  VsgVector2@t@ lbound, ubound;
 
   g_return_if_fail (tree != NULL);
   comm = pconfig->communicator;
@@ -591,6 +609,21 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
   md.pconfig = pconfig;
   md.rk = rk;
   md.cb = cb;
+
+  /* send exterior points to proc 0 */
+  if (rk != 0 && tree->pending_exterior_points != NULL)
+    {
+      VsgPackedMsg *pm = 
+        vsg_comm_buffer_get_send_buffer (cb, 0);
+      ForeachPackData fpd = FPD_POINT_MIGRATE (pconfig, pm);
+
+      g_slist_foreach (tree->pending_exterior_points,
+                       (GFunc) _foreach_pack_and_destroy,
+                       &fpd);
+
+      g_slist_free (tree->pending_exterior_points);
+      tree->pending_exterior_points = NULL;
+    }
 
   /* send the pending VsgPoint to their remote location */
 
@@ -623,11 +656,111 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
           VsgPoint2 *pt = pt_vtable->alloc (TRUE, pt_vtable->alloc_data);
 
           pt_vtable->migrate.unpack (pt, recv, pt_vtable->migrate.unpack_data);
+
           vsg_prtree2@t@_insert_point (tree, pt);
           
         }
 
       vsg_comm_buffer_drop_recv_buffer (cb, src);
+    }
+
+  /* build new tree from gathered exterior points */
+
+  pm.position = 0;
+  extk = vsg_prtree_key2@t@_root;
+
+  if (rk == 0)
+    {
+      /* now all exterior points are stored in tree->pending_exterior_points */
+      if (tree->pending_exterior_points)
+        {
+          GSList *ext_list = tree->pending_exterior_points;
+
+          /* extend tree with local leaves to absorb new bounds */
+          while (ext_list != NULL)
+            {
+              vsg_prtree2@t@_bounds_extend (tree, ext_list->data, &extk);
+
+              ext_list = g_slist_next (ext_list);
+            }
+
+          /* insert exterior points in local leaves */
+          vsg_prtree2@t@node_insert_point_list(tree->node,
+                                               tree->pending_exterior_points,
+                                               &tree->config);
+
+          tree->pending_exterior_points = NULL;
+
+          /* set new tree bounds to communicate */
+          vsg_prtree2@t@_get_bounds (tree, &lbound, &ubound);
+
+/*           g_printerr ("%d: ext key ", rk); */
+/*           vsg_prtree_key2@t@_write (&extk, stderr); */
+/*           g_printerr ("\n"); */
+/*           g_printerr ("%d: bounds ", rk); */
+/*           vsg_vector2@t@_write (&lbound, stderr); */
+/*           g_printerr (" " ); */
+/*           vsg_vector2@t@_write (&ubound, stderr); */
+/*           g_printerr ("\n"); */
+
+        }
+    }
+
+  /* pack tree extension msg even on non-root procs to get msg size */
+  vsg_packed_msg_send_append (&pm, &lbound, 1, VSG_MPI_TYPE_VECTOR2@T@);
+  vsg_packed_msg_send_append (&pm, &ubound, 1, VSG_MPI_TYPE_VECTOR2@T@);
+  vsg_packed_msg_send_append (&pm, &extk, 1, VSG_MPI_TYPE_PRTREE_KEY2@T@);
+
+  /* proc 0 tells new tree bounds and old root position */
+  MPI_Bcast (pm.buffer, pm.position, MPI_PACKED, 0, pm.communicator);
+
+  pm.position = 0;
+
+  if (rk != 0)
+    {
+      /* unpack extension definition */
+      vsg_packed_msg_recv_read (&pm, &lbound, 1, VSG_MPI_TYPE_VECTOR2@T@);
+      vsg_packed_msg_recv_read (&pm, &ubound, 1, VSG_MPI_TYPE_VECTOR2@T@);
+      vsg_packed_msg_recv_read (&pm, &extk, 1, VSG_MPI_TYPE_PRTREE_KEY2@T@);
+
+      if (extk.depth > 0)
+        {
+          VsgPRTree2@t@Node *new_root;
+
+          /* allocate new root node for the tree */
+          new_root = vsg_prtree2@t@node_alloc_no_data (&lbound, &ubound);
+
+          /* exterior points are stored at proc 0 */
+          new_root->parallel_status.storage = VSG_PARALLEL_REMOTE;
+          new_root->parallel_status.proc = 0;
+
+          /* place old root inside new root tree */
+          _node_insert_child (new_root, &tree->config,
+                              tree->node->parallel_status.storage,
+                              tree->node->parallel_status.proc,
+                              extk,
+                              (VsgPRTree2@t@NodeFunc) _copy_node,
+                              tree->node);
+
+          /* destroy old root */
+          vsg_prtree2@t@node_dealloc (tree->node);
+
+          /* place new root */
+          tree->node = new_root;
+
+/*           vsg_prtree2@t@_get_bounds (tree, &lbound, &ubound); */
+/*           g_printerr ("%d: ext key ", rk); */
+/*           vsg_prtree_key2@t@_write (&extk, stderr); */
+/*           g_printerr ("\n"); */
+/*           g_printerr ("%d: bounds ", rk); */
+/*           vsg_vector2@t@_write (&lbound, stderr); */
+/*           g_printerr (" " ); */
+/*           vsg_vector2@t@_write (&ubound, stderr); */
+/*           g_printerr ("\n"); */
+
+        }
+
+      pm.position = 0;
     }
 
   if (rg_vtable->migrate.pack != NULL)
@@ -647,8 +780,6 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
       vsg_comm_buffer_set_bcast (cb, &pm);
 
       vsg_comm_buffer_share (cb);
-
-      vsg_packed_msg_drop_buffer (&pm);
 
       /* send the pending (in "remote" nodes) VsgRegion to their destination */
       md.rk = rk;
@@ -690,6 +821,8 @@ void vsg_prtree2@t@_migrate_flush (VsgPRTree2@t@ *tree)
           vsg_comm_buffer_drop_recv_buffer (cb, src);
         }
     }
+
+  vsg_packed_msg_drop_buffer (&pm);
 
   vsg_comm_buffer_free (cb);
 
@@ -886,12 +1019,18 @@ static void _traverse_distribute_nodes (VsgPRTree2@t@Node *node,
   node->parallel_status.proc = dst;
 }
 
+/*
+ * Replaces a sub-node from a given tree by executing specified 
+ * function (@replace_func) at some arbitrary position (given by @key),
+ * eventually creating a whole hierarchy.
+ */
 static void _node_insert_child (VsgPRTree2@t@Node *node,
                                 const VsgPRTree2@t@Config *config,
                                 VsgParallelStorage storage,
                                 gint dst,
                                 VsgPRTreeKey2@t@ key,
-                                NodePackData *npd)
+                                VsgPRTree2@t@NodeFunc replace_func,
+                                gpointer replace_data)
 {
   if (key.depth > 0)
     {
@@ -921,7 +1060,8 @@ static void _node_insert_child (VsgPRTree2@t@Node *node,
       key.depth --;
 
       _node_insert_child (PRTREE2@T@NODE_CHILD (node, child),
-                          config, storage, dst, key, npd);
+                          config, storage, dst, key, replace_func,
+                          replace_data);
 
       _prtree2@t@node_fix_counts_local (node);
 
@@ -954,7 +1094,7 @@ static void _node_insert_child (VsgPRTree2@t@Node *node,
     }
   else
     {
-      _node_unpack (node, npd);
+      if (replace_func) replace_func (node, replace_data);
     }
 
   _prtree2@t@node_fix_counts_local (node);
@@ -1067,7 +1207,8 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
               /* load node contents */
 
               _node_insert_child (tree->node, &tree->config,
-                                   storage, dst, id, &npd);
+                                  storage, dst, id,
+                                  (VsgPRTree2@t@NodeFunc) _node_unpack, &npd);
 
             }
           else
@@ -1079,7 +1220,7 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
               /* insert the node in remote mode */
               _node_insert_child (tree->node, &tree->config,
                                   VSG_PARALLEL_REMOTE, dst,
-                                  id, NULL);
+                                  id, NULL, NULL);
             }
 
 /*           g_printerr ("%d: unpacking done\n", rk); */

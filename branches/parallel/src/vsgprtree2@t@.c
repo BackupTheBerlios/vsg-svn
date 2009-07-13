@@ -98,6 +98,7 @@ static VsgPRTree2@t@ *_prtree2@t@_alloc ()
 #endif
 
   ret->pending_shared_regions = NULL;
+  ret->pending_exterior_points = NULL;
 
   return ret;
 }
@@ -112,6 +113,9 @@ static void _prtree2@t@_dealloc (VsgPRTree2@t@ *prtree2@t@)
   if (prtree2@t@->pending_shared_regions != NULL)
     g_slist_free (prtree2@t@->pending_shared_regions);
 
+  if (prtree2@t@->pending_exterior_points != NULL)
+    g_slist_free (prtree2@t@->pending_exterior_points);
+
 #if _USE_G_SLICES
   g_slice_free (VsgPRTree2@t@, prtree2@t@);
 #else
@@ -124,6 +128,7 @@ static void _prtree2@t@_dealloc (VsgPRTree2@t@ *prtree2@t@)
     }
 #endif /* ! _USE_G_SLICES */
 }
+
 
 VsgPRTree2@t@Node *
 vsg_prtree2@t@node_alloc_no_data (const VsgVector2@t@ *lbound,
@@ -177,14 +182,8 @@ VsgPRTree2@t@Node *vsg_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
   return ret;
 }
 
-static void _prtree2@t@node_dealloc (VsgPRTree2@t@Node *prtree2@t@node,
-                                     const VsgPRTreeParallelConfig *pc)
+void vsg_prtree2@t@node_dealloc (VsgPRTree2@t@Node *prtree2@t@node)
 {
-  if (pc->node_data.destroy != NULL &&
-      ! PRTREE2@T@NODE_IS_REMOTE (prtree2@t@node))
-    pc->node_data.destroy (prtree2@t@node->user_data, TRUE,
-                           pc->node_data.destroy_data);
-
 
 #if _USE_G_SLICES
   g_slice_free (VsgPRTree2@t@Node, prtree2@t@node);
@@ -263,7 +262,8 @@ static VsgPRTree2@t@Node *_int_alloc (const VsgVector2@t@ *lbound,
       if ((child == NULL) || (i != loc))
         {
           _prtree2@t@node_child_get_bounds (node, i, &lbound, &ubound);
-          children[i] = _leaf_alloc (&lbound, &ubound, child->parallel_status,
+          children[i] = _leaf_alloc (&lbound, &ubound,
+                                     vsg_parallel_status_local,
                                      config);
         }
       else
@@ -273,6 +273,11 @@ static VsgPRTree2@t@Node *_int_alloc (const VsgVector2@t@ *lbound,
           node->point_count += child->point_count;
           node->region_count += child->region_count;
         }
+    }
+
+  if (! PRTREE2@T@NODE_IS_LOCAL (child))
+    {
+      node->parallel_status = vsg_parallel_status_shared;
     }
 
   /* It is very important that new leaves are inserted once all calls to
@@ -389,10 +394,6 @@ static GSList *_prtree2@t@node_steal_region (VsgPRTree2@t@Node *node)
 }
 
 static guint
-_prtree2@t@node_insert_point_list(VsgPRTree2@t@Node *node,
-                                  GSList *point,
-                                  const VsgPRTree2@t@Config *config);
-static guint
 _prtree2@t@node_insert_region_list (VsgPRTree2@t@Node *node,
                                     GSList *region_list,
                                     const VsgPRTree2@t@Config *config,
@@ -437,7 +438,7 @@ _prtree2@t@leaf_insert_point_list(VsgPRTree2@t@Node *node,
                              point, config))
         {
           vsg_prtree2@t@node_make_int (node, config);
-          _prtree2@t@node_insert_point_list (node, point, config);
+          vsg_prtree2@t@node_insert_point_list (node, point, config);
 
         }
       else
@@ -453,10 +454,10 @@ _prtree2@t@leaf_insert_point_list(VsgPRTree2@t@Node *node,
   return 1;
 }
 
-static guint
-_prtree2@t@node_insert_point_list(VsgPRTree2@t@Node *node,
-                                  GSList *point,
-                                  const VsgPRTree2@t@Config *config)
+guint
+vsg_prtree2@t@node_insert_point_list(VsgPRTree2@t@Node *node,
+                                     GSList *point,
+                                     const VsgPRTree2@t@Config *config)
 {
   guint len = 0;
 
@@ -498,8 +499,8 @@ _prtree2@t@node_insert_point_list(VsgPRTree2@t@Node *node,
           i = CALL_POINT2@T@_LOC (config, current->data, &node->center);
 
           len +=
-            _prtree2@t@node_insert_point_list(PRTREE2@T@NODE_CHILD (node, i),
-                                              current, config);
+            vsg_prtree2@t@node_insert_point_list(PRTREE2@T@NODE_CHILD (node, i),
+                                                 current, config);
         }
 
       node->point_count += len;
@@ -516,7 +517,7 @@ static void _prtree2@t@node_insert_point(VsgPRTree2@t@Node *node,
 
   point_list->data = (gpointer) point;
 
-  _prtree2@t@node_insert_point_list(node, point_list, config);
+  vsg_prtree2@t@node_insert_point_list(node, point_list, config);
 }
 
 static gint
@@ -588,7 +589,7 @@ void vsg_prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
   memcpy (PRTREE2@T@NODE_INT (node).children, children,
           4*sizeof (VsgPRTree2@t@Node*));
 
-  _prtree2@t@node_insert_point_list(node, stolen_point, config);
+  vsg_prtree2@t@node_insert_point_list(node, stolen_point, config);
   _prtree2@t@node_insert_region_list(node, stolen_region, config, NULL);
       
 }
@@ -612,7 +613,12 @@ void vsg_prtree2@t@node_free (VsgPRTree2@t@Node *node,
 
   g_slist_free (node->region_list);
 
-  _prtree2@t@node_dealloc (node, &config->parallel_config);
+  if (config->parallel_config.node_data.destroy != NULL &&
+      ! PRTREE2@T@NODE_IS_REMOTE (node))
+    config->parallel_config.node_data.destroy (node->user_data, TRUE,
+                                               config->parallel_config.node_data.destroy_data);
+
+  vsg_prtree2@t@node_dealloc (node);
 }
 
 static guint _prtree2@t@node_depth (const VsgPRTree2@t@Node *node)
@@ -650,7 +656,7 @@ static void _prtree2@t@node_flatten (VsgPRTree2@t@Node *node,
       PRTREE2@T@NODE_CHILD (node, i) = NULL;
     }
 
-  _prtree2@t@node_insert_point_list (node, point, config);
+  vsg_prtree2@t@node_insert_point_list (node, point, config);
   _prtree2@t@node_insert_region_list (node, region, config, NULL);
 }
 
@@ -1983,35 +1989,24 @@ guint vsg_prtree2@t@_region_count (const VsgPRTree2@t@ *prtree2@t@)
 }
 
 /**
- * vsg_prtree2@t@_insert_point:
- * @prtree2@t@: a #VsgPRTree2@t@
- * @point: a #VsgPoint2
- *
- * Stores @point reference in prtree2@t@. (#GObject reference support not
- * provided)
+ * Extends @prtree2@t@ bounds in order to allow @point to be inside the box.
+ * @extk is the key the old root node in the new tree.
  */
-void vsg_prtree2@t@_insert_point (VsgPRTree2@t@ *prtree2@t@,
-                                  VsgPoint2 point)
+void vsg_prtree2@t@_bounds_extend (VsgPRTree2@t@ *prtree2@t@,
+                                   VsgPoint2 point, VsgPRTreeKey2@t@ *extk)
 {
   const VsgVector2@t@ *lbound;
   const VsgVector2@t@ *ubound;
   const VsgPRTree2@t@Config *config;
-
-#ifdef VSG_CHECK_PARAMS
-  g_return_if_fail (prtree2@t@ != NULL);
-  g_return_if_fail (point != NULL);
-#endif
 
   config = &prtree2@t@->config;
 
   lbound = &prtree2@t@->node->lbound;
   ubound = &prtree2@t@->node->ubound;
 
-  if (CALL_POINT2@T@_LOC (config, point, lbound) != VSG_LOC2_NE ||
-      CALL_POINT2@T@_LOC (config, point, ubound) != VSG_LOC2_SW)
+  while (CALL_POINT2@T@_LOC (config, point, lbound) != VSG_LOC2_NE ||
+         CALL_POINT2@T@_LOC (config, point, ubound) != VSG_LOC2_SW)
     {
-      /* PARALLEL_TODO: handle this case? */
-
       VsgVector2@t@ center = {0.,};
       VsgVector2@t@ diff, new_lbound, new_ubound;
       vsgloc2 loc;
@@ -2041,11 +2036,77 @@ void vsg_prtree2@t@_insert_point (VsgPRTree2@t@ *prtree2@t@,
                                      prtree2@t@->node,
                                      loc,
                                      config);
-      vsg_prtree2@t@_insert_point (prtree2@t@, point);
+
+      vsg_prtree_key2@t@_build_father (extk, loc, extk);
+
+      lbound = &prtree2@t@->node->lbound;
+      ubound = &prtree2@t@->node->ubound;
     }
-  else
-    _prtree2@t@node_insert_point (prtree2@t@->node, point,
-                                  config);
+}
+
+/**
+ * vsg_prtree2@t@_insert_point:
+ * @prtree2@t@: a #VsgPRTree2@t@
+ * @point: a #VsgPoint2
+ *
+ * Stores @point reference in prtree2@t@. (#GObject reference support not
+ * provided)
+ */
+void vsg_prtree2@t@_insert_point (VsgPRTree2@t@ *prtree2@t@,
+                                  VsgPoint2 point)
+{
+  VsgPRTreeKey2@t@ extk = vsg_prtree_key2@t@_root;
+  const VsgVector2@t@ *lbound;
+  const VsgVector2@t@ *ubound;
+  const VsgPRTree2@t@Config *config;
+
+#ifdef VSG_CHECK_PARAMS
+  g_return_if_fail (prtree2@t@ != NULL);
+  g_return_if_fail (point != NULL);
+#endif
+
+  config = &prtree2@t@->config;
+
+  lbound = &prtree2@t@->node->lbound;
+  ubound = &prtree2@t@->node->ubound;
+
+  if (CALL_POINT2@T@_LOC (config, point, lbound) != VSG_LOC2_NE ||
+      CALL_POINT2@T@_LOC (config, point, ubound) != VSG_LOC2_SW)
+    {
+#ifdef VSG_HAVE_MPI
+      if (config->parallel_config.communicator != MPI_COMM_NULL)
+        {
+          gint sz;
+
+          MPI_Comm_size (config->parallel_config.communicator, &sz);
+
+          if (sz > 1)
+            {
+              /* store exterior point in appropriate place and return */
+              GSList *point_list = g_slist_alloc ();
+
+              point_list->data = (gpointer) point;
+              point_list->next = NULL;
+
+              prtree2@t@->pending_exterior_points =
+                g_slist_concat (point_list,
+                                prtree2@t@->pending_exterior_points);
+
+/*               gint rk; */
+/*               MPI_Comm_rank (MPI_COMM_WORLD, &rk); */
+/*               g_printerr ("%d: store exterior ", rk); */
+/*               vsg_vector2@t@_write (point, stderr); */
+/*               g_printerr ("\n"); */
+
+              return;
+            }
+        }
+#endif
+
+      vsg_prtree2@t@_bounds_extend (prtree2@t@, point, &extk);
+    }
+
+  _prtree2@t@node_insert_point (prtree2@t@->node, point, config);
 }
 
 /**
@@ -2080,8 +2141,6 @@ gboolean vsg_prtree2@t@_insert_point_local (VsgPRTree2@t@ *prtree2@t@,
   if (CALL_POINT2@T@_LOC (config, point, lbound) != VSG_LOC2_NE ||
       CALL_POINT2@T@_LOC (config, point, ubound) != VSG_LOC2_SW)
     {
-      /* PARALLEL_TODO: handle this case? */
-
       return FALSE;
     }
 

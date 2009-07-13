@@ -188,6 +188,9 @@ struct _VsgPRTree2@t@ {
 
   /* place to store pending message of inter processor VsgRegion */
   GSList *pending_shared_regions;
+
+  /* place to store pending message of exterior VsgPoint */
+  GSList *pending_exterior_points;
 };
 
 struct _VsgNFConfig2@t@
@@ -231,6 +234,8 @@ vsg_prtree2@t@node_alloc (const VsgVector2@t@ *lbound,
                           const VsgVector2@t@ *ubound,
                           const VsgPRTree2@t@Config *config);
 
+void vsg_prtree2@t@node_dealloc (VsgPRTree2@t@Node *prtree2@t@node);
+
 void _vsg_prtree2@t@node_get_info (VsgPRTree2@t@Node *node,
                                    VsgPRTree2@t@NodeInfo *node_info,
                                    VsgPRTree2@t@NodeInfo *father_info,
@@ -251,6 +256,14 @@ vsg_prtree2@t@_traverse_custom_internal (VsgPRTree2@t@ *prtree2@t@,
                                          gpointer sel_data,
                                          VsgPRTree2@t@InternalFunc func,
                                          gpointer user_data);
+
+guint
+vsg_prtree2@t@node_insert_point_list(VsgPRTree2@t@Node *node,
+                                     GSList *point,
+                                     const VsgPRTree2@t@Config *config);
+
+void vsg_prtree2@t@_bounds_extend (VsgPRTree2@t@ *prtree2@t@,
+                                   VsgPoint2 point, VsgPRTreeKey2@t@ *extk);
 
 void vsg_prtree2@t@node_make_int (VsgPRTree2@t@Node *node,
                                   const VsgPRTree2@t@Config *config);

@@ -424,6 +424,24 @@ static void random_fill (VsgPRTree2d *tree, guint np)
   g_rand_free (rand);
 }
 
+static void _exterior_points (VsgPRTree2d *tree)
+{
+  VsgVector2d lb, ub;
+  VsgVector2d *pt;
+
+  if (_verbose) g_printerr ("%d: exterior points\n", rk);
+
+  vsg_prtree2d_get_bounds (tree, &lb, &ub);
+
+  pt = pt_alloc (TRUE, NULL);
+  pt->x = ub.x+rk+1.;
+  pt->y = ub.y+rk+1.;
+
+  vsg_prtree2d_insert_point (tree, pt);
+  
+  vsg_prtree2d_migrate_flush (tree);
+}
+
 static
 void parse_args (int argc, char **argv)
 {
@@ -636,6 +654,9 @@ gint main (gint argc, gchar ** argv)
 
       _write_regions (tree, "rg-contiguous");
     }
+
+  _exterior_points (tree);
+  vsg_prtree2d_distribute_contiguous_leaves (tree);
 
   if (_do_write)
     {

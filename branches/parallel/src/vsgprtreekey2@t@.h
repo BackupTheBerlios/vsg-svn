@@ -71,6 +71,10 @@ void vsg_prtree_key2@t@_build_child (VsgPRTreeKey2@t@ *father,
                                      vsgloc2 child_num,
                                      VsgPRTreeKey2@t@ *result);
 
+void vsg_prtree_key2@t@_build_father (VsgPRTreeKey2@t@ *child,
+                                      vsgloc2 child_num,
+                                      VsgPRTreeKey2@t@ *result);
+
 vsgloc2 vsg_prtree_key2@t@_loc2 (VsgPRTreeKey2@t@ *key,
                                  VsgPRTreeKey2@t@ *center);
 
