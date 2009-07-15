@@ -2304,15 +2304,44 @@ void vsg_prtree2@t@_insert_region (VsgPRTree2@t@ *prtree2@t@,
                                    VsgRegion2 region)
 {
   GSList **shared_regions = NULL;
+  VsgVector2@t@ *lbound;
+  VsgVector2@t@ *ubound;
+  const VsgPRTree2@t@Config *config;
+
 #ifdef VSG_CHECK_PARAMS
   g_return_if_fail (prtree2@t@ != NULL);
   g_return_if_fail (region != NULL);
 #endif
 
+  config = &prtree2@t@->config;
+
 #ifdef VSG_HAVE_MPI
   if (prtree2@t@->config.parallel_config.communicator != MPI_COMM_NULL)
     shared_regions = &prtree2@t@->pending_shared_regions;
 #endif
+
+
+  lbound = &prtree2@t@->node->lbound;
+  ubound = &prtree2@t@->node->ubound;
+
+  if (CALL_REGION2@T@_LOC (config, region, lbound) != VSG_RLOC2_NE ||
+      CALL_REGION2@T@_LOC (config, region, ubound) != VSG_RLOC2_SW)
+    {
+      prtree2@t@->node->region_list =
+        g_slist_append (prtree2@t@->node->region_list, region);
+
+#ifdef VSG_HAVE_MPI
+      /* shared regions in shared nodes are stored to be notified
+       * to *all* the processors.
+       */
+      if (PRTREE2@T@NODE_IS_SHARED (prtree2@t@->node))
+        *shared_regions = g_slist_append (*shared_regions, region);
+#endif
+
+      prtree2@t@->node->region_count ++;
+
+      return;
+    }
 
   _prtree2@t@node_insert_region (prtree2@t@->node, region,
                                  &prtree2@t@->config, shared_regions);
@@ -2330,10 +2359,35 @@ void vsg_prtree2@t@_insert_region (VsgPRTree2@t@ *prtree2@t@,
 gboolean vsg_prtree2@t@_remove_region (VsgPRTree2@t@ *prtree2@t@,
                                        VsgRegion2 region)
 {
+  VsgVector2@t@ *lbound;
+  VsgVector2@t@ *ubound;
+  const VsgPRTree2@t@Config *config;
+
 #ifdef VSG_CHECK_PARAMS
   g_return_val_if_fail (prtree2@t@ != NULL, FALSE);
   g_return_val_if_fail (region != NULL, FALSE);
 #endif
+
+  config = &prtree2@t@->config;
+
+  lbound = &prtree2@t@->node->lbound;
+  ubound = &prtree2@t@->node->ubound;
+
+  if (CALL_REGION2@T@_LOC (config, region, lbound) != VSG_RLOC2_NE ||
+      CALL_REGION2@T@_LOC (config, region, ubound) != VSG_RLOC2_SW)
+    {
+      if (g_slist_find (prtree2@t@->node->region_list, region) != NULL)
+        {
+          prtree2@t@->node->region_list =
+            g_slist_remove (prtree2@t@->node->region_list, region);
+
+          prtree2@t@->node->region_count --;
+
+          return TRUE;
+        }
+
+      return FALSE;
+    }
 
   return
     _prtree2@t@node_remove_region (prtree2@t@->node, region,
