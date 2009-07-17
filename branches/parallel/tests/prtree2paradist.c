@@ -424,6 +424,49 @@ static void random_fill (VsgPRTree2d *tree, guint np)
   g_rand_free (rand);
 }
 
+static void _traverse_check_local_counts (VsgPRTree2dNodeInfo *node_info,
+                                          gint pcounts[2][64])
+{
+  if (! node_info->isleaf)
+    {
+      if (pcounts[0][node_info->depth] != node_info->point_count)
+        {
+          g_printerr ("%d: Point count error on node ", rk);
+          vsg_prtree_key2d_write (&node_info->id, stderr);
+          g_printerr (" node_info=%d children=%d\n", node_info->point_count,
+                      pcounts[0][node_info->depth]);
+        }
+      if ((pcounts[1][node_info->depth] +
+           g_slist_length (node_info->region_list)) != node_info->region_count)
+        {
+          g_printerr ("%d: Region count error on node ", rk);
+          vsg_prtree_key2d_write (&node_info->id, stderr);
+          g_printerr (" node_info=%d children=%d\n", node_info->region_count,
+                      pcounts[1][node_info->depth]);
+        }
+    }
+
+  pcounts[0][node_info->depth] = 0;
+  pcounts[1][node_info->depth] = 0;
+
+  if (node_info->father_info == NULL) return;
+
+  if (! VSG_PRTREE2D_NODE_INFO_IS_REMOTE (node_info))
+    {
+      pcounts[0][node_info->depth-1] += node_info->point_count;
+      pcounts[1][node_info->depth-1] += node_info->region_count;
+    }
+}
+
+static void _check_local_counts (VsgPRTree2d *tree)
+{
+  gint pcounts[2][64] = {{0}};
+
+  vsg_prtree2d_traverse (tree, G_POST_ORDER,
+                         (VsgPRTree2dFunc) _traverse_check_local_counts,
+                         pcounts);
+}
+
 static void _exterior_points (VsgPRTree2d *tree)
 {
   VsgVector2d lb, ub;
@@ -620,6 +663,8 @@ gint main (gint argc, gchar ** argv)
 
       vsg_prtree2d_distribute_scatter_leaves (tree);
 
+      _check_local_counts (tree);
+
       ret += check_points_number (tree);
       ret += check_regions_number (tree);
 
@@ -643,6 +688,8 @@ gint main (gint argc, gchar ** argv)
 
       vsg_prtree2d_distribute_contiguous_leaves (tree);
 
+      _check_local_counts (tree);
+
       ret += check_points_number (tree);
       ret += check_regions_number (tree);
 
@@ -657,6 +704,8 @@ gint main (gint argc, gchar ** argv)
 
   _exterior_points (tree);
   vsg_prtree2d_distribute_contiguous_leaves (tree);
+
+  _check_local_counts (tree);
 
   if (_do_write)
     {

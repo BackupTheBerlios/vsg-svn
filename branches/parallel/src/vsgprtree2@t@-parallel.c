@@ -991,8 +991,6 @@ static void _traverse_distribute_nodes (VsgPRTree2@t@Node *node,
 
               /* pack node to destination */
               _node_pack (node, &npd);
-
-              _prtree2@t@node_fix_counts_local (node);
             }
           else
             {
@@ -1011,7 +1009,11 @@ static void _traverse_distribute_nodes (VsgPRTree2@t@Node *node,
 
   if (new_storage == VSG_PARALLEL_REMOTE)
     {
-     _flatten_remote (node, dd->config);
+      _flatten_remote (node, dd->config);
+    }
+  else if (new_storage == VSG_PARALLEL_SHARED)
+    {
+      _prtree2@t@node_fix_counts_local (node);
     }
 
   /* update node's parallel status */
