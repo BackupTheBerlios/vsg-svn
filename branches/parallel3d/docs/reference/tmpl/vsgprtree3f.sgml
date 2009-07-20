@@ -44,6 +44,8 @@ vsgprtree3f
 @depth: 
 @user_data: 
 @isleaf: 
+@id: 
+@parallel_status: 
 
 <!-- ##### USER_FUNCTION VsgPoint3fLocFunc ##### -->
 <para>

@@ -1,5 +1,7 @@
 
-parallel_tests = commbuffer prtree2parallel prtree2paradist prtree2paranftrav
+parallel_tests = commbuffer prtree2parallel prtree2paradist prtree2paranftrav \
+prtree3parallel prtree3paradist prtree3paranftrav
+
 parallel_sources = $(addsuffix .c, $(parallel_tests))
 
 if VSG_HAVE_MPI
@@ -12,7 +14,7 @@ noinst_PROGRAMS = $(parallel_programs) vec2add vec2sub vec2dotp vec2scalp \
 vec2norm vec2vecp vec2pred vec3add vec3sub vec3dotp vec3scalp vec3vecp \
 vec3norm vec3pred mat3add mat4add prtree2pt prtree2nftrav prtree2nftrave \
 prtree3pt prtree3nftrav prtree3nftrave prtree2hilb prtree3hilb prtree2clone \
-prtreekey2 
+prtreekey2 prtree3clone prtreekey3
 
 AM_CFLAGS = -I$(top_srcdir)/build $(MPI_CFLAGS)
 LDADD = $(top_srcdir)/build/vsg/libvsg.la $(top_srcdir)/build/vsg/libvsgd.la $(MPI_LIBS)
