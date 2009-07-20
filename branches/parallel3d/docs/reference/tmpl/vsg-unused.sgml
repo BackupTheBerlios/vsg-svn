@@ -1,0 +1,727 @@
+<!-- ##### MACRO VSG_HAVE_MPI ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO VSG_SEND_CHANNEL_STATIC_INIT ##### -->
+<para>
+
+</para>
+
+@comm: 
+@dst: 
+@tag: 
+@bsize: 
+
+<!-- ##### USER_FUNCTION VsgPoint2dDistMarshall ##### -->
+<para>
+
+</para>
+
+@one: 
+@other: 
+@data: 
+@Returns: 
+
+<!-- ##### USER_FUNCTION VsgPoint2dLocMarshall ##### -->
+<para>
+
+</para>
+
+@candidate: 
+@center: 
+@data: 
+@Returns: 
+
+<!-- ##### USER_FUNCTION VsgPoint2fDistMarshall ##### -->
+<para>
+
+</para>
+
+@one: 
+@other: 
+@data: 
+@Returns: 
+
+<!-- ##### USER_FUNCTION VsgPoint2fLocMarshall ##### -->
+<para>
+
+</para>
+
+@candidate: 
+@center: 
+@data: 
+@Returns: 
+
+<!-- ##### USER_FUNCTION VsgPoint3fDistMarshall ##### -->
+<para>
+
+</para>
+
+@one: 
+@other: 
+@data: 
+@Returns: 
+
+<!-- ##### USER_FUNCTION VsgPoint3fLocMarshall ##### -->
+<para>
+
+</para>
+
+@candidate: 
+@center: 
+@data: 
+@Returns: 
+
+<!-- ##### USER_FUNCTION VsgPrtree2dNodeFunc ##### -->
+<para>
+
+</para>
+
+@lbound: 
+@ubound: 
+@user_data: 
+
+<!-- ##### USER_FUNCTION VsgPrtree2fNodeFunc ##### -->
+<para>
+
+</para>
+
+@lbound: 
+@ubound: 
+@user_data: 
+
+<!-- ##### USER_FUNCTION VsgPrtree3dNodeFunc ##### -->
+<para>
+
+</para>
+
+@lbound: 
+@ubound: 
+@user_data: 
+
+<!-- ##### USER_FUNCTION VsgPrtree3fNodeFunc ##### -->
+<para>
+
+</para>
+
+@lbound: 
+@ubound: 
+@user_data: 
+
+<!-- ##### USER_FUNCTION VsgRegion2dLocMarshall ##### -->
+<para>
+
+</para>
+
+@region: 
+@center: 
+@data: 
+@Returns: 
+
+<!-- ##### USER_FUNCTION VsgRegion2fLocMarshall ##### -->
+<para>
+
+</para>
+
+@region: 
+@center: 
+@data: 
+@Returns: 
+
+<!-- ##### USER_FUNCTION VsgRegion3fLocMarshall ##### -->
+<para>
+
+</para>
+
+@region: 
+@center: 
+@data: 
+@Returns: 
+
+<!-- ##### STRUCT VsgSendChannel ##### -->
+<para>
+
+</para>
+
+@pm: 
+@dst: 
+@tag: 
+@bsize: 
+
+<!-- ##### FUNCTION vsg_matrix3dT_vec3mult ##### -->
+<para>
+
+</para>
+
+@mat: 
+@vec: 
+@result: 
+
+<!-- ##### FUNCTION vsg_matrix3d_axismult ##### -->
+<para>
+
+</para>
+
+@mat: 
+@vec: 
+@result: 
+
+<!-- ##### FUNCTION vsg_matrix3d_get_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vsg_matrix3d_ptr3mult ##### -->
+<para>
+
+</para>
+
+@mat: 
+@vec: 
+@result: 
+
+<!-- ##### FUNCTION vsg_matrix3d_transposedmult ##### -->
+<para>
+
+</para>
+
+@mat: 
+@vec: 
+@result: 
+
+<!-- ##### FUNCTION vsg_matrix3fT_vec3mult ##### -->
+<para>
+
+</para>
+
+@mat: 
+@vec: 
+@result: 
+
+<!-- ##### FUNCTION vsg_matrix3f_axismult ##### -->
+<para>
+
+</para>
+
+@mat: 
+@vec: 
+@result: 
+
+<!-- ##### FUNCTION vsg_matrix3f_get_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vsg_matrix3f_ptr3mult ##### -->
+<para>
+
+</para>
+
+@mat: 
+@vec: 
+@result: 
+
+<!-- ##### FUNCTION vsg_matrix3f_transposedmult ##### -->
+<para>
+
+</para>
+
+@mat: 
+@vec: 
+@result: 
+
+<!-- ##### FUNCTION vsg_matrix4d_axismult ##### -->
+<para>
+
+</para>
+
+@mat: 
+@vec: 
+@result: 
+
+<!-- ##### FUNCTION vsg_matrix4d_get_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vsg_matrix4d_ptr4mult ##### -->
+<para>
+
+</para>
+
+@mat: 
+@vec: 
+@result: 
+
+<!-- ##### FUNCTION vsg_matrix4d_rotate_axes ##### -->
+<para>
+
+</para>
+
+@mat: 
+@ax: 
+@ay: 
+@az: 
+
+<!-- ##### FUNCTION vsg_matrix4d_rotate_axes_new ##### -->
+<para>
+
+</para>
+
+@ax: 
+@ay: 
+@az: 
+@Returns: 
+
+<!-- ##### FUNCTION vsg_matrix4d_transposedmult ##### -->
+<para>
+
+</para>
+
+@mat: 
+@vec: 
+@result: 
+
+<!-- ##### FUNCTION vsg_matrix4f_axismult ##### -->
+<para>
+
+</para>
+
+@mat: 
+@vec: 
+@result: 
+
+<!-- ##### FUNCTION vsg_matrix4f_get_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vsg_matrix4f_ptr4mult ##### -->
+<para>
+
+</para>
+
+@mat: 
+@vec: 
+@result: 
+
+<!-- ##### FUNCTION vsg_matrix4f_rotate_axes ##### -->
+<para>
+
+</para>
+
+@mat: 
+@ax: 
+@ay: 
+@az: 
+
+<!-- ##### FUNCTION vsg_matrix4f_rotate_axes_new ##### -->
+<para>
+
+</para>
+
+@ax: 
+@ay: 
+@az: 
+@Returns: 
+
+<!-- ##### FUNCTION vsg_matrix4f_transposedmult ##### -->
+<para>
+
+</para>
+
+@mat: 
+@vec: 
+@result: 
+
+<!-- ##### FUNCTION vsg_prtree2d_foreach_node ##### -->
+<para>
+
+</para>
+
+@prtree2d: 
+@func: 
+@user_data: 
+
+<!-- ##### FUNCTION vsg_prtree2d_set_point_dist_marshall ##### -->
+<para>
+
+</para>
+
+@prtree2d: 
+@marshall: 
+@distdata: 
+
+<!-- ##### FUNCTION vsg_prtree2d_set_point_loc_marshall ##### -->
+<para>
+
+</para>
+
+@prtree2d: 
+@marshall: 
+@locdata: 
+
+<!-- ##### FUNCTION vsg_prtree2d_set_region_loc_marshall ##### -->
+<para>
+
+</para>
+
+@prtree2d: 
+@marshall: 
+@locdata: 
+
+<!-- ##### FUNCTION vsg_prtree2f_foreach_node ##### -->
+<para>
+
+</para>
+
+@prtree2f: 
+@func: 
+@user_data: 
+
+<!-- ##### FUNCTION vsg_prtree2f_set_point_dist_marshall ##### -->
+<para>
+
+</para>
+
+@prtree2f: 
+@marshall: 
+@distdata: 
+
+<!-- ##### FUNCTION vsg_prtree2f_set_point_loc_marshall ##### -->
+<para>
+
+</para>
+
+@prtree2f: 
+@marshall: 
+@locdata: 
+
+<!-- ##### FUNCTION vsg_prtree2f_set_region_loc_marshall ##### -->
+<para>
+
+</para>
+
+@prtree2f: 
+@marshall: 
+@locdata: 
+
+<!-- ##### FUNCTION vsg_prtree3d_foreach_node ##### -->
+<para>
+
+</para>
+
+@prtree3d: 
+@func: 
+@user_data: 
+
+<!-- ##### FUNCTION vsg_prtree3d_set_point_dist_marshall ##### -->
+<para>
+
+</para>
+
+@prtree3d: 
+@marshall: 
+@distdata: 
+
+<!-- ##### FUNCTION vsg_prtree3d_set_point_loc_marshall ##### -->
+<para>
+
+</para>
+
+@prtree3d: 
+@marshall: 
+@locdata: 
+
+<!-- ##### FUNCTION vsg_prtree3d_set_region_loc_marshall ##### -->
+<para>
+
+</para>
+
+@prtree3d: 
+@marshall: 
+@locdata: 
+
+<!-- ##### FUNCTION vsg_prtree3f_foreach_node ##### -->
+<para>
+
+</para>
+
+@prtree3f: 
+@func: 
+@user_data: 
+
+<!-- ##### FUNCTION vsg_prtree3f_set_point_dist_marshall ##### -->
+<para>
+
+</para>
+
+@prtree3f: 
+@marshall: 
+@distdata: 
+
+<!-- ##### FUNCTION vsg_prtree3f_set_point_loc_marshall ##### -->
+<para>
+
+</para>
+
+@prtree3f: 
+@marshall: 
+@locdata: 
+
+<!-- ##### FUNCTION vsg_prtree3f_set_region_loc_marshall ##### -->
+<para>
+
+</para>
+
+@prtree3f: 
+@marshall: 
+@locdata: 
+
+<!-- ##### FUNCTION vsg_prtree_key2d_get_mpi_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vsg_prtree_key2f_get_mpi_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vsg_prtrtee2d_get_tolerance ##### -->
+<para>
+
+</para>
+
+@prtree2d: 
+@Returns: 
+
+<!-- ##### FUNCTION vsg_prtrtee2d_set_tolerance ##### -->
+<para>
+
+</para>
+
+@prtree2d: 
+@tolerance: 
+
+<!-- ##### FUNCTION vsg_prtrtee2f_get_tolerance ##### -->
+<para>
+
+</para>
+
+@prtree2f: 
+@Returns: 
+
+<!-- ##### FUNCTION vsg_prtrtee2f_set_tolerance ##### -->
+<para>
+
+</para>
+
+@prtree2f: 
+@tolerance: 
+
+<!-- ##### FUNCTION vsg_prtrtee3d_get_tolerance ##### -->
+<para>
+
+</para>
+
+@prtree3d: 
+@Returns: 
+
+<!-- ##### FUNCTION vsg_prtrtee3d_set_tolerance ##### -->
+<para>
+
+</para>
+
+@prtree3d: 
+@tolerance: 
+
+<!-- ##### FUNCTION vsg_prtrtee3f_get_tolerance ##### -->
+<para>
+
+</para>
+
+@prtree3f: 
+@Returns: 
+
+<!-- ##### FUNCTION vsg_prtrtee3f_set_tolerance ##### -->
+<para>
+
+</para>
+
+@prtree3f: 
+@tolerance: 
+
+<!-- ##### FUNCTION vsg_quaterniond_get_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vsg_quaterniond_make_rotatef ##### -->
+<para>
+
+</para>
+
+@quat: 
+@angle: 
+@vec: 
+
+<!-- ##### FUNCTION vsg_quaterniond_rotate_axes ##### -->
+<para>
+
+</para>
+
+@quat: 
+@ax: 
+@ay: 
+@az: 
+
+<!-- ##### FUNCTION vsg_quaterniond_rotatef_set ##### -->
+<para>
+
+</para>
+
+@quat: 
+@from: 
+@to: 
+
+<!-- ##### FUNCTION vsg_quaternionf_get_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vsg_quaternionf_make_rotated ##### -->
+<para>
+
+</para>
+
+@quat: 
+@angle: 
+@vec: 
+
+<!-- ##### FUNCTION vsg_quaternionf_rotate_axes ##### -->
+<para>
+
+</para>
+
+@quat: 
+@ax: 
+@ay: 
+@az: 
+
+<!-- ##### FUNCTION vsg_quaternionf_rotated_set ##### -->
+<para>
+
+</para>
+
+@quat: 
+@from: 
+@to: 
+
+<!-- ##### FUNCTION vsg_send_channel_append ##### -->
+<para>
+
+</para>
+
+@sc: 
+@buf: 
+@count: 
+@type: 
+
+<!-- ##### FUNCTION vsg_send_channel_check_send ##### -->
+<para>
+
+</para>
+
+@sc: 
+
+<!-- ##### FUNCTION vsg_send_channel_flush ##### -->
+<para>
+
+</para>
+
+@sc: 
+
+<!-- ##### FUNCTION vsg_send_channel_free ##### -->
+<para>
+
+</para>
+
+@sc: 
+
+<!-- ##### FUNCTION vsg_send_channel_get_buffer ##### -->
+<para>
+
+</para>
+
+@sc: 
+@Returns: 
+
+<!-- ##### FUNCTION vsg_send_channel_init ##### -->
+<para>
+
+</para>
+
+@sc: 
+@comm: 
+@dst: 
+@tag: 
+@bsize: 
+
+<!-- ##### FUNCTION vsg_send_channel_new ##### -->
+<para>
+
+</para>
+
+@comm: 
+@dst: 
+@tag: 
+@bsize: 
+@Returns: 
+
+<!-- ##### FUNCTION vsg_vector2d_get_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vsg_vector2f_get_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vsg_vector3d_get_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION vsg_vector3f_get_type ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
