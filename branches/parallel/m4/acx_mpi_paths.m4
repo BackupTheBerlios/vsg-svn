@@ -52,7 +52,8 @@ then
           mpi_link="`echo ${mpi_link} | cut -d' ' -f2-`"
 
           # remove the silly -c UESLESS.c / USELESS.o -o USELESS
-          mpi_c_compile="`echo ${mpi_c_compile} | sed -e \"s/-c USELESS.c//g\"`"          mpi_cxx_compile="`echo ${mpi_cxx_compile} | sed -e \"s/-c USELESS.cc//g\"`"
+          mpi_c_compile="`echo ${mpi_c_compile} | sed -e \"s/-c USELESS.c//g\"`"
+          mpi_cxx_compile="`echo ${mpi_cxx_compile} | sed -e \"s/-c USELESS.cc//g\"`"
           mpi_link="`echo ${mpi_link} | sed -e \"s/USELESS.o -o USELESS//g\"`"
 
           # remove -I from link - the @<:@ and @:>@ become [ and ] when m4sh is done
