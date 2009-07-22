@@ -291,7 +291,8 @@ gboolean
 vsg_prtree2@t@_node_check_parallel_near_far (VsgPRTree2@t@ *tree,
                                              VsgNFConfig2@t@ *nfc,
                                              VsgPRTree2@t@Node *node,
-                                             VsgPRTree2@t@NodeInfo *info);
+                                             VsgPRTree2@t@NodeInfo *info,
+                                             gboolean do_traversal);
 
 gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
                                           VsgNFConfig2@t@ *nfc, gint tag,

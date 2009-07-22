@@ -382,10 +382,10 @@ vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@ *tree,
 
 #ifdef VSG_HAVE_MPI
   /* check for remote processors to send this node, if needed */
-  if (parallel_check)
-    parallel_check = vsg_prtree2@t@_node_check_parallel_near_far (tree, nfc,
-                                                                  node,
-                                                                  &node_info);
+  parallel_check = vsg_prtree2@t@_node_check_parallel_near_far (tree, nfc,
+                                                                node,
+                                                                &node_info,
+                                                                parallel_check);
 #endif
 
   if (PRTREE2@T@NODE_ISLEAF (node))
@@ -579,12 +579,17 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
   MPI_Comm comm = pconfig->communicator;
 #endif
   VsgNFConfig2@t@ nfc;
+  gint rk = 0;
+  GTimer *timer = g_timer_new ();
+  gdouble t1, t2;
 
 #ifdef VSG_CHECK_PARAMS
   g_return_if_fail (prtree2@t@ != NULL);
 #endif
 
 #ifdef VSG_HAVE_MPI
+  MPI_Comm_rank (comm, &rk);
+
   vsg_nf_config2@t@_init (&nfc, comm, far_func, near_func, user_data);
 
   vsg_nf_config2@t@_tmp_alloc (&nfc, &prtree2@t@->config);
@@ -601,9 +606,16 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
 
 #endif
 
+  t1 = g_timer_elapsed (timer, NULL);
+  g_printerr ("%d : nf1 elapsed=%f seconds\n", rk, t1);
+
   vsg_prtree2@t@node_near_far_traversal (prtree2@t@, &nfc,
                                          prtree2@t@->node,
                                          NULL, 0, TRUE);
+
+  t2 = g_timer_elapsed (timer, NULL);
+  g_printerr ("%d : nf2 elapsed=%f seconds\n", rk, t2-t1);
+  t1 = t2;
 
 #ifdef VSG_HAVE_MPI
   if (comm != MPI_COMM_NULL)
@@ -615,6 +627,12 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
 
   vsg_nf_config2@t@_clean (&nfc);
 #endif
+
+  t2 = g_timer_elapsed (timer, NULL);
+  g_printerr ("%d : nf3 elapsed=%f seconds\n", rk, t2-t1);
+  t1 = t2;
+
+  g_timer_destroy (timer);
 }
 
 /**
