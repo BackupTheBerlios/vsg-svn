@@ -588,7 +588,8 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
 #endif
 
 #ifdef VSG_HAVE_MPI
-  MPI_Comm_rank (comm, &rk);
+  if (comm != MPI_COMM_NULL)
+    MPI_Comm_rank (comm, &rk);
 
   vsg_nf_config2@t@_init (&nfc, comm, far_func, near_func, user_data);
 
