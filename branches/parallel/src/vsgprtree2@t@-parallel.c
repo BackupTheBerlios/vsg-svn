@@ -102,7 +102,7 @@ static GSList *_alloc_and_unpack_list (ForeachPackData *fpd, gint length)
     {
       gpointer obj = _alloc_and_unpack (fpd);
 
-      objlist  = g_slist_prepend (objlist, obj);
+      objlist  = g_slist_append (objlist, obj);
     }
 
   return objlist;
