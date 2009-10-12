@@ -2070,8 +2070,6 @@ gboolean vsg_prtree3@t@_nf_check_receive (VsgPRTree3@t@ *tree,
   VsgPRTree3@t@Config *config = &tree->config;
   VsgPRTreeParallelConfig * pc = &config->parallel_config;
   MPI_Status status;
-  gint rk;
-  MPI_Comm_rank (MPI_COMM_WORLD, &rk);
 
   MPI_Iprobe (MPI_ANY_SOURCE, tag, pc->communicator, &flag, &status);
 
@@ -2657,7 +2655,7 @@ vsg_prtree3@t@_nf_check_parallel_end (VsgPRTree3@t@ *tree,
   for (i=1; i<nfc->sz; i++)
     {
       dst = (nfc->rk+i) % nfc->sz;
-      vsg_prtree3@t@_nf_check_send (tree, nfc);                                                                              
+      vsg_prtree3@t@_nf_check_send (tree, nfc);
       MPI_Send (&msg, 0, MPI_INT, dst, END_FW_TAG, comm);
     }
 
