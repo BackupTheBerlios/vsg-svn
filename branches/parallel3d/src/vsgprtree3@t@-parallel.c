@@ -2604,6 +2604,8 @@ vsg_prtree3@t@_shared_nodes_allreduce (VsgPRTree3@t@ *tree,
   VsgPRTreeParallelConfig *pconfig = &tree->config.parallel_config;
   gpointer tmp_node_data = NULL;
 
+  if (pconfig->communicator == MPI_COMM_NULL) return;
+
   if (pconfig->node_data.alloc != NULL)
     {
       tmp_node_data =
