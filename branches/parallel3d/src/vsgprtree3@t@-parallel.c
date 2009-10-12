@@ -102,7 +102,9 @@ static GSList *_alloc_and_unpack_list (ForeachPackData *fpd, gint length)
     {
       gpointer obj = _alloc_and_unpack (fpd);
 
-      objlist  = g_slist_prepend (objlist, obj);
+      /* Don't use g_slist_prepend here since it is mandatory to keep
+	 point list in the same order between fw and bw transfers */
+      objlist  = g_slist_append (objlist, obj);
     }
 
   return objlist;
