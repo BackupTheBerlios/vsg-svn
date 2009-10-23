@@ -496,6 +496,58 @@ static void _random2_fill (VsgPRTree3d *tree, guint np)
   g_rand_free (rand);
 }
 
+/* UV sphere fill */
+static void _uvsphere_fill (VsgPRTree3d *tree, guint np)
+{
+  gint i;
+  Pt *pt;
+  VsgVector3d lb, ub;
+  GRand *rand = g_rand_new_with_seed (_random_seed);
+  gdouble r;
+
+  vsg_prtree3d_get_bounds (tree, &lb, &ub);
+  r = MIN (lb.x, ub.x);
+
+  pt = pt_alloc (TRUE, NULL);
+
+  for (i=0; i< np; i++)
+    {
+      gdouble theta, phi;
+      gint c;
+
+      theta = g_rand_double_range (rand, 0.01 * G_PI, 0.99 * G_PI);
+      phi = g_rand_double_range (rand, 0., 2.*G_PI);
+
+      c = i+1;
+
+      vsg_vector3d_from_spherical (&pt->vector, r, theta, phi);
+      pt->weight = c;
+
+      _ref_count += c;
+
+      if (vsg_prtree3d_insert_point_local (tree, pt))
+        {
+          if (i % 10000 == 0 && _verbose)
+            g_printerr ("%d: insert %dth point\n", rk, i);
+
+          pt = pt_alloc (TRUE, NULL);
+        }
+
+      if (i%(_flush_interval*10) == 0)
+        {
+          if (_verbose && rk == 0)
+            g_printerr ("%d: contiguous dist before %dth point\n", rk, i);
+          _distribute (tree);
+        }
+    }
+
+  pt_destroy (pt, TRUE, NULL);
+
+  _distribute (tree);
+
+  g_rand_free (rand);
+}
+
 /* faster algorithm for circle distribution */
 void _circle_fill (VsgPRTree3d *tree, guint np)
 {
@@ -628,7 +680,11 @@ void parse_args (int argc, char **argv)
 
 	  arg = (iarg<argc) ? argv[iarg] : NULL;
 
-	  if (g_ascii_strncasecmp (arg, "random2", 7) == 0)
+	  if (g_ascii_strncasecmp (arg, "uvsphere", 8) == 0)
+            {
+              _fill = _uvsphere_fill;      
+            }
+          else if (g_ascii_strncasecmp (arg, "random2", 7) == 0)
             {
               _fill = _random2_fill;      
             }
