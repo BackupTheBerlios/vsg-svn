@@ -1613,7 +1613,6 @@ static void _visiting_node_free (VsgPRTree3@t@Node *node,
   vsg_prtree3@t@node_free (node, config);
 }
 
-
 static void _do_send_forward_node (VsgPRTree3@t@ *tree,
                                    VsgNFConfig3@t@ *nfc,
                                    VsgNFProcMsg *nfpm,
@@ -2363,22 +2362,16 @@ gboolean
 vsg_prtree3@t@_node_check_parallel_near_far (VsgPRTree3@t@ *tree,
                                              VsgNFConfig3@t@ *nfc,
                                              VsgPRTree3@t@Node *node,
-                                             VsgPRTree3@t@NodeInfo *info)
+                                             VsgPRTree3@t@NodeInfo *info,
+                                             gboolean do_traversal)
 {
-  gboolean ret = TRUE;
-  gint rk, sz;
+  gboolean ret = do_traversal;
 
-  if (tree->config.parallel_config.communicator == MPI_COMM_NULL)
-    return ret;
-
-  MPI_Comm_size (tree->config.parallel_config.communicator, &sz);
-  if (sz < 2) return ret;
-
-  MPI_Comm_rank (tree->config.parallel_config.communicator, &rk);
+  if (nfc->sz < 2) return FALSE;
 
   vsg_prtree3@t@_nf_check_receive (tree, nfc, MPI_ANY_TAG, FALSE);
 
-  if (VSG_PRTREE3@T@_NODE_INFO_IS_LOCAL (info))
+  if (do_traversal && VSG_PRTREE3@T@_NODE_INFO_IS_LOCAL (info))
     {
       gint i;
       NodeRemoteData nrd;

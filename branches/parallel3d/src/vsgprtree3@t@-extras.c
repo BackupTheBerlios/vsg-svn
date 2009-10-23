@@ -453,10 +453,10 @@ vsg_prtree3@t@node_near_far_traversal (VsgPRTree3@t@ *tree,
 
 #ifdef VSG_HAVE_MPI
   /* check for remote processors to send this node, if needed */
-  if (parallel_check)
-    parallel_check = vsg_prtree3@t@_node_check_parallel_near_far (tree, nfc,
-                                                                  node,
-                                                                  &node_info);
+  parallel_check = vsg_prtree3@t@_node_check_parallel_near_far (tree, nfc,
+                                                                node,
+                                                                &node_info,
+                                                                parallel_check);
 #endif
 
   if (PRTREE3@T@NODE_ISLEAF (node))
