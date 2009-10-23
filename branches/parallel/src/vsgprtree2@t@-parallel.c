@@ -1923,6 +1923,8 @@ static gboolean _compute_visiting_node (VsgPRTree2@t@ *tree,
   _vsg_prtree2@t@node_get_info (wv->node, &niaf.ref_info, NULL, 0);
   memcpy (&niaf.ref_info.id, &wv->id, sizeof (VsgPRTreeKey2@t@));
 
+  niaf.ref_info.depth = niaf.ref_info.id.depth;
+
   vsg_prtree_key2@t@_copy (&ref_ancestry_ids[niaf.ref_info.id.depth],
                            &niaf.ref_info.id);
   for (i = niaf.ref_info.id.depth-1; i >= 0; i --)
