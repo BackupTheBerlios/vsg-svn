@@ -2862,12 +2862,13 @@ static gint contiguous_dist (VsgPRTree3@t@NodeInfo *node_info,
     {
       gint ret = 0;
 
-      if (cda->current_lcount >= cda->m)
+      if (cda->current_lcount >= cda->m && cda->q > 0)
         ret = (cda->current_lcount - cda->r) / cda->q;
       else
         ret = cda->current_lcount / (cda->q + 1);
 
-      if (node_info->point_count == 0) return ret;
+      if (node_info->point_count == 0)
+	return ret;
 
       cda->current_lcount ++;
 
