@@ -2031,7 +2031,7 @@ static void _send_final_dropped_visitors (gpointer key, VsgNFProcMsg *nfpm,
 
       if (!flag)
 	{
-	  remaining ++;
+	  (*remaining) ++;
 	  return;
 	}
 
