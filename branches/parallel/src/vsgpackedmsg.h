@@ -51,11 +51,17 @@ VsgPackedMsg *vsg_packed_msg_new (MPI_Comm comm);
 
 void vsg_packed_msg_init (VsgPackedMsg *pm, MPI_Comm comm);
 
+void vsg_packed_msg_reset (VsgPackedMsg *pm);
+
 void vsg_packed_msg_set_reference (VsgPackedMsg *pm, VsgPackedMsg *model);
 
 void vsg_packed_msg_send_append (VsgPackedMsg *pm, gpointer buf,
                                  gint count, MPI_Datatype type);
 
+void vsg_packed_msg_trace_set_active (gboolean active);
+gboolean vsg_packed_msg_trace_get_active ();
+
+void vsg_packed_msg_trace (gchar *format, ...);
 
 void vsg_packed_msg_recv_read (VsgPackedMsg *pm, gpointer buf,
                                gint count, MPI_Datatype type);

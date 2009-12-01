@@ -394,7 +394,7 @@ _wrap_vsg_prtree3@t@_insert_point (PyObject *self, PyObject *args)
 
   Py_INCREF (point);
   vsg_prtree3@t@_insert_point (pyg_boxed_get (self, VsgPRTree3@t@),
-                                  point);
+                               point);
 
   Py_INCREF (Py_None);
   return Py_None;
@@ -596,7 +596,7 @@ struct _ForeachPointData3@t@ {
 
 static void
 _prtree3@t@_foreach_point_marshall (PyObject *point,
-                                       ForeachPointData3@t@ *marshall_data)
+                                    ForeachPointData3@t@ *marshall_data)
 {
   PyObject *pyret;
   PyObject *args = PyTuple_New (2);
@@ -748,7 +748,7 @@ _wrap_vsg_prtree3@t@_foreach_point_custom (PyObject *self, PyObject *args)
     }
 
   test = pyvsg_region3@t@_locfunc (selector, &testv,
-                                  pyg_boxed_get (self, VsgPRTree3@t@)->config.region_loc_data);
+                                   pyg_boxed_get (self, VsgPRTree3@t@)->config.region_loc_data);
 
   if (test == NULL || !PyInt_Check (test))
     {
@@ -1106,6 +1106,9 @@ void visitfunc3@t@ (PyObject *obj,
   /* else do nothing */
 }
 
+/* keep in sync with vsgprtree3@t@.c */
+gboolean _vsg_prtree3@t@_check_user_data_model (VsgPRTree3@t@ *tree);
+
 static int
 _wrap_vsg_prtree3@t@_tp_traverse(PyObject *self, visitproc visit, void *arg)
 {
@@ -1126,10 +1129,15 @@ _wrap_vsg_prtree3@t@_tp_traverse(PyObject *self, visitproc visit, void *arg)
     {
       if (visit (tree->config.region_loc_data, arg) < 0) return -1;
     }
-
-  if (tree->config.user_data_model != NULL)
+  if (_vsg_prtree3@t@_check_user_data_model (tree))
     {
-      if (visit (tree->config.user_data_model, arg) < 0) return -1;
+      if (visit (tree->config.parallel_config.node_data.alloc_data,
+		 arg) < 0) return -1;
+    }
+
+  if (tree->config.children_order_data != NULL)
+    {
+      if (visit (tree->config.children_order_data, arg) < 0) return -1;
     }
 
   vsg_prtree3@t@_foreach_point (tree, (GFunc) visitfunc3@t@, &v);
@@ -1164,6 +1172,13 @@ _wrap_vsg_prtree3@t@_tp_clear(PyObject *self)
 
   Py_XDECREF((PyObject *) tree->config.region_loc_data);
   tree->config.region_loc_data = NULL;
+
+  Py_XDECREF((PyObject *) tree->config.children_order_data);
+  tree->config.children_order_data = NULL;
+
+  tree->config.root_key = NULL;
+
+  vsg_prtree3@t@_set_children_order (tree, NULL, NULL);
 
   vsg_prtree3@t@_foreach_point (tree, (GFunc) clear_func3@t@, NULL);
   vsg_prtree3@t@_foreach_region (tree, (GFunc) clear_func3@t@, NULL);
@@ -1592,7 +1607,7 @@ _wrap_vsg_prtree3@t@_set_node_data (PyObject *self, PyObject *args)
       if (!pyvsg_boxed_pyobject_check_method (obj))
         {
           PyErr_SetString(PyExc_ValueError,
-                          "VsgPRTree3t@.set_node_data argument " \
+                          "VsgPRTree3@t@.set_node_data argument " \
                           "must have a \"copy\" method");
           return NULL;
         }

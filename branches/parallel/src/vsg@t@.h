@@ -43,6 +43,7 @@
 
 #ifdef VSG_HAVE_MPI
 #include <vsg/vsgprtree2@t@-parallel.h>
+#include <vsg/vsgprtree3@t@-parallel.h>
 #endif
 
 G_BEGIN_DECLS;

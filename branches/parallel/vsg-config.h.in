@@ -76,6 +76,9 @@
 /* Define to the VSG minor version */
 #undef VSG_MINOR_VERSION
 
+/* turns on MPI packed message trace (for debugging prurpose only) */
+#undef VSG_PACKED_MSG_TRACE
+
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
 

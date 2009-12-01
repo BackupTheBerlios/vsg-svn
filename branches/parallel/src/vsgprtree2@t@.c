@@ -1589,7 +1589,6 @@ VsgPRTree2@t@ *vsg_prtree2@t@_clone (VsgPRTree2@t@ *prtree2@t@)
       res->config.parallel_config.node_data.destroy_data = gam;
     }
 
-
   res->node = _leaf_alloc(&prtree2@t@->node->lbound,
                           &prtree2@t@->node->ubound,
                           prtree2@t@->node->parallel_status,

@@ -27,13 +27,33 @@
 
 #include <vsg/vsgprtree-common.h>
 
+#include <vsg/vsgprtree-parallel.h>
+
 #include <vsg/vsgprtree3-common.h>
+
+#include <vsg/vsgprtreekey3@t@.h>
 
 G_BEGIN_DECLS;
 
 /* macros */
 #define VSG_TYPE_PRTREE3@T@ (vsg_prtree3@t@_get_type ())
 #define VSG_TYPE_PRTREE3@T@_NODE_INFO (vsg_prtree3@t@_node_info_get_type ())
+
+#define VSG_PRTREE3@T@_NODE_INFO_IS_REMOTE(node_info) ( \
+VSG_PARALLEL_STATUS_IS_REMOTE ((node_info)->parallel_status) \
+)
+
+#define VSG_PRTREE3@T@_NODE_INFO_IS_LOCAL(node_info) ( \
+VSG_PARALLEL_STATUS_IS_LOCAL ((node_info)->parallel_status) \
+)
+
+#define VSG_PRTREE3@T@_NODE_INFO_IS_SHARED(node_info) ( \
+VSG_PARALLEL_STATUS_IS_SHARED ((node_info)->parallel_status) \
+)
+
+#define VSG_PRTREE3@T@_NODE_INFO_PROC(node_info) ( \
+VSG_PARALLEL_STATUS_PROC ((node_info)->parallel_status) \
+)
 
 /* typedefs */
 typedef struct _VsgPRTree3@t@ VsgPRTree3@t@;
@@ -85,6 +105,10 @@ struct _VsgPRTree3@t@NodeInfo {
   gpointer user_data;
 
   gboolean isleaf;
+
+  VsgPRTreeKey3@t@ id;
+
+  VsgParallelStatus parallel_status;
 };
 
 /* functions */
@@ -157,6 +181,9 @@ void vsg_prtree3@t@_set_node_data (VsgPRTree3@t@ *prtree3@t@,
                                    GType user_data_type,
                                    gpointer user_data_model);
 
+void vsg_prtree3@t@_set_node_data_vtable (VsgPRTree3@t@ *prtree3@t@,
+                                          VsgParallelVTable *vtable);
+
 void vsg_prtree3@t@_get_bounds (VsgPRTree3@t@ *prtree3@t@,
                                 VsgVector3@t@ *lbound,
                                 VsgVector3@t@ *ubound);
@@ -170,6 +197,9 @@ guint vsg_prtree3@t@_region_count (const VsgPRTree3@t@ *prtree3@t@);
 void vsg_prtree3@t@_insert_point (VsgPRTree3@t@ *prtree3@t@,
                                   VsgPoint3 point);
 
+gboolean vsg_prtree3@t@_insert_point_local (VsgPRTree3@t@ *prtree3@t@,
+                                            VsgPoint3 point);
+
 gboolean vsg_prtree3@t@_remove_point (VsgPRTree3@t@ *prtree3@t@,
                                       VsgPoint3 point);
 
@@ -179,9 +209,9 @@ void vsg_prtree3@t@_insert_region (VsgPRTree3@t@ *prtree3@t@,
 gboolean vsg_prtree3@t@_remove_region (VsgPRTree3@t@ *prtree3@t@,
 				       VsgRegion3 region);
 
-void vsg_prtree3@t@_write (const VsgPRTree3@t@ *prtree3@t@,
+void vsg_prtree3@t@_write (VsgPRTree3@t@ *prtree3@t@,
                            FILE *file);
-void vsg_prtree3@t@_print (const VsgPRTree3@t@ *prtree3@t@);
+void vsg_prtree3@t@_print (VsgPRTree3@t@ *prtree3@t@);
 
 VsgPoint3 vsg_prtree3@t@_find_point (VsgPRTree3@t@ *prtree3@t@,
                                      VsgPoint3 selector);

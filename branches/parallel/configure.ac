@@ -94,6 +94,12 @@ AC_ARG_ENABLE(check-params,
               [AC_DEFINE(VSG_CHECK_PARAMS, 1, [function parameters checking])])
 
 
+AC_ARG_ENABLE(msg-trace,
+              [AC_HELP_STRING([--enable-msg-trace],
+              [turns on MPI message trace])],
+              [AC_DEFINE(VSG_PACKED_MSG_TRACE, 1, [turns on MPI packed message trace (for debugging prurpose only)])])
+
+
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_AWK
