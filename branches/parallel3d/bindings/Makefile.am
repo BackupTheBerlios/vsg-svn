@@ -1,6 +1,0 @@
-
-SUBDIRS = python
-
-all : 
-
-
