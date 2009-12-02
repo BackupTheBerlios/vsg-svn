@@ -2617,8 +2617,8 @@ vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
 {
   MPI_Comm comm = tree->config.parallel_config.communicator;
   gint i, dst;
-  gint msg = 0;
-  GTimer *timer = g_timer_new ();
+  VsgPackedMsg pm = VSG_PACKED_MSG_STATIC_INIT (comm);
+   GTimer *timer = g_timer_new ();
   gint dropped_remaining = 1;
 
 /*   g_printerr ("%d(%d) : parallel_end begin (fw pending wv=%d) (bw pending wv=%d)\n", */
@@ -2640,8 +2640,10 @@ vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
     {
       dst = (nfc->rk+i) % nfc->sz;
       vsg_prtree2@t@_nf_check_send (tree, nfc);
-      MPI_Send (&msg, 0, MPI_INT, dst, END_FW_TAG, comm);
+      vsg_packed_msg_send (&pm, dst, END_FW_TAG);
     }
+
+  vsg_packed_msg_drop_buffer (&pm);
 
   g_printerr ("%d : end fw sent (elapsed %f)\n", nfc->rk,
               g_timer_elapsed (timer, NULL));
