@@ -1255,6 +1255,7 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
 #define END_FW_TAG (102)
 #define VISIT_SHARED_TAG (103)
 
+static gint _packed_msg_max_size = G_MAXINT;
 
 /*
  * Holds a visiting node while it waits to be sent back to its original
@@ -1700,19 +1701,53 @@ static void _send_pending_backward_node (VsgPRTree2@t@ *tree,
                                          VsgNFProcMsg *nfpm,
                                          gint proc)
 {
+  VsgPackedMsg *msg = &nfpm->send_pm;
+  NodePackData npd = NPD_VISIT_BACKWARD (&tree->config.parallel_config, msg);
+  gint maxsize = MAX (_packed_msg_max_size, vsg_packed_msg_header_size ()+1);
+  gint sending = 0;
+
+  msg->position = 0;
+
+  if (nfpm->dropped_visitors > 0)
+    {
+      VsgPRTreeKey2@t@ k = vsg_prtree_key2@t@_root;
+
+      /* issue a false key followed with number of dropped visitors */
+      vsg_packed_msg_send_append (msg, &k, 1,
+                                  VSG_MPI_TYPE_PRTREE_KEY2@T@);
+      vsg_packed_msg_send_append (msg, &nfpm->dropped_visitors, 1,
+                                  MPI_INT);
+      nfpm->dropped_visitors = 0;
+      sending ++;
+    }
+
   /* check for backward messages */
-  GSList *first = nfpm->backward_pending;
-  WaitingVisitor *wv = (WaitingVisitor *) first->data;
+  while (nfpm->backward_pending != NULL &&
+         nfpm->send_pm.position < maxsize)
+    {
+      GSList *first = nfpm->backward_pending;
+      WaitingVisitor *wv = (WaitingVisitor *) first->data;
 
-  nfpm->backward_pending = g_slist_next (nfpm->backward_pending);
-  g_slist_free1 (first);
+      nfpm->backward_pending = g_slist_next (nfpm->backward_pending);
+      g_slist_free1 (first);
 
-  _do_send_backward_node (tree, nfc, nfpm, wv->node,
-                          &wv->id, proc);
+      vsg_packed_msg_send_append (msg, &wv->id, 1, VSG_MPI_TYPE_PRTREE_KEY2@T@);
+      _node_pack_and_destroy (wv->node, &npd);
+      vsg_prtree2@t@node_free (wv->node, &tree->config);
 
-  _waiting_visitor_free (wv);
+      _waiting_visitor_free (wv);
 
-  nfc->backward_pending_nb --;
+      nfc->backward_pending_nb --;
+
+      sending ++;
+    }
+
+  if (sending > 0)
+    {
+      vsg_packed_msg_isend (msg, proc, VISIT_BACKWARD_TAG, &nfpm->request);
+
+      nfc->all_bw_sends ++;
+    }
 }
 
 static void _propose_node_forward (VsgPRTree2@t@ *tree,
@@ -2128,17 +2163,19 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
         }
         break;
       case VISIT_BACKWARD_TAG:
-        vsg_packed_msg_recv_read (&nfc->recv, &id, 1,
-                                  VSG_MPI_TYPE_PRTREE_KEY2@T@);
 
-        /* detect special key for dropped visitors */
-        if (id.depth == 0)
-          {
-            gint i;
-            vsg_packed_msg_recv_read (&nfc->recv, &i, 1, MPI_INT);
-            nfc->pending_backward_msgs -= i;
+        do {
+          vsg_packed_msg_recv_read (&nfc->recv, &id, 1,
+                                    VSG_MPI_TYPE_PRTREE_KEY2@T@);
 
-            _dropped_count += i;
+          /* detect special key for dropped visitors */
+          if (id.depth == 0)
+            {
+              gint i;
+              vsg_packed_msg_recv_read (&nfc->recv, &i, 1, MPI_INT);
+              nfc->pending_backward_msgs -= i;
+
+              _dropped_count += i;
 /*             g_printerr ("%d(%d) : bw dropped recv from %d - %d (%d left) ", */
 /*                         nfc->rk, getpid (), status.MPI_SOURCE, i, */
 /*                         nfc->pending_backward_msgs); */
@@ -2146,15 +2183,15 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
 /*             g_printerr ("\n"); */
 /*             fflush (stderr); */
 
-            /* if end of message reached, break */
-            if (nfc->recv.position >= nfc->recv.size) break;
+              /* if end of message reached, break */
+              if (nfc->recv.position >= nfc->recv.size) break;
 
-            /* else: unpack following node key */
-            vsg_packed_msg_recv_read (&nfc->recv, &id, 1,
-                                      VSG_MPI_TYPE_PRTREE_KEY2@T@);
-          }
+              /* else: unpack following node key */
+              vsg_packed_msg_recv_read (&nfc->recv, &id, 1,
+                                        VSG_MPI_TYPE_PRTREE_KEY2@T@);
+            }
 
-        node = vsg_prtree2@t@node_key_lookup (tree->node, id);
+          node = vsg_prtree2@t@node_key_lookup (tree->node, id);
 
 /*         g_printerr ("%d(%d) : bw recv from %d - ", nfc->rk, getpid (), */
 /*                     status.MPI_SOURCE); */
@@ -2162,18 +2199,20 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
 /*         g_printerr ("\n"); */
 /*         fflush (stderr); */
 
-        g_assert (PRTREE2@T@NODE_IS_LOCAL (node));
+          g_assert (PRTREE2@T@NODE_IS_LOCAL (node));
 
-        {
-          NodePackData npd = NPD_VISIT_BACKWARD (pc, &nfc->recv);
-          _node_unpack_and_reduce (node, &npd, nfc);
-        }
+          {
+            NodePackData npd = NPD_VISIT_BACKWARD (pc, &nfc->recv);
+            _node_unpack_and_reduce (node, &npd, nfc);
+          }
 
-        nfc->pending_backward_msgs --;
+          nfc->pending_backward_msgs --;
 /*             g_printerr ("bw recv(%d)\n", nfc->rk); */
 /*         fflush (stderr); */
 
-        nfc->all_bw_recvs ++;
+          nfc->all_bw_recvs ++;
+
+        } while (nfc->recv.position < nfc->recv.size);
         break;
       case END_FW_TAG:
         nfc->pending_end_forward --;
