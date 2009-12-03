@@ -256,6 +256,11 @@ static void _trace_write_msg_recv (VsgPackedMsg *msg, gchar *mode, gint src,
   _trace_write_msg (mode, msg->communicator, msgid, src, tag, msg->size);
 }
 
+G_CONST_RETURN gint vsg_packed_msg_header_size ()
+{
+  return _PM_ID_SIZE;
+}
+
 #else
 
 #define _PM_ID_SIZE (0)
@@ -278,6 +283,11 @@ void vsg_packed_msg_trace_set_active (gboolean active)
 gboolean vsg_packed_msg_trace_get_active ()
 {
   return FALSE;
+}
+
+G_CONST_RETURN gint vsg_packed_msg_header_size ()
+{
+  return 0;
 }
 
 #endif

@@ -63,6 +63,8 @@ gboolean vsg_packed_msg_trace_get_active ();
 
 void vsg_packed_msg_trace (gchar *format, ...);
 
+G_CONST_RETURN gint vsg_packed_msg_header_size ();
+
 void vsg_packed_msg_recv_read (VsgPackedMsg *pm, gpointer buf,
                                gint count, MPI_Datatype type);
 
