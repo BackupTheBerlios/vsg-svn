@@ -1740,7 +1740,7 @@ static void _send_pending_backward_node (VsgPRTree3@t@ *tree,
       WaitingVisitor *wv = (WaitingVisitor *) first->data;
 
       nfpm->backward_pending = g_slist_next (nfpm->backward_pending);
-      g_slist_free1 (first);
+      g_slist_free_1 (first);
 
       vsg_packed_msg_send_append (msg, &wv->id, 1, VSG_MPI_TYPE_PRTREE_KEY3@T@);
       _node_pack_and_destroy (wv->node, &npd);
