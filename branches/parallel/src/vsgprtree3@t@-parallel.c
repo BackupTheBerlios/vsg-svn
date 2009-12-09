@@ -1363,7 +1363,11 @@ static void vsg_nf_proc_msg_init (VsgNFProcMsg *nfpm, MPI_Comm comm)
 
 static VsgNFProcMsg *vsg_nf_proc_msg_new (MPI_Comm comm)
 {
+#if _USE_G_SLICES
   VsgNFProcMsg *nfpm = g_slice_new0 (VsgNFProcMsg);
+#else
+  VsgNFProcMsg *nfpm = g_new0 (VsgNFProcMsg, 1);
+#endif
 
   vsg_nf_proc_msg_init(nfpm, comm);
 
@@ -1379,7 +1383,11 @@ static void vsg_nf_proc_msg_free (VsgNFProcMsg *nfpm)
   g_slist_foreach (nfpm->backward_pending, (GFunc) _wv_free_gfunc, NULL);
   g_slist_free (nfpm->backward_pending);
 
+#if _USE_G_SLICES
   g_slice_free (VsgNFProcMsg, nfpm);
+#else
+  g_free (nfpm);
+#endif
 }
 
 /*
@@ -1643,7 +1651,7 @@ static void _send_pending_forward_node (VsgPRTree3@t@ *tree,
   WaitingVisitor *wv = (WaitingVisitor *) first->data;
 
   nfpm->forward_pending = g_slist_next (nfpm->forward_pending);
-  g_slist_free1 (first);
+  g_slist_free_1 (first);
 
   _do_send_forward_node (tree, nfc, nfpm, wv->node, &wv->id, proc);
 
