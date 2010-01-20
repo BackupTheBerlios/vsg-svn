@@ -18,7 +18,7 @@ typedef gint64 _trace_id;
 FILE *_trace_file = NULL;
 static gboolean _trace_active = TRUE;
 static _trace_id _msgid = 0;
-static _trace_id _msgid_incr = 1;
+static _trace_id _msgid_incr = 0;
 static GHashTable *_trace_comm_hash = NULL;
 /* static gint _trace_id_max = 0; */
 static GTimer *_timer = NULL;
@@ -118,7 +118,7 @@ static inline void _trace_file_open ()
       else
 	trace_path = g_strdup (filename);
 
-      g_printerr ("%d : opening trace \"%s\"\n", rk, trace_path);
+/*       g_printerr ("%d : opening trace \"%s\"\n", rk, trace_path); */
 
       _trace_file = fopen (trace_path, "w");
 
@@ -156,22 +156,21 @@ static void _trace_write_msg (gchar *name, MPI_Comm comm, _trace_id msgid,
   gulong microseconds;
   gint commid;
 
+  if (! _trace_active) return;
+
   _trace_file_open ();
 
   commid = _trace_comm_id (comm);
 
-  if (_trace_active)
-    {
-      seconds = g_timer_elapsed (_timer, NULL);
-      microseconds = (glong) (seconds * 1.e6);
-      g_fprintf (_trace_file, "%lu: msg=%s msgid=%ld comm=%d remote=%d tag=%d "
-		 "size=%d\n",
-		 microseconds, name,
-		 msgid, commid, remote, tag,
-		 (gint) (size - sizeof (_trace_id)));
+  seconds = g_timer_elapsed (_timer, NULL);
+  microseconds = (glong) (seconds * 1.e6);
+  g_fprintf (_trace_file, "%lu: msg=%s msgid=%ld comm=%d remote=%d tag=%d "
+             "size=%d\n",
+             microseconds, name,
+             msgid, commid, remote, tag,
+             (gint) (size - sizeof (_trace_id)));
 
-      fflush (_trace_file);
-    }
+  fflush (_trace_file);
 }
 
 void vsg_packed_msg_trace (gchar *format, ...)
@@ -179,6 +178,8 @@ void vsg_packed_msg_trace (gchar *format, ...)
   gdouble seconds;
   gulong microseconds;
   va_list ap;
+
+  if (! _trace_active) return;
 
   _trace_file_open ();
 
@@ -221,8 +222,6 @@ static void _trace_write_msg_send (VsgPackedMsg *msg, gchar *mode, gint dst,
 {
   _trace_id msgid;
 
-  _trace_file_open ();
-
   msgid = _msgid;
 
   if (msg->own_buffer)
@@ -246,8 +245,6 @@ static void _trace_write_msg_recv (VsgPackedMsg *msg, gchar *mode, gint src,
 				   gint tag)
 {
   _trace_id msgid;
-
-  _trace_file_open ();
 
   msg->position = 0;
 
