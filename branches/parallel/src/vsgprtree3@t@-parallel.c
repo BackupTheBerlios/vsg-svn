@@ -184,13 +184,13 @@ static void _node_pack (VsgPRTree3@t@Node *node, NodePackData *npd)
   vsg_packed_msg_send_append (msg, &region_count, 1, MPI_INT);
 
   /* pack the node data */
-  if (datapresent)
+  if (datapresent && npd->data_fpd.migrate->pack != NULL)
     {
       _foreach_pack (node->user_data, &npd->data_fpd);
     }
 
   /* pack the points */
-  if (point_count > 0)
+  if (point_count > 0 && npd->pt_fpd.migrate->pack != NULL)
     {
       g_slist_foreach (PRTREE3@T@NODE_LEAF (node).point,
                        (GFunc) _foreach_pack,
@@ -198,7 +198,7 @@ static void _node_pack (VsgPRTree3@t@Node *node, NodePackData *npd)
     }
 
   /* pack the regions */
-  if (region_count > 0)
+  if (region_count > 0 && npd->rg_fpd.migrate->pack != NULL)
     {
       g_slist_foreach (node->region_list, (GFunc) _foreach_pack, &npd->rg_fpd);
     }
@@ -228,7 +228,8 @@ static void _node_pack_and_destroy (VsgPRTree3@t@Node *node, NodePackData *npd)
   /* pack the node data */
   if (datapresent)
     {
-      _foreach_pack_and_destroy (node->user_data, &npd->data_fpd);
+      if (npd->data_fpd.migrate->pack != NULL)
+        _foreach_pack_and_destroy (node->user_data, &npd->data_fpd);
 
       node->user_data = NULL;
     }
@@ -236,9 +237,10 @@ static void _node_pack_and_destroy (VsgPRTree3@t@Node *node, NodePackData *npd)
   /* pack the points */
   if (point_count > 0)
     {
-      g_slist_foreach (PRTREE3@T@NODE_LEAF (node).point,
-                       (GFunc) _foreach_pack_and_destroy,
-                       &npd->pt_fpd);
+      if (npd->pt_fpd.migrate->pack != NULL)
+        g_slist_foreach (PRTREE3@T@NODE_LEAF (node).point,
+                         (GFunc) _foreach_pack_and_destroy,
+                         &npd->pt_fpd);
 
       g_slist_free (PRTREE3@T@NODE_LEAF (node).point);
       PRTREE3@T@NODE_LEAF (node).point = NULL;
@@ -248,8 +250,9 @@ static void _node_pack_and_destroy (VsgPRTree3@t@Node *node, NodePackData *npd)
   /* pack the regions */
   if (region_count > 0)
     {
-      g_slist_foreach (node->region_list, (GFunc) _foreach_pack_and_destroy,
-                       &npd->rg_fpd);
+      if (npd->rg_fpd.migrate->pack != NULL)
+        g_slist_foreach (node->region_list, (GFunc) _foreach_pack_and_destroy,
+                         &npd->rg_fpd);
 
       g_slist_free (node->region_list);
       node->region_list = NULL;
@@ -280,22 +283,29 @@ static void _node_unpack (VsgPRTree3@t@Node *node, NodePackData *npd)
           g_assert (node->parallel_status.storage == VSG_PARALLEL_REMOTE);
         }
 
-      node->user_data = _alloc_and_unpack (&npd->data_fpd);
+      if (npd->data_fpd.migrate->unpack != NULL)
+        node->user_data = _alloc_and_unpack (&npd->data_fpd);
     }
 
   if (point_count > 0)
     {
       g_assert (PRTREE3@T@NODE_ISLEAF (node));
 
-      PRTREE3@T@NODE_LEAF (node).point = _alloc_and_unpack_list (&npd->pt_fpd,
-                                                                 point_count);
+      if (npd->pt_fpd.migrate->unpack != NULL)
+        PRTREE3@T@NODE_LEAF (node).point = _alloc_and_unpack_list (&npd->pt_fpd,
+                                                                   point_count);
+      else
+        PRTREE3@T@NODE_LEAF (node).point = NULL;
 
       node->point_count = point_count;
     }
 
   if (region_count > 0)
     {
-      node->region_list = _alloc_and_unpack_list (&npd->rg_fpd, region_count);
+      if (npd->rg_fpd.migrate->unpack != NULL)
+        node->region_list = _alloc_and_unpack_list (&npd->rg_fpd, region_count);
+      else
+        node->region_list = NULL;
       node->region_count = region_count;
     }
 }
@@ -313,7 +323,9 @@ static void _node_unpack_and_reduce (VsgPRTree3@t@Node *node, NodePackData *npd,
 
   if (datapresent)
     {
-      _unpack_and_reduce (node->user_data, &npd->data_fpd, nfc->tmp_node_data);
+      if (npd->data_fpd.migrate->unpack != NULL)
+        _unpack_and_reduce (node->user_data, &npd->data_fpd,
+                            nfc->tmp_node_data);
     }
 
   if (point_count > 0)
@@ -321,8 +333,9 @@ static void _node_unpack_and_reduce (VsgPRTree3@t@Node *node, NodePackData *npd,
       g_assert (PRTREE3@T@NODE_ISLEAF (node));
       g_assert (point_count == node->point_count);
 
-      _unpack_and_reduce_list (PRTREE3@T@NODE_LEAF (node).point, &npd->pt_fpd,
-                               nfc->tmp_point);
+      if (npd->pt_fpd.migrate->unpack != NULL)
+        _unpack_and_reduce_list (PRTREE3@T@NODE_LEAF (node).point, &npd->pt_fpd,
+                                 nfc->tmp_point);
 
     }
 
@@ -330,8 +343,9 @@ static void _node_unpack_and_reduce (VsgPRTree3@t@Node *node, NodePackData *npd,
     {
       g_assert (region_count == g_slist_length (node->region_list));
 
-      _unpack_and_reduce_list (node->region_list, &npd->rg_fpd,
-                               nfc->tmp_region);
+      if (npd->rg_fpd.migrate->unpack != NULL)
+        _unpack_and_reduce_list (node->region_list, &npd->rg_fpd,
+                                 nfc->tmp_region);
     }
 }
 
@@ -368,106 +382,112 @@ void vsg_prtree3@t@_set_parallel (VsgPRTree3@t@ *tree,
   MPI_Comm_rank (comm, &rk);
   MPI_Comm_size (comm, &sz);
 
-
-  if (rk != 0)
+  if (comm != tree->config.parallel_config.communicator)
     {
-      gint cnt;
-      VsgPackedMsg pt_send = VSG_PACKED_MSG_STATIC_INIT (comm);
-      VsgPackedMsg rg_send = VSG_PACKED_MSG_STATIC_INIT (comm);
-      ForeachPackData pt_fpd =
-        FPD_POINT_MIGRATE (pconfig, &pt_send);
-      ForeachPackData rg_fpd =
-        FPD_REGION_MIGRATE (pconfig, &rg_send);
+      if (rk != 0)
+        {
+          gint cnt;
+          VsgPackedMsg pt_send = VSG_PACKED_MSG_STATIC_INIT (comm);
+          VsgPackedMsg rg_send = VSG_PACKED_MSG_STATIC_INIT (comm);
+          ForeachPackData pt_fpd =
+            FPD_POINT_MIGRATE (pconfig, &pt_send);
+          ForeachPackData rg_fpd =
+            FPD_REGION_MIGRATE (pconfig, &rg_send);
 
-      /* send points to 0 */
-      cnt = vsg_prtree3@t@_point_count (tree);
-      vsg_packed_msg_send_append (&pt_send, &cnt, 1, MPI_INT);
-      vsg_prtree3@t@_foreach_point (tree, (GFunc) _foreach_pack_and_destroy,
-                                    &pt_fpd);
+          /* send points to 0 */
+          cnt = vsg_prtree3@t@_point_count (tree);
+          vsg_packed_msg_send_append (&pt_send, &cnt, 1, MPI_INT);
+          vsg_prtree3@t@_foreach_point (tree, (GFunc) _foreach_pack_and_destroy,
+                                        &pt_fpd);
 
-      vsg_packed_msg_send (&pt_send, 0, 1001);
-      vsg_packed_msg_drop_buffer (&pt_send);
+          vsg_packed_msg_send (&pt_send, 0, 1001);
+          vsg_packed_msg_drop_buffer (&pt_send);
 
-      /* get 0's new bounds */
-      MPI_Bcast (bounds, 2, VSG_MPI_TYPE_VECTOR3@T@, 0, comm);
+          /* get 0's new bounds */
+          MPI_Bcast (bounds, 2, VSG_MPI_TYPE_VECTOR3@T@, 0, comm);
 
 /*       g_printerr ("%d: bounds", rk); */
 /*       vsg_vector3d_write (&bounds[0], stderr); */
 /*       vsg_vector3d_write (&bounds[1], stderr); */
 /*       g_printerr ("\n"); */
 
-      /* send regions to 0 */
-      cnt = vsg_prtree3@t@_region_count (tree);
-      vsg_packed_msg_send_append (&rg_send, &cnt, 1, MPI_INT);
-      vsg_prtree3@t@_foreach_region (tree, (GFunc) _foreach_pack_and_destroy,
-                                     &rg_fpd);
+          /* send regions to 0 */
+          cnt = vsg_prtree3@t@_region_count (tree);
+          vsg_packed_msg_send_append (&rg_send, &cnt, 1, MPI_INT);
+          vsg_prtree3@t@_foreach_region (tree,
+                                         (GFunc) _foreach_pack_and_destroy,
+                                         &rg_fpd);
 
-      vsg_packed_msg_send (&rg_send, 0, 1002);
-      vsg_packed_msg_drop_buffer (&rg_send);
+          vsg_packed_msg_send (&rg_send, 0, 1002);
+          vsg_packed_msg_drop_buffer (&rg_send);
 
-      /* Transform root node to an empty remote */
-      vsg_prtree3@t@node_free (tree->node, &tree->config);
+          /* Transform root node to an empty remote */
+          vsg_prtree3@t@node_free (tree->node, &tree->config);
 
-      tree->node = vsg_prtree3@t@node_alloc_no_data (&bounds[0], &bounds[1]);
+          tree->node = vsg_prtree3@t@node_alloc_no_data (&bounds[0],
+                                                         &bounds[1]);
 
-      tree->node->parallel_status.storage = VSG_PARALLEL_REMOTE;
-      tree->node->parallel_status.proc = 0;
-    }
-  else
-    {
-      gint src;
-      VsgPackedMsg pt_recv = VSG_PACKED_MSG_STATIC_INIT (comm);
-      VsgPackedMsg rg_recv = VSG_PACKED_MSG_STATIC_INIT (comm);
-
-      /* receive other procs points */
-      for (src=1; src<sz; src++)
+          tree->node->parallel_status.storage = VSG_PARALLEL_REMOTE;
+          tree->node->parallel_status.proc = 0;
+        }
+      else
         {
-          gint i, cnt;
+          gint src;
+          VsgPackedMsg pt_recv = VSG_PACKED_MSG_STATIC_INIT (comm);
+          VsgPackedMsg rg_recv = VSG_PACKED_MSG_STATIC_INIT (comm);
 
-          vsg_packed_msg_recv (&pt_recv, src, 1001);
-          vsg_packed_msg_recv_read (&pt_recv, &cnt, 1, MPI_INT);
-
-          for (i=0; i<cnt; i++)
+          /* receive other procs points */
+          for (src=1; src<sz; src++)
             {
-              VsgPoint3 *pt = pt_vtable->alloc (TRUE, pt_vtable->alloc_data);
+              gint i, cnt;
 
-              pt_vtable->migrate.unpack (pt, &pt_recv,
-                                         pt_vtable->migrate.unpack_data);
-              vsg_prtree3@t@_insert_point (tree, pt);
+              vsg_packed_msg_recv (&pt_recv, src, 1001);
+              vsg_packed_msg_recv_read (&pt_recv, &cnt, 1, MPI_INT);
+
+              for (i=0; i<cnt; i++)
+                {
+                  VsgPoint3 *pt = pt_vtable->alloc (TRUE,
+                                                    pt_vtable->alloc_data);
+
+                  pt_vtable->migrate.unpack (pt, &pt_recv,
+                                             pt_vtable->migrate.unpack_data);
+                  vsg_prtree3@t@_insert_point (tree, pt);
+                }
+
+              vsg_packed_msg_drop_buffer (&pt_recv);
             }
 
-          vsg_packed_msg_drop_buffer (&pt_recv);
-        }
-
-      /* communicate new tree bounds to other processors */
-      vsg_prtree3@t@_get_bounds (tree, &bounds[0], &bounds[1]);
-      MPI_Bcast (bounds, 2, VSG_MPI_TYPE_VECTOR3@T@, 0, comm);
+          /* communicate new tree bounds to other processors */
+          vsg_prtree3@t@_get_bounds (tree, &bounds[0], &bounds[1]);
+          MPI_Bcast (bounds, 2, VSG_MPI_TYPE_VECTOR3@T@, 0, comm);
 
 /*       g_printerr ("%d: bounds", rk); */
 /*       vsg_vector3d_write (&bounds[0], stderr); */
 /*       vsg_vector3d_write (&bounds[1], stderr); */
 /*       g_printerr ("\n"); */
 
-      /* receive other procs regions */
-      for (src=1; src<sz; src++)
-        {
-          gint i, cnt;
-
-          vsg_packed_msg_recv (&rg_recv, src, 1002);
-          vsg_packed_msg_recv_read (&rg_recv, &cnt, 1, MPI_INT);
-
-          for (i=0; i<cnt; i++)
+          /* receive other procs regions */
+          for (src=1; src<sz; src++)
             {
-              VsgRegion3 rg = rg_vtable->alloc (TRUE, rg_vtable->alloc_data);
+              gint i, cnt;
 
-              rg_vtable->migrate.unpack (rg, &rg_recv,
-                                         rg_vtable->migrate.unpack_data);
-              vsg_prtree3@t@_insert_region (tree, rg);
+              vsg_packed_msg_recv (&rg_recv, src, 1002);
+              vsg_packed_msg_recv_read (&rg_recv, &cnt, 1, MPI_INT);
+
+              for (i=0; i<cnt; i++)
+                {
+                  VsgRegion3 rg = rg_vtable->alloc (TRUE,
+                                                    rg_vtable->alloc_data);
+
+                  rg_vtable->migrate.unpack (rg, &rg_recv,
+                                             rg_vtable->migrate.unpack_data);
+                  vsg_prtree3@t@_insert_region (tree, rg);
+                }
+
+              vsg_packed_msg_drop_buffer (&rg_recv);
             }
 
-          vsg_packed_msg_drop_buffer (&rg_recv);
         }
-
     }
 
   vsg_prtree3@t@_set_node_data_vtable (tree, &pconfig->node_data);
@@ -2648,6 +2668,8 @@ vsg_prtree3@t@_shared_nodes_allreduce (VsgPRTree3@t@ *tree,
 
   if (pconfig->communicator == MPI_COMM_NULL) return;
 
+  if (data_vtable->pack == NULL || data_vtable->unpack == NULL) return;
+
   if (pconfig->node_data.alloc != NULL)
     {
       tmp_node_data =
@@ -2681,6 +2703,8 @@ vsg_prtree3@t@_nf_check_parallel_end (VsgPRTree3@t@ *tree,
 {
   MPI_Comm comm = tree->config.parallel_config.communicator;
   gint i, dst;
+  VsgParallelMigrateVTable *data_bw_vtable =
+    &tree->config.parallel_config.node_data.visit_backward;
   VsgPackedMsg pm = VSG_PACKED_MSG_STATIC_INIT (comm);
 /*   GTimer *timer = g_timer_new (); */
   gint dropped_remaining = 1;
@@ -2755,9 +2779,10 @@ vsg_prtree3@t@_nf_check_parallel_end (VsgPRTree3@t@ *tree,
 
 /*   g_printerr ("%d : allreduce begin\n", nfc->rk); */
 
+  if (data_bw_vtable->pack != NULL && data_bw_vtable->unpack != NULL)
 
-  _shared_nodes_allreduce_internal (tree,
-                                    &tree->config.parallel_config.node_data.visit_backward, nfc->tmp_node_data);
+    _shared_nodes_allreduce_internal (tree, data_bw_vtable,
+                                      nfc->tmp_node_data);
 
 /*   g_printerr ("%d : parallel_end done (%f seconds)\n", nfc->rk, */
 /*               g_timer_elapsed (timer, NULL)); */
