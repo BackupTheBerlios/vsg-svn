@@ -126,7 +126,7 @@ void vsg_comm_buffer_share (VsgCommBuffer *cb)
 
 /*   g_printerr ("step=%d proc=%d src=%d dst=%d\n", 0, mytid, mytid, mytid); */
   memcpy (&cb->recv[mytid], &cb->send[mytid], sizeof (VsgPackedMsg));
-  cb->recv[mytid].position = 0;
+  cb->recv[mytid].position = vsg_packed_msg_header_size ();
   memset (&cb->send[mytid], 0, sizeof (VsgPackedMsg));
 
   for (i=1; i<numtasks; i++)
