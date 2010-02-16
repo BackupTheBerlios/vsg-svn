@@ -2145,6 +2145,7 @@ void vsg_prtree3@t@_insert_point (VsgPRTree3@t@ *prtree3@t@,
 gboolean vsg_prtree3@t@_insert_point_local (VsgPRTree3@t@ *prtree3@t@,
                                             VsgPoint3 point)
 {
+  VsgPRTreeKey3@t@ extk = vsg_prtree_key3@t@_root;
   const VsgVector3@t@ *lbound;
   const VsgVector3@t@ *ubound;
   const VsgPRTree3@t@Config *config;
@@ -2152,6 +2153,9 @@ gboolean vsg_prtree3@t@_insert_point_local (VsgPRTree3@t@ *prtree3@t@,
 #ifdef VSG_CHECK_PARAMS
   g_return_val_if_fail (prtree3@t@ != NULL, FALSE);
   g_return_val_if_fail (point != NULL, FALSE);
+#else
+  vsg_prtree3@t@_insert_point (prtree3@t@, point);
+  return TRUE;
 #endif
 
   config = &prtree3@t@->config;
@@ -2162,7 +2166,36 @@ gboolean vsg_prtree3@t@_insert_point_local (VsgPRTree3@t@ *prtree3@t@,
   if (CALL_POINT3@T@_LOC (config, point, lbound) != VSG_LOC3_UNE ||
       CALL_POINT3@T@_LOC (config, point, ubound) != VSG_LOC3_BSW)
     {
-      return FALSE;
+#ifdef VSG_HAVE_MPI
+      if (config->parallel_config.communicator != MPI_COMM_NULL)
+        {
+          gint rk;
+
+          MPI_Comm_rank (config->parallel_config.communicator, &rk);
+
+          /* exterior points arbitrary belong to proc 0 */
+          if (rk == 0)
+            {
+              /* store exterior point in appropriate place and return */
+              GSList *point_list = g_slist_alloc ();
+
+              point_list->data = (gpointer) point;
+              point_list->next = NULL;
+
+              prtree3@t@->pending_exterior_points =
+                g_slist_concat (point_list,
+                                prtree3@t@->pending_exterior_points);
+
+              return TRUE;
+            }
+          else
+            {
+              return FALSE;
+            }
+        }
+#endif
+
+      vsg_prtree3@t@_bounds_extend (prtree3@t@, point, &extk);
     }
 
   return
