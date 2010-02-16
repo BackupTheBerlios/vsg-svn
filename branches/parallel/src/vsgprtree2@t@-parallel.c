@@ -2039,6 +2039,7 @@ typedef struct _NFSendData NFSendData;
 struct _NFSendData {
   VsgPRTree2@t@ *tree;
   VsgNFConfig2@t@ *nfc;
+  gint sent;
 };
 
 /*
@@ -2060,22 +2061,26 @@ static void _fill_procs_msgs (gpointer key, VsgNFProcMsg *nfpm,
         {
           /* First, check for backward messages */
           _send_pending_backward_node (nfsd->tree, nfsd->nfc, nfpm, proc);
+          nfsd->sent ++;
         }
       else if (nfpm->forward_pending != NULL)
         {
           /* Fallback into forward message */
           _send_pending_forward_node (nfsd->tree, nfsd->nfc, nfpm, proc);
+          nfsd->sent ++;
         }
     }
 }
 
 
-static void vsg_prtree2@t@_nf_check_send (VsgPRTree2@t@ *tree,
+static gint vsg_prtree2@t@_nf_check_send (VsgPRTree2@t@ *tree,
                                           VsgNFConfig2@t@ *nfc)
 {
-  NFSendData nfsd = {tree, nfc};
+  NFSendData nfsd = {tree, nfc, 0};
 
   g_hash_table_foreach (nfc->procs_msgs, (GHFunc) _fill_procs_msgs, &nfsd);
+
+  return nfsd.sent;
 }
 
 /*
@@ -2133,11 +2138,8 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
     {
       while (!flag)
         {
-          if ((nfc->forward_pending_nb + nfc->backward_pending_nb) > 0)
-            {
-              vsg_prtree2@t@_nf_check_send (tree, nfc);
-            }
-          else
+          if ((nfc->forward_pending_nb + nfc->backward_pending_nb) > 0 &&
+              vsg_prtree2@t@_nf_check_send (tree, nfc) == 0)
             {
               /* fallback asleep for just a moment before rechecking */
               g_usleep (1);
