@@ -1894,23 +1894,28 @@ void vsg_prtree2@t@_set_node_data_vtable (VsgPRTree2@t@ *prtree2@t@,
 
   node_data_vtable = &prtree2@t@->config.parallel_config.node_data;
 
-  if (node_data_vtable->alloc_data != NULL &&
-      node_data_vtable->alloc == (VsgMigrableAllocDataFunc)
-      _gtype_node_data_alloc)
+  if (node_data_vtable->alloc != vtable->alloc ||
+      node_data_vtable->alloc_data != vtable->alloc_data)
     {
-      GTypeAndModel *gam = node_data_vtable->alloc_data;
+      if (node_data_vtable->alloc_data != NULL &&
+          node_data_vtable->alloc == (VsgMigrableAllocDataFunc)
+          _gtype_node_data_alloc)
+        {
+          GTypeAndModel *gam = node_data_vtable->alloc_data;
 
-      _gtype_node_data_destroy (gam->data_model, FALSE, gam);
+          _gtype_node_data_destroy (gam->data_model, FALSE, gam);
 
-      g_free (gam);
+          g_free (gam);
 
-      node_data_vtable->alloc = NULL;
-      node_data_vtable->destroy = NULL;
+          node_data_vtable->alloc = NULL;
+          node_data_vtable->destroy = NULL;
+        }
+
+      if (prtree2@t@->node)
+        _prtree2@t@node_update_user_data_vtable (prtree2@t@->node,
+                                                 node_data_vtable,
+                                                 vtable);
     }
-
-  if (prtree2@t@->node)
-    _prtree2@t@node_update_user_data_vtable (prtree2@t@->node, node_data_vtable,
-                                             vtable);
 
   memcpy (node_data_vtable, vtable, sizeof (VsgParallelVTable));
 
