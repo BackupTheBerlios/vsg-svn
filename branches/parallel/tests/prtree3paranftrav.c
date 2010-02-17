@@ -829,10 +829,6 @@ void pt_add_count (Pt *pt, glong *count)
   pt->count += *count;
 }
 
-static glong _near_count_v[64] = {0,};
-static glong _far_count_v[64] = {0,};
-static glong _leaf_count_v[64] = {0,};
-
 void _near (VsgPRTree3dNodeInfo *one_info,
             VsgPRTree3dNodeInfo *other_info,
             gint *err)
@@ -895,9 +891,6 @@ void _near (VsgPRTree3dNodeInfo *one_info,
     if (j != _near_slowdown*(_near_slowdown-1)/2) g_printerr ("oops\n");
   }
   _near_count ++;
-
-  _near_count_v[one_info->depth] ++;
-  _near_count_v[other_info->depth] ++;
 }
 
 gboolean _far (VsgPRTree3dNodeInfo *one_info,
@@ -933,9 +926,6 @@ gboolean _far (VsgPRTree3dNodeInfo *one_info,
 
   _far_count ++;
 
-  _far_count_v[one_info->depth] ++;
-  _far_count_v[other_info->depth] ++;
-
   {
     long i, j = 0;
     for (i = 0; i< _far_slowdown; i++)
@@ -960,8 +950,6 @@ void _up (VsgPRTree3dNodeInfo *node_info, gpointer data)
                            &count);
 
           ((NodeCounter *) node_info->user_data)->in_count = count;
-
-	  if (count > 0) _leaf_count_v[node_info->depth] ++;
         }
 
       if (node_info->father_info)
@@ -1040,7 +1028,6 @@ gint main (gint argc, gchar ** argv)
   VsgVector3d lb;
   VsgVector3d ub;
   GTimer *timer = NULL;
-  gdouble t1 = 0., t2 = 0.;
 
   MPI_Init (&argc, &argv);
 
@@ -1050,8 +1037,6 @@ gint main (gint argc, gchar ** argv)
   vsg_init_gdouble ();
 
   parse_args (argc, argv);
-
-  if (_verbose && rk == 0) g_printerr ("running %s\n", argv[0]);
 
   if (nc_padding > 0)
     {
@@ -1071,8 +1056,6 @@ gint main (gint argc, gchar ** argv)
                            (VsgPoint3dLocFunc) vsg_vector3d_vector3d_locfunc,
                            (VsgPoint3dDistFunc) vsg_vector3d_dist,
                            NULL, _maxbox);
-
-  _flush_interval = MAX (1000, 100 * _maxbox);
 
   if (_hilbert)
     {
@@ -1131,32 +1114,12 @@ gint main (gint argc, gchar ** argv)
   /* accumulate the point counts across the tree */
   _do_upward_pass (tree);
 
-  if (_verbose)
-    {
-      t2 = g_timer_elapsed (timer, NULL);
-      g_printerr ("%d : upward ok elapsed=%f seconds\n", rk, t2-t1);
-      t1 = t2;
-    }
-
   /* do some near/far traversal */
   vsg_prtree3d_near_far_traversal (tree, (VsgPRTree3dFarInteractionFunc) _far,
                                    (VsgPRTree3dInteractionFunc) _near,
                                    &ret);
-
-  if (_verbose)
-    {
-      t1 = g_timer_elapsed (timer, NULL);
-    }
-
   /* accumulate from top to leaves */
   vsg_prtree3d_traverse (tree, G_PRE_ORDER, (VsgPRTree3dFunc) _down, NULL);
-
-  if (_verbose)
-    {
-      t2 = g_timer_elapsed (timer, NULL);
-      g_printerr ("%d : downward ok elapsed=%f seconds\n", rk, t2-t1);
-      t1 = t2;
-    }
 
   if (_verbose)
     {
@@ -1202,19 +1165,6 @@ gint main (gint argc, gchar ** argv)
                   rk, _fw_count, _bw_count);
       g_printerr ("%d: processor call stats near=%d far=%d\n",
                   rk, _near_count, _far_count);
-
-      {
-	gint i;
-
-	for (i=0; i<64; i++)
-	  {
-	    gdouble lc = (_leaf_count_v[i] != 0.) ? _leaf_count_v[i] : 1.;
-	    if (i<vsg_prtree3d_depth (tree)+1 || _near_count_v[i] > 0)
-	      g_printerr ("%d : depth=%d near_count=%ld far_count=%ld leaf_count=%ld (%g/%g)\n",
-			  rk, i, _near_count_v[i], _far_count_v[i], _leaf_count_v[i],
-			  _near_count_v[i]/lc, _far_count_v[i]/lc);
-	  }
-      }
 
       MPI_Reduce (&_near_count, &near_count_sum, 1, MPI_INT, MPI_SUM, 0,
                   MPI_COMM_WORLD);

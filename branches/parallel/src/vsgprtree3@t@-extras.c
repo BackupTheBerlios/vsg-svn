@@ -732,18 +732,12 @@ vsg_prtree3@t@_near_far_traversal (VsgPRTree3@t@ *prtree3@t@,
   MPI_Comm comm = pconfig->communicator;
 #endif
   VsgNFConfig3@t@ nfc;
-  gint rk = 0;
-  GTimer *timer = g_timer_new ();
-  gdouble t1 = 0., t2 = 0.;
 
 #ifdef VSG_CHECK_PARAMS
   g_return_if_fail (prtree3@t@ != NULL);
 #endif
 
 #ifdef VSG_HAVE_MPI
-  if (comm != MPI_COMM_NULL)
-    MPI_Comm_rank (comm, &rk);
-
   vsg_nf_config3@t@_init (&nfc, comm, far_func, near_func, user_data);
 
   vsg_nf_config3@t@_tmp_alloc (&nfc, &prtree3@t@->config);
@@ -760,16 +754,9 @@ vsg_prtree3@t@_near_far_traversal (VsgPRTree3@t@ *prtree3@t@,
 
 #endif
 
-  t2 = g_timer_elapsed (timer, NULL);
-  g_printerr ("%d : nf1 elapsed=%f seconds\n", rk, t2 - t1);
-
   vsg_prtree3@t@node_near_far_traversal (prtree3@t@, &nfc,
                                          prtree3@t@->node,
                                          NULL, 0, TRUE);
-
-  t2 = g_timer_elapsed (timer, NULL);
-  g_printerr ("%d : nf2 elapsed=%f seconds\n", rk, t2-t1);
-  t1 = t2;
 
 #ifdef VSG_HAVE_MPI
   if (comm != MPI_COMM_NULL)
@@ -781,14 +768,6 @@ vsg_prtree3@t@_near_far_traversal (VsgPRTree3@t@ *prtree3@t@,
 
   vsg_nf_config3@t@_clean (&nfc);
 #endif
-
-  t2 = g_timer_elapsed (timer, NULL);
-  g_printerr ("%d : nf3 elapsed=%f seconds\n", rk, t2-t1);
-  t1 = t2;
-
-  g_printerr ("%d : nftot elapsed=%f seconds\n", rk, t2);
-
-  g_timer_destroy (timer);
 }
 
 /**
