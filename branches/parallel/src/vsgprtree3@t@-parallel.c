@@ -2708,13 +2708,18 @@ vsg_prtree3@t@_nf_check_parallel_end (VsgPRTree3@t@ *tree,
   VsgParallelMigrateVTable *data_bw_vtable =
     &tree->config.parallel_config.node_data.visit_backward;
   VsgPackedMsg pm = VSG_PACKED_MSG_STATIC_INIT (comm);
-/*   GTimer *timer = g_timer_new (); */
+  GTimer *timer = g_timer_new ();
+  gdouble t1 = 0., t2 = 0.;
   gint dropped_remaining = 1;
 
 /*   g_printerr ("%d(%d) : parallel_end begin (fw pending wv=%d) (bw pending wv=%d)\n", */
 /*               nfc->rk, getpid (), */
 /*               nfc->forward_pending_nb, */
 /*               nfc->backward_pending_nb); */
+
+/*   g_printerr ("%d : nodes msgs1 (fw send=%d recv=%d) (bw send=%d recv=%d)\n", */
+/*               nfc->rk, nfc->all_fw_sends, nfc->all_fw_recvs, nfc->all_bw_sends, */
+/*               nfc->all_bw_recvs); */
 
   while (nfc->forward_pending_nb > 0)
     {
@@ -2729,10 +2734,17 @@ vsg_prtree3@t@_nf_check_parallel_end (VsgPRTree3@t@ *tree,
       vsg_packed_msg_send (&pm, dst, END_FW_TAG);
     }
 
+  t2 = g_timer_elapsed (timer, NULL);
+  g_printerr ("%d : end fw sent elapsed=%f seconds\n", nfc->rk,
+              t2 - t1);
+  t1 = t2;
+
   vsg_packed_msg_drop_buffer (&pm);
 
-/*   g_printerr ("%d : end fw sent (elapsed %f)\n", nfc->rk, */
-/*               g_timer_elapsed (timer, NULL)); */
+
+/*   g_printerr ("%d : nodes msgs2 (fw send=%d recv=%d) (bw send=%d recv=%d)\n", */
+/*               nfc->rk, nfc->all_fw_sends, nfc->all_fw_recvs, nfc->all_bw_sends, */
+/*               nfc->all_bw_recvs); */
 
   /* check all remaining messages */
   while (nfc->pending_end_forward > 0)
@@ -2742,8 +2754,14 @@ vsg_prtree3@t@_nf_check_parallel_end (VsgPRTree3@t@ *tree,
       vsg_prtree3@t@_nf_check_receive (tree, nfc, MPI_ANY_TAG, TRUE);
     }
 
-/*   g_printerr ("%d : end fw received (elapsed %f)\n", nfc->rk, */
-/*               g_timer_elapsed (timer, NULL)); */
+  t2 = g_timer_elapsed (timer, NULL);
+  g_printerr ("%d : end fw received elapsed=%f seconds\n", nfc->rk,
+              t2 - t1);
+  t1 = t2;
+
+/*   g_printerr ("%d : nodes msgs3 (fw send=%d recv=%d) (bw send=%d recv=%d)\n", */
+/*               nfc->rk, nfc->all_fw_sends, nfc->all_fw_recvs, nfc->all_bw_sends, */
+/*               nfc->all_bw_recvs); */
 
   /* now, no forward visitor should be left incoming */
 
@@ -2764,18 +2782,23 @@ vsg_prtree3@t@_nf_check_parallel_end (VsgPRTree3@t@ *tree,
                             (GHFunc) _send_final_dropped_visitors,
                             &dropped_remaining);
     }
-/*   g_printerr ("%d : all bw send ok (elapsed %f) (dropped %d)\n", nfc->rk, */
-/*               g_timer_elapsed (timer, NULL), _dropped_count); */
+
+  t2 = g_timer_elapsed (timer, NULL);
+  g_printerr ("%d : all bw send elapsed=%f seconds (recv=%d)\n", nfc->rk,
+              t2 - t1, nfc->pending_backward_msgs);
 
   while (nfc->pending_backward_msgs > 0)
     {
       vsg_prtree3@t@_nf_check_receive (tree, nfc, MPI_ANY_TAG, TRUE);
     }
 
-/*   g_printerr ("%d : pending bw recv ok (elapsed %f)\n", nfc->rk, */
-/*               g_timer_elapsed (timer, NULL)); */
-
+  g_printerr ("%d : all bw recv done\n", nfc->rk);
   g_hash_table_foreach (nfc->procs_msgs, (GHFunc) _wait_procs_msgs, NULL);
+
+  t2 = g_timer_elapsed (timer, NULL);
+  g_printerr ("%d : pending bw recv elapsed=%f seconds\n", nfc->rk,
+              t2 - t1);
+  t1 = t2;
 
   MPI_Barrier (comm);
 
@@ -2786,22 +2809,24 @@ vsg_prtree3@t@_nf_check_parallel_end (VsgPRTree3@t@ *tree,
     _shared_nodes_allreduce_internal (tree, data_bw_vtable,
                                       nfc->tmp_node_data);
 
-/*   g_printerr ("%d : parallel_end done (%f seconds)\n", nfc->rk, */
-/*               g_timer_elapsed (timer, NULL)); */
+  t2 = g_timer_elapsed (timer, NULL);
+  g_printerr ("%d : parallel_end done elapsed=%f seconds\n", nfc->rk,
+              t2 - t1);
+  t1 = t2;
 
 /*   g_printerr ("%d : unused visitors %d (%d total)\n", nfc->rk, */
 /*               _unused_visitors, _visitors); */
 
-/*   g_printerr ("%d : nodes msgs (fw send=%d recv=%d) (bw send=%d recv=%d)\n", */
+/*   g_printerr ("%d : nodes msgs (fw send=%d recv=%d) (bw send=%d recv=%d dropped=%d)\n", */
 /*               nfc->rk, nfc->all_fw_sends, nfc->all_fw_recvs, nfc->all_bw_sends, */
-/*               nfc->all_bw_recvs); */
+/*               nfc->all_bw_recvs, _dropped_count); */
 
 /*   g_printerr ("%d : pending bw stats: max=%d avg=%f nb=%d\n", nfc->rk, */
 /*               _bw_pending_max, */
 /*               _bw_pending_sum / (gdouble) _bw_pending_calls, */
 /*               _bw_pending_calls); */
 
-/*   g_timer_destroy (timer); */
+  g_timer_destroy (timer);
 }
 
 static guint8 _prtree3@t@node_mindepth (const VsgPRTree3@t@Node *node)

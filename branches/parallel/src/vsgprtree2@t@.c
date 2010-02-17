@@ -2133,12 +2133,14 @@ gboolean vsg_prtree2@t@_insert_point_local (VsgPRTree2@t@ *prtree2@t@,
   const VsgVector2@t@ *ubound;
   const VsgPRTree2@t@Config *config;
 
+#ifndef VSG_HAVE_MPI
+  vsg_prtree2@t@_insert_point (prtree2@t@, point);
+  return TRUE;
+#else
+
 #ifdef VSG_CHECK_PARAMS
   g_return_val_if_fail (prtree2@t@ != NULL, FALSE);
   g_return_val_if_fail (point != NULL, FALSE);
-#else
-  vsg_prtree2@t@_insert_point (prtree2@t@, point);
-  return TRUE;
 #endif
 
   config = &prtree2@t@->config;
@@ -2149,7 +2151,6 @@ gboolean vsg_prtree2@t@_insert_point_local (VsgPRTree2@t@ *prtree2@t@,
   if (CALL_POINT2@T@_LOC (config, point, lbound) != VSG_LOC2_NE ||
       CALL_POINT2@T@_LOC (config, point, ubound) != VSG_LOC2_SW)
     {
-#ifdef VSG_HAVE_MPI
       if (config->parallel_config.communicator != MPI_COMM_NULL)
         {
           gint rk;
@@ -2176,13 +2177,14 @@ gboolean vsg_prtree2@t@_insert_point_local (VsgPRTree2@t@ *prtree2@t@,
               return FALSE;
             }
         }
-#endif
 
       vsg_prtree2@t@_bounds_extend (prtree2@t@, point, &extk);
     }
 
   return
     _prtree2@t@node_insert_point_local (prtree2@t@->node, point, config) >= 0;
+
+#endif
 }
 
 /**
