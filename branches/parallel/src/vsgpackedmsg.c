@@ -560,6 +560,39 @@ void vsg_packed_msg_recv (VsgPackedMsg *pm, gint src, gint tag)
 }
 
 /**
+ * vsg_packed_msg_bcast:
+ * @pm: a #VsgPackedMsg.
+ * @src: the source task id. Can be %MPI_ANY_SOURCE.
+ * @tag: an integer message tag. Can be %MPI_ANY_TAG.
+ *
+ * Performs a MPI_Bcast on @pm. @pm must be of the same size across
+ * all processes (ie. similar calls to vsg_packed_msg_send_append()
+ * must have been previously issued on every processor).
+ */
+void vsg_packed_msg_bcast (VsgPackedMsg *pm, gint src)
+{
+  gint ierr;
+  gint rk;
+
+  g_assert (pm->own_buffer == TRUE);
+
+  MPI_Comm_rank (pm->communicator, &rk);
+
+  if (rk == src)
+    _trace_write_msg_send (pm, "bcast-send", src, -1);
+
+  ierr = MPI_Bcast (pm->buffer, pm->position, MPI_PACKED, src,
+                    pm->communicator);
+
+  if (rk != src)
+    _trace_write_msg_recv (pm, "bcast-recv", src, -1);
+
+  pm->position = _PM_BEGIN_POS;
+
+  if (ierr != MPI_SUCCESS) vsg_mpi_error_output (ierr);
+}
+
+/**
  * vsg_packed_msg_recv_new:
  * @comm: a MPI communicator
  * @src: the source task id. Can be %MPI_ANY_SOURCE.

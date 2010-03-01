@@ -77,6 +77,8 @@ void vsg_packed_msg_wait (VsgPackedMsg *pm, MPI_Request *request);
 
 void vsg_packed_msg_recv (VsgPackedMsg *pm, gint src, gint tag);
 
+void vsg_packed_msg_bcast (VsgPackedMsg *pm, gint src);
+
 VsgPackedMsg * vsg_packed_msg_recv_new (MPI_Comm comm, gint src, gint tag);
 
 void vsg_packed_msg_drop_buffer (VsgPackedMsg *pm);

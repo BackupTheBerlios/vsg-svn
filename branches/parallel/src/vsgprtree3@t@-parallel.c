@@ -635,9 +635,9 @@ void vsg_prtree3@t@_migrate_flush (VsgPRTree3@t@ *tree)
   /* send exterior points to proc 0 */
   if (rk != 0 && tree->pending_exterior_points != NULL)
     {
-      VsgPackedMsg *pm = 
+      VsgPackedMsg *pmext = 
         vsg_comm_buffer_get_send_buffer (cb, 0);
-      ForeachPackData fpd = FPD_POINT_MIGRATE (pconfig, pm);
+      ForeachPackData fpd = FPD_POINT_MIGRATE (pconfig, pmext);
 
       g_slist_foreach (tree->pending_exterior_points,
                        (GFunc) _foreach_pack_and_destroy,
@@ -688,7 +688,6 @@ void vsg_prtree3@t@_migrate_flush (VsgPRTree3@t@ *tree)
 
   /* build new tree from gathered exterior points */
 
-  pm.position = 0;
   extk = vsg_prtree_key3@t@_root;
 
   if (rk == 0)
@@ -734,9 +733,7 @@ void vsg_prtree3@t@_migrate_flush (VsgPRTree3@t@ *tree)
   vsg_packed_msg_send_append (&pm, &extk, 1, VSG_MPI_TYPE_PRTREE_KEY3@T@);
 
   /* proc 0 tells new tree bounds and old root position */
-  MPI_Bcast (pm.buffer, pm.position, MPI_PACKED, 0, pm.communicator);
-
-  pm.position = 0;
+  vsg_packed_msg_bcast (&pm, 0);
 
   if (rk != 0)
     {
@@ -782,7 +779,7 @@ void vsg_prtree3@t@_migrate_flush (VsgPRTree3@t@ *tree)
 
         }
 
-      pm.position = 0;
+      vsg_packed_msg_reset (&pm);
     }
 
   if (rg_vtable->migrate.pack != NULL)
@@ -2699,9 +2696,8 @@ static void _wait_procs_msgs (gpointer key, VsgNFProcMsg *nfpm, gpointer data)
  * finishes all communication and computations involved in a parallel near/far
  * interaction.
  */
-void
-vsg_prtree3@t@_nf_check_parallel_end (VsgPRTree3@t@ *tree,
-                                      VsgNFConfig3@t@ *nfc)
+void vsg_prtree3@t@_nf_check_parallel_end (VsgPRTree3@t@ *tree,
+                                           VsgNFConfig3@t@ *nfc)
 {
   MPI_Comm comm = tree->config.parallel_config.communicator;
   gint i, dst;
