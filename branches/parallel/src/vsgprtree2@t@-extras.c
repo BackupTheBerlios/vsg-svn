@@ -241,12 +241,13 @@ void vsg_prtree2@t@node_recursive_near_func (VsgPRTree2@t@Node *one,
 #endif
 
 static void
-_sub_neighborhood_near_far_traversal (VsgNFConfig2@t@ *nfc,
+_sub_neighborhood_near_far_traversal (VsgPRTree2@t@ *tree,
+                                      VsgNFConfig2@t@ *nfc,
                                       VsgPRTree2@t@Node *one,
                                       VsgPRTree2@t@NodeInfo *one_info,
-				      VsgPRTree2@t@Node *other,
+                                      VsgPRTree2@t@Node *other,
                                       VsgPRTree2@t@NodeInfo *other_info,
-				      gint8 x, gint8 y)
+                                      gint8 x, gint8 y)
 {
   vsgloc2 i, j, si, sj;
   vsgloc2 sym[4] = {
@@ -258,6 +259,11 @@ _sub_neighborhood_near_far_traversal (VsgNFConfig2@t@ *nfc,
 
   if (_NODE_IS_EMPTY(one) || _NODE_IS_EMPTY(other))
     return;
+
+#ifdef VSG_HAVE_MPI
+  if (nfc->sz > 1)
+    vsg_prtree2@t@_nf_check_receive (tree, nfc, MPI_ANY_TAG, FALSE);
+#endif
 
   if (PRTREE2@T@NODE_ISINT (one) && PRTREE2@T@NODE_ISINT (other))
     {
@@ -283,7 +289,7 @@ _sub_neighborhood_near_far_traversal (VsgNFConfig2@t@ *nfc,
               VsgPRTree2@t@Node *other_child =
                 PRTREE2@T@NODE_CHILD(other, j);
               VsgPRTree2@t@NodeInfo other_child_info;
-	      gboolean far_done = TRUE;
+              gboolean far_done = TRUE;
 
 #ifdef VSG_HAVE_MPI
               if (PRTREE2@T@NODE_IS_REMOTE (other_child)) continue;
@@ -297,7 +303,7 @@ _sub_neighborhood_near_far_traversal (VsgNFConfig2@t@ *nfc,
 
               far = NEAR_FAR (x, y, si, sj);
 
-	      if (far)
+              if (far)
                 {
                   /* far interaction between one and other */
                   if (nfc->far_func &&
@@ -315,8 +321,8 @@ _sub_neighborhood_near_far_traversal (VsgNFConfig2@t@ *nfc,
 
                       far_done = nfc->far_func (&one_child_info, &other_child_info,
                                                 nfc->user_data);
-		      if (!far_done)
-			{
+                      if (!far_done)
+                        {
 #ifdef VSG_HAVE_MPI
                           if (PRTREE2@T@NODE_IS_SHARED (one_child) ||
                               PRTREE2@T@NODE_IS_SHARED (other_child))
@@ -328,26 +334,26 @@ _sub_neighborhood_near_far_traversal (VsgNFConfig2@t@ *nfc,
                             }
 #endif
 
-			  /* near interaction between one and other */
-			  recursive_near_func (one_child, &one_child_info,
-					       other_child, &other_child_info,
-					       nfc->near_func,
-					       nfc->user_data);
-			}
+                          /* near interaction between one and other */
+                          recursive_near_func (one_child, &one_child_info,
+                                               other_child, &other_child_info,
+                                               nfc->near_func,
+                                               nfc->user_data);
+                        }
                     }
                 }
-	      else
-		{
-		  gint8 newx = _SUB_INTERACTION (i, j, x, _X);
-		  gint8 newy = _SUB_INTERACTION (i, j, y, _Y);
+              else
+                {
+                  gint8 newx = _SUB_INTERACTION (i, j, x, _X);
+                  gint8 newy = _SUB_INTERACTION (i, j, y, _Y);
 
-		  _sub_neighborhood_near_far_traversal (nfc, one_child,
-							&one_child_info,
-							other_child,
-							&other_child_info,
-							newx, newy);
-		}
-	    }
+                  _sub_neighborhood_near_far_traversal (tree, nfc, one_child,
+                                                        &one_child_info,
+                                                        other_child,
+                                                        &other_child_info,
+                                                        newx, newy);
+                }
+            }
         }
 
     }
@@ -391,10 +397,10 @@ vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@ *tree,
   if (PRTREE2@T@NODE_ISLEAF (node))
     {
       if (nfc->near_func)
-	{
-	  /* reflexive near interaction on node */
-	  nfc->near_func (&node_info, &node_info, nfc->user_data);
-	}
+        {
+          /* reflexive near interaction on node */
+          nfc->near_func (&node_info, &node_info, nfc->user_data);
+        }
     }
   else
     {
@@ -415,24 +421,24 @@ vsg_prtree2@t@node_near_far_traversal (VsgPRTree2@t@ *tree,
               VsgPRTree2@t@Node *other_child =
                 PRTREE2@T@NODE_CHILD(node, j);
               VsgPRTree2@t@NodeInfo other_child_info;
-	      gint8 x, y;
+              gint8 x, y;
 
 #ifdef VSG_HAVE_MPI
               if (PRTREE2@T@NODE_IS_REMOTE (other_child)) continue;
 #endif
 
-	      x = _AXIS_DIFF (i, j, _X);
-	      y = _AXIS_DIFF (i, j, _Y);
+              x = _AXIS_DIFF (i, j, _X);
+              y = _AXIS_DIFF (i, j, _Y);
 
               _vsg_prtree2@t@node_get_info (other_child,
                                             &other_child_info,
                                             &node_info, j);
 
-	      _sub_neighborhood_near_far_traversal (nfc, one_child,
-						    &one_child_info,
-						    other_child,
-						    &other_child_info,
-						    x, y); 
+              _sub_neighborhood_near_far_traversal (tree, nfc, one_child,
+                                                    &one_child_info,
+                                                    other_child,
+                                                    &other_child_info,
+                                                    x, y); 
             }
         }
 
@@ -579,23 +585,18 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
   MPI_Comm comm = pconfig->communicator;
 #endif
   VsgNFConfig2@t@ nfc;
-  gint rk = 0;
-/*   GTimer *timer = g_timer_new (); */
-/*   gdouble t1, t2; */
 
 #ifdef VSG_CHECK_PARAMS
   g_return_if_fail (prtree2@t@ != NULL);
 #endif
 
 #ifdef VSG_HAVE_MPI
-  if (comm != MPI_COMM_NULL)
-    MPI_Comm_rank (comm, &rk);
 
   vsg_nf_config2@t@_init (&nfc, comm, far_func, near_func, user_data);
 
   vsg_nf_config2@t@_tmp_alloc (&nfc, &prtree2@t@->config);
 
-  if (comm != MPI_COMM_NULL && prtree2@t@->config.remote_depth_dirty)
+  if (nfc.sz > 1 && prtree2@t@->config.remote_depth_dirty)
     {
       vsg_prtree2@t@_update_remote_depths (prtree2@t@);
     }
@@ -607,19 +608,12 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
 
 #endif
 
-/*   t1 = g_timer_elapsed (timer, NULL); */
-/*   g_printerr ("%d : nf1 elapsed=%f seconds\n", rk, t1); */
-
   vsg_prtree2@t@node_near_far_traversal (prtree2@t@, &nfc,
                                          prtree2@t@->node,
                                          NULL, 0, TRUE);
 
-/*   t2 = g_timer_elapsed (timer, NULL); */
-/*   g_printerr ("%d : nf2 elapsed=%f seconds\n", rk, t2-t1); */
-/*   t1 = t2; */
-
 #ifdef VSG_HAVE_MPI
-  if (comm != MPI_COMM_NULL)
+  if (nfc.sz > 1)
     {
       vsg_prtree2@t@_nf_check_parallel_end (prtree2@t@, &nfc);
     }
@@ -629,11 +623,6 @@ vsg_prtree2@t@_near_far_traversal (VsgPRTree2@t@ *prtree2@t@,
   vsg_nf_config2@t@_clean (&nfc);
 #endif
 
-/*   t2 = g_timer_elapsed (timer, NULL); */
-/*   g_printerr ("%d : nf3 elapsed=%f seconds\n", rk, t2-t1); */
-/*   t1 = t2; */
-
-/*   g_timer_destroy (timer); */
 }
 
 /**
