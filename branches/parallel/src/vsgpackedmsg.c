@@ -14,7 +14,7 @@ typedef gint64 _trace_id;
 #define _MPI_TRACE_ID_TYPE MPI_LONG_LONG
 #define _PM_ID_SIZE sizeof (_trace_id)
 #define _PM_BEGIN_POS _PM_ID_SIZE
-#define _TRACE_FMT G_GINT64_MODIFIER
+#define _TRACE_FMT G_GINT64_FORMAT
 
 FILE *_trace_file = NULL;
 static gboolean _trace_active = TRUE;
@@ -165,7 +165,7 @@ static void _trace_write_msg (gchar *name, MPI_Comm comm, _trace_id msgid,
 
   seconds = g_timer_elapsed (_timer, NULL);
   microseconds = (gulong) (seconds * 1.e6);
-  g_fprintf (_trace_file, "%lu: msg=%s msgid=%"_TRACE_FMT"d comm=%d "
+  g_fprintf (_trace_file, "%lu: msg=%s msgid=%"_TRACE_FMT" comm=%d "
              "remote=%d tag=%d size=%d\n",
              microseconds, name,
              msgid, commid, remote, tag,
