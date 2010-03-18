@@ -159,8 +159,6 @@ static void _trace_write_msg (gchar *name, MPI_Comm comm, _trace_id msgid,
 
   if (! _trace_active) return;
 
-  _trace_file_open ();
-
   commid = _trace_comm_id (comm);
 
   seconds = g_timer_elapsed (_timer, NULL);
@@ -223,6 +221,8 @@ static void _trace_write_msg_send (VsgPackedMsg *msg, gchar *mode, gint dst,
 {
   _trace_id msgid;
 
+  _trace_file_open ();
+
   msgid = _msgid;
 
   if (msg->own_buffer)
@@ -245,7 +245,9 @@ static void _trace_write_msg_send (VsgPackedMsg *msg, gchar *mode, gint dst,
 static void _trace_write_msg_recv (VsgPackedMsg *msg, gchar *mode, gint src,
 				   gint tag)
 {
-  _trace_id msgid;
+  _trace_id msgid = 0;
+
+  _trace_file_open ();
 
   msg->position = 0;
 
