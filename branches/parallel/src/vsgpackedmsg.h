@@ -70,8 +70,23 @@ void vsg_packed_msg_recv_read (VsgPackedMsg *pm, gpointer buf,
 
 void vsg_packed_msg_send (VsgPackedMsg *pm, gint dst, gint tag);
 
+void vsg_packed_msg_bsend (VsgPackedMsg *pm, gint dst, gint tag);
+
+void vsg_packed_msg_rsend (VsgPackedMsg *pm, gint dst, gint tag);
+
+void vsg_packed_msg_ssend (VsgPackedMsg *pm, gint dst, gint tag);
+
 void vsg_packed_msg_isend (VsgPackedMsg *pm, gint dst, gint tag,
                            MPI_Request *request);
+
+void vsg_packed_msg_ibsend (VsgPackedMsg *pm, gint dst, gint tag,
+                            MPI_Request *request);
+
+void vsg_packed_msg_irsend (VsgPackedMsg *pm, gint dst, gint tag,
+                            MPI_Request *request);
+
+void vsg_packed_msg_issend (VsgPackedMsg *pm, gint dst, gint tag,
+                            MPI_Request *request);
 
 void vsg_packed_msg_wait (VsgPackedMsg *pm, MPI_Request *request);
 

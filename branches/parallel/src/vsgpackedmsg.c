@@ -489,6 +489,66 @@ void vsg_packed_msg_send (VsgPackedMsg *pm, gint dst, gint tag)
 }
 
 /**
+ * vsg_packed_msg_bsend:
+ * @pm: a #VsgPackedMsg.
+ * @dst: the destination task id.
+ * @tag: an integer message tag.
+ *
+ * Sends stored message to the specified destination with the specified tag.
+ */
+void vsg_packed_msg_bsend (VsgPackedMsg *pm, gint dst, gint tag)
+{
+  gint ierr;
+
+  _trace_write_msg_send (pm, "bsend", dst, tag);
+
+  ierr = MPI_Bsend (pm->buffer, pm->position, MPI_PACKED, dst, tag,
+                    pm->communicator);
+
+  if (ierr != MPI_SUCCESS) vsg_mpi_error_output (ierr);
+}
+
+/**
+ * vsg_packed_msg_rsend:
+ * @pm: a #VsgPackedMsg.
+ * @dst: the destination task id.
+ * @tag: an integer message tag.
+ *
+ * Sends stored message to the specified destination with the specified tag.
+ */
+void vsg_packed_msg_rsend (VsgPackedMsg *pm, gint dst, gint tag)
+{
+  gint ierr;
+
+  _trace_write_msg_send (pm, "rsend", dst, tag);
+
+  ierr = MPI_Rsend (pm->buffer, pm->position, MPI_PACKED, dst, tag,
+                    pm->communicator);
+
+  if (ierr != MPI_SUCCESS) vsg_mpi_error_output (ierr);
+}
+
+/**
+ * vsg_packed_msg_ssend:
+ * @pm: a #VsgPackedMsg.
+ * @dst: the destination task id.
+ * @tag: an integer message tag.
+ *
+ * Sends stored message to the specified destination with the specified tag.
+ */
+void vsg_packed_msg_ssend (VsgPackedMsg *pm, gint dst, gint tag)
+{
+  gint ierr;
+
+  _trace_write_msg_send (pm, "ssend", dst, tag);
+
+  ierr = MPI_Ssend (pm->buffer, pm->position, MPI_PACKED, dst, tag,
+                    pm->communicator);
+
+  if (ierr != MPI_SUCCESS) vsg_mpi_error_output (ierr);
+}
+
+/**
  * vsg_packed_msg_isend:
  * @pm: a #VsgPackedMsg.
  * @dst: the destination task id.
@@ -507,6 +567,75 @@ void vsg_packed_msg_isend (VsgPackedMsg *pm, gint dst, gint tag,
 
   ierr = MPI_Isend (pm->buffer, pm->position, MPI_PACKED, dst, tag,
                     pm->communicator, request);
+
+  if (ierr != MPI_SUCCESS) vsg_mpi_error_output (ierr);
+}
+
+/**
+ * vsg_packed_msg_ibsend:
+ * @pm: a #VsgPackedMsg.
+ * @dst: the destination task id.
+ * @tag: an integer message tag.
+ * @request: the corresponding request object
+ *
+ * Sends stored message to the specified destination with the specified tag in
+ * a non blocking mode. @request is provided for output.
+ */
+void vsg_packed_msg_ibsend (VsgPackedMsg *pm, gint dst, gint tag,
+                            MPI_Request *request)
+{
+  gint ierr;
+
+  _trace_write_msg_send (pm, "ibsend", dst, tag);
+
+  ierr = MPI_Ibsend (pm->buffer, pm->position, MPI_PACKED, dst, tag,
+                     pm->communicator, request);
+
+  if (ierr != MPI_SUCCESS) vsg_mpi_error_output (ierr);
+}
+
+/**
+ * vsg_packed_msg_irsend:
+ * @pm: a #VsgPackedMsg.
+ * @dst: the destination task id.
+ * @tag: an integer message tag.
+ * @request: the corresponding request object
+ *
+ * Sends stored message to the specified destination with the specified tag in
+ * a non blocking mode. @request is provided for output.
+ */
+void vsg_packed_msg_irsend (VsgPackedMsg *pm, gint dst, gint tag,
+                            MPI_Request *request)
+{
+  gint ierr;
+
+  _trace_write_msg_send (pm, "irsend", dst, tag);
+
+  ierr = MPI_Irsend (pm->buffer, pm->position, MPI_PACKED, dst, tag,
+                     pm->communicator, request);
+
+  if (ierr != MPI_SUCCESS) vsg_mpi_error_output (ierr);
+}
+
+/**
+ * vsg_packed_msg_issend:
+ * @pm: a #VsgPackedMsg.
+ * @dst: the destination task id.
+ * @tag: an integer message tag.
+ * @request: the corresponding request object
+ *
+ * Sends stored message to the specified destination with the specified tag in
+ * a non blocking mode. @request is provided for output.
+ */
+void vsg_packed_msg_issend (VsgPackedMsg *pm, gint dst, gint tag,
+                            MPI_Request *request)
+{
+  gint ierr;
+
+  _trace_write_msg_send (pm, "issend", dst, tag);
+
+  ierr = MPI_Issend (pm->buffer, pm->position, MPI_PACKED, dst, tag,
+                     pm->communicator, request);
 
   if (ierr != MPI_SUCCESS) vsg_mpi_error_output (ierr);
 }
