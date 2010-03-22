@@ -1272,6 +1272,9 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
 #define END_FW_TAG (102)
 #define VISIT_SHARED_TAG (103)
 
+/* send mode */
+#define _nf_msg_isend vsg_packed_msg_issend
+
 static gint _packed_msg_max_size = G_MAXINT;
 
 /*
@@ -1651,7 +1654,7 @@ static void _do_send_forward_node (VsgPRTree2@t@ *tree,
   vsg_packed_msg_send_append (msg, id, 1, VSG_MPI_TYPE_PRTREE_KEY2@T@);
   _node_pack (node, &npd);
 
-  vsg_packed_msg_isend (msg, proc, VISIT_FORWARD_TAG, &nfpm->request);
+  _nf_msg_isend (msg, proc, VISIT_FORWARD_TAG, &nfpm->request);
 
   nfc->all_fw_sends ++;
 }
@@ -1716,7 +1719,7 @@ static void _do_send_backward_node (VsgPRTree2@t@ *tree,
   _node_pack_and_destroy (node, &npd);
   vsg_prtree2@t@node_free (node, &tree->config);
 
-  vsg_packed_msg_isend (msg, proc, VISIT_BACKWARD_TAG, &nfpm->request);
+  _nf_msg_isend (msg, proc, VISIT_BACKWARD_TAG, &nfpm->request);
 
   nfc->all_bw_sends ++;
 }
@@ -1769,7 +1772,7 @@ static void _send_pending_backward_node (VsgPRTree2@t@ *tree,
 
   if (sending > 0)
     {
-      vsg_packed_msg_isend (msg, proc, VISIT_BACKWARD_TAG, &nfpm->request);
+      _nf_msg_isend (msg, proc, VISIT_BACKWARD_TAG, &nfpm->request);
 
       nfc->all_bw_sends ++;
     }
@@ -2109,8 +2112,8 @@ static void _send_final_dropped_visitors (gpointer key, VsgNFProcMsg *nfpm,
                                   MPI_INT);
       nfpm->dropped_visitors = 0;
 
-      vsg_packed_msg_isend (&nfpm->send_pm, dst, VISIT_BACKWARD_TAG,
-                            &nfpm->request);
+      _nf_msg_isend (&nfpm->send_pm, dst, VISIT_BACKWARD_TAG,
+                     &nfpm->request);
     }
 }
 
@@ -2686,9 +2689,10 @@ void vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
   gint i, dst;
   VsgParallelMigrateVTable *data_bw_vtable =
     &tree->config.parallel_config.node_data.visit_backward;
-  VsgPackedMsg pm = VSG_PACKED_MSG_STATIC_INIT (comm);
-/*   GTimer *timer = g_timer_new (); */
+  VsgPackedMsg pm[nfc->sz];
+  MPI_Request end_fw_reqs[nfc->sz];
   gint dropped_remaining = 1;
+/*   GTimer *timer = g_timer_new (); */
 
 /*   g_printerr ("%d(%d) : parallel_end begin (fw pending wv=%d) (bw pending wv=%d)\n", */
 /*               nfc->rk, getpid (), */
@@ -2705,14 +2709,40 @@ void vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
       vsg_prtree2@t@_nf_check_send (tree, nfc);
     }
 
+  end_fw_reqs[nfc->rk] = MPI_REQUEST_NULL;
+
   for (i=1; i<nfc->sz; i++)
     {
       dst = (nfc->rk+i) % nfc->sz;
-      vsg_prtree2@t@_nf_check_send (tree, nfc);
-      vsg_packed_msg_send (&pm, dst, END_FW_TAG);
+      vsg_packed_msg_init (&pm[dst], comm);
+      _nf_msg_isend (&pm[dst], dst, END_FW_TAG, &end_fw_reqs[dst]);
     }
 
-  vsg_packed_msg_drop_buffer (&pm);
+  /* wait for all END_FW messages to be correctly sent */
+  i=nfc->sz-1;
+  while (i > 0)
+    {
+      gint index, flag;
+
+      MPI_Testany (nfc->sz, end_fw_reqs, &index, &flag, MPI_STATUS_IGNORE);
+      if (flag)
+        {
+          i --;
+        }
+      else
+        {
+          vsg_prtree2@t@_nf_check_send (tree, nfc);
+          /* fall asleep if no message is incoming */
+          if (! vsg_prtree2@t@_nf_check_receive (tree, nfc, MPI_ANY_TAG, FALSE))
+            g_usleep (1);
+        }
+    }
+
+  for (i=1; i<nfc->sz; i ++)
+    {
+      dst = (nfc->rk+i) % nfc->sz;
+      vsg_packed_msg_drop_buffer (&pm[dst]);
+    }
 
 /*   g_printerr ("%d : end fw sent (elapsed %f)\n", nfc->rk, */
 /*               g_timer_elapsed (timer, NULL)); */
@@ -2725,7 +2755,6 @@ void vsg_prtree2@t@_nf_check_parallel_end (VsgPRTree2@t@ *tree,
   while (nfc->pending_end_forward > 0)
     {
 /*     g_printerr ("%d : check %d\n", nfc->rk,  nfc->end_forward_received); */
-      vsg_prtree2@t@_nf_check_send (tree, nfc);
       vsg_prtree2@t@_nf_check_receive (tree, nfc, MPI_ANY_TAG, TRUE);
     }
 
