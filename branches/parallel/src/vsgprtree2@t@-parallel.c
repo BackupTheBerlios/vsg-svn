@@ -2131,6 +2131,7 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
   VsgPRTree2@t@Config *config = &tree->config;
   VsgPRTreeParallelConfig * pc = &config->parallel_config;
   MPI_Status status;
+  gint received = 0;
 
   MPI_Iprobe (MPI_ANY_SOURCE, tag, pc->communicator, &flag, &status);
 
@@ -2149,7 +2150,7 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
         }
     }
 
-  if (flag)
+  while (flag)
     {
       VsgPRTreeKey2@t@ id;
       VsgPRTree2@t@Node *node;
@@ -2157,6 +2158,9 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
 
 /*       g_printerr ("%d : check_recv begin from %d tag=%d\n", nfc->rk, */
 /*                   status.MPI_SOURCE, status.MPI_TAG); */
+
+      flag = FALSE;
+      received ++;
 
       vsg_packed_msg_recv (&nfc->recv, status.MPI_SOURCE, status.MPI_TAG);
 
@@ -2187,6 +2191,8 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
             {
               _propose_node_backward (tree, nfc, status.MPI_SOURCE, wv);
             }
+          else
+            vsg_prtree2@t@_nf_check_send (tree, nfc);
 
           nfc->all_fw_recvs ++;
 
@@ -2243,6 +2249,10 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
           nfc->all_bw_recvs ++;
 
         } while (nfc->recv.position < nfc->recv.size);
+
+        /* check for other incoming messages */
+        MPI_Iprobe (MPI_ANY_SOURCE, tag, pc->communicator, &flag, &status);
+
         break;
       case END_FW_TAG:
         nfc->pending_end_forward --;
@@ -2259,7 +2269,8 @@ gboolean vsg_prtree2@t@_nf_check_receive (VsgPRTree2@t@ *tree,
 /*                   nfc->backward_pending_nb); */
 
     }
-  return flag != FALSE;
+
+  return received != 0;
 }
 
 typedef struct _NodeRemoteData NodeRemoteData;
