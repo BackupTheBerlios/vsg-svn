@@ -206,6 +206,7 @@ struct _VsgNFConfig3@t@
 #ifdef VSG_HAVE_MPI
   VsgPackedMsg recv;
   GHashTable *procs_msgs;
+  MPI_Request *procs_requests;
   gpointer tmp_node_data;
   gpointer tmp_point;
   gpointer tmp_region;

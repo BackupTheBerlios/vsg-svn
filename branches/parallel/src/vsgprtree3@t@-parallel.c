@@ -1365,8 +1365,6 @@ struct _VsgNFProcMsg {
   gint dropped_visitors;
   GSList *forward_pending;
   GSList *backward_pending;
-
-  MPI_Request request;
 };
 
 static void vsg_nf_proc_msg_init (VsgNFProcMsg *nfpm, MPI_Comm comm)
@@ -1377,8 +1375,6 @@ static void vsg_nf_proc_msg_init (VsgNFProcMsg *nfpm, MPI_Comm comm)
 
   nfpm->forward_pending = NULL;
   nfpm->backward_pending = NULL;
-
-  nfpm->request = MPI_REQUEST_NULL;
 }
 
 static VsgNFProcMsg *vsg_nf_proc_msg_new (MPI_Comm comm)
@@ -1425,15 +1421,21 @@ void vsg_nf_config3@t@_init (VsgNFConfig3@t@ *nfc,
 
   vsg_packed_msg_init (&nfc->recv, comm);
   nfc->procs_msgs = NULL;
+  nfc->procs_requests = NULL;
 
    if (comm != MPI_COMM_NULL)
     {
+      gint i;
+
       MPI_Comm_rank (comm, &nfc->rk);
       MPI_Comm_size (comm, &nfc->sz);
 
       nfc->procs_msgs =
         g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL,
                                (GDestroyNotify) vsg_nf_proc_msg_free);
+
+      nfc->procs_requests = g_malloc (nfc->sz * sizeof (MPI_Request));
+      for (i=0; i<nfc->sz; i++) nfc->procs_requests[i] = MPI_REQUEST_NULL;
     }
   else
     {
@@ -1529,8 +1531,16 @@ void vsg_nf_config3@t@_clean (VsgNFConfig3@t@ *nfc)
   vsg_packed_msg_drop_buffer (&nfc->recv);
 
   if (nfc->procs_msgs != NULL)
-    g_hash_table_destroy (nfc->procs_msgs);
+    {
+      g_hash_table_destroy (nfc->procs_msgs);
+      nfc->procs_msgs = NULL;
+    }
 
+  if (nfc->procs_requests != NULL)
+    {
+      g_free (nfc->procs_requests);
+      nfc->procs_requests = NULL;
+    }
 }
 
 /*
@@ -1657,7 +1667,7 @@ static void _do_send_forward_node (VsgPRTree3@t@ *tree,
   vsg_packed_msg_send_append (msg, id, 1, VSG_MPI_TYPE_PRTREE_KEY3@T@);
   _node_pack (node, &npd);
 
-  _nf_msg_isend (msg, proc, VISIT_FORWARD_TAG, &nfpm->request);
+  _nf_msg_isend (msg, proc, VISIT_FORWARD_TAG, &nfc->procs_requests[proc]);
 
   nfc->all_fw_sends ++;
 }
@@ -1722,7 +1732,7 @@ static void _do_send_backward_node (VsgPRTree3@t@ *tree,
   _node_pack_and_destroy (node, &npd);
   vsg_prtree3@t@node_free (node, &tree->config);
 
-  _nf_msg_isend (msg, proc, VISIT_BACKWARD_TAG, &nfpm->request);
+  _nf_msg_isend (msg, proc, VISIT_BACKWARD_TAG, &nfc->procs_requests[proc]);
 
   nfc->all_bw_sends ++;
 }
@@ -1775,7 +1785,8 @@ static void _send_pending_backward_node (VsgPRTree3@t@ *tree,
 
   if (sending > 0)
     {
-      _nf_msg_isend (msg, proc, VISIT_BACKWARD_TAG, &nfpm->request);
+      _nf_msg_isend (msg, proc, VISIT_BACKWARD_TAG,
+                     &nfc->procs_requests[proc]);
 
       nfc->all_bw_sends ++;
     }
@@ -1792,7 +1803,7 @@ static void _propose_node_forward (VsgPRTree3@t@ *tree,
 
   nfpm = vsg_nf_config3@t@_proc_msgs_lookup (nfc, proc);
 
-  MPI_Test (&nfpm->request, &flag, MPI_STATUS_IGNORE);
+  MPI_Test (&nfc->procs_requests[proc], &flag, MPI_STATUS_IGNORE);
 
   if (flag && nfpm->backward_pending == NULL)
     {
@@ -1833,7 +1844,7 @@ static void _propose_node_backward (VsgPRTree3@t@ *tree,
 
   nfpm = vsg_nf_config3@t@_proc_msgs_lookup (nfc, proc);
 
-  MPI_Test (&nfpm->request, &flag, MPI_STATUS_IGNORE);
+  MPI_Test (&nfc->procs_requests[proc], &flag, MPI_STATUS_IGNORE);
 
   if (flag != 0)
     {
@@ -2041,8 +2052,6 @@ static gboolean _compute_visiting_node (VsgPRTree3@t@ *tree,
   return TRUE;
 }
 
-
-
 typedef struct _NFSendData NFSendData;
 struct _NFSendData {
   VsgPRTree3@t@ *tree;
@@ -2051,51 +2060,54 @@ struct _NFSendData {
 };
 
 /*
- * checks for a specific VsgNFPocMsg request completion and fills the
- * request with pending msgs.
+ * checks for all completed VsgNFPocMsg requests and fills the
+ * requests with pending msgs.
  */
-static void _fill_procs_msgs (gpointer key, VsgNFProcMsg *nfpm,
-                              NFSendData *nfsd)
+static gint vsg_prtree3@t@_nf_check_send (VsgPRTree3@t@ *tree,
+                                          VsgNFConfig3@t@ *nfc)
 {
-  gint flag;
+  gint sent = 0;
+  gint flag = FALSE;
+  gint index = -1;
 
-  MPI_Test (&nfpm->request, &flag, MPI_STATUS_IGNORE);
+  MPI_Testany (nfc->sz, nfc->procs_requests, &index, &flag, MPI_STATUS_IGNORE);
 
-  if (flag)
+  while (flag && index != MPI_UNDEFINED)
     {
-      gint proc = GPOINTER_TO_INT (key);
+      VsgNFProcMsg *nfpm = vsg_nf_config3@t@_proc_msgs_lookup (nfc, index);
 
       if (nfpm->backward_pending != NULL)
         {
           /* First, check for backward messages */
-          _send_pending_backward_node (nfsd->tree, nfsd->nfc, nfpm, proc);
-          nfsd->sent ++;
+          _send_pending_backward_node (tree, nfc, nfpm, index);
+          sent ++;
         }
       else if (nfpm->forward_pending != NULL)
         {
           /* Fallback into forward message */
-          _send_pending_forward_node (nfsd->tree, nfsd->nfc, nfpm, proc);
-          nfsd->sent ++;
+          _send_pending_forward_node (tree, nfc, nfpm, index);
+          sent ++;
         }
+
+      MPI_Testany (nfc->sz, nfc->procs_requests, &index, &flag,
+                   MPI_STATUS_IGNORE);
+
     }
+
+  return sent;
 }
 
-
-static gint vsg_prtree3@t@_nf_check_send (VsgPRTree3@t@ *tree,
-                                          VsgNFConfig3@t@ *nfc)
-{
-  NFSendData nfsd = {tree, nfc, 0};
-
-  g_hash_table_foreach (nfc->procs_msgs, (GHFunc) _fill_procs_msgs, &nfsd);
-
-  return nfsd.sent;
-}
+typedef struct _FinalDroppedData FinalDroppedData;
+struct _FinalDroppedData {
+  VsgNFConfig3@t@ *nfc;
+  gint remaining;
+};
 
 /*
  * ensures a specific VsgNFProcMsg has sent its count of dropped visitors
  */
-static void _send_final_dropped_visitors (gpointer key, VsgNFProcMsg *nfpm,
-                                          gint *remaining)
+static void _foreach_send_dropped_visitors (gpointer key, VsgNFProcMsg *nfpm,
+                                            FinalDroppedData *fdd)
 {
   if (nfpm->dropped_visitors > 0)
     {
@@ -2103,11 +2115,11 @@ static void _send_final_dropped_visitors (gpointer key, VsgNFProcMsg *nfpm,
       VsgPRTreeKey3@t@ k = vsg_prtree_key3@t@_root;
       gint flag;
 
-      MPI_Test (&nfpm->request, &flag, MPI_STATUS_IGNORE);
+      MPI_Test (&fdd->nfc->procs_requests[dst], &flag, MPI_STATUS_IGNORE);
 
       if (!flag)
         {
-          (*remaining) ++;
+          fdd->remaining ++;
           return;
         }
 
@@ -2121,7 +2133,20 @@ static void _send_final_dropped_visitors (gpointer key, VsgNFProcMsg *nfpm,
       nfpm->dropped_visitors = 0;
 
       _nf_msg_isend (&nfpm->send_pm, dst, VISIT_BACKWARD_TAG,
-                     &nfpm->request);
+                     &fdd->nfc->procs_requests[dst]);
+    }
+}
+
+static void _send_dropped_visitors (VsgNFConfig3@t@ *nfc)
+{
+  FinalDroppedData fdd = {nfc, 1};
+
+  while (fdd.remaining > 0)
+    {
+      fdd.remaining = 0;
+      g_hash_table_foreach (nfc->procs_msgs,
+                            (GHFunc) _foreach_send_dropped_visitors,
+                            &fdd);
     }
 }
 
@@ -2699,14 +2724,6 @@ vsg_prtree3@t@_shared_nodes_allreduce (VsgPRTree3@t@ *tree,
 }
 
 /*
- * waits for a specific VsgNFPocMsg request completion.
- */
-static void _wait_procs_msgs (gpointer key, VsgNFProcMsg *nfpm, gpointer data)
-{
-  MPI_Wait (&nfpm->request, MPI_STATUS_IGNORE);
-}
-
-/*
  * finishes all communication and computations involved in a parallel near/far
  * interaction.
  */
@@ -2719,7 +2736,6 @@ void vsg_prtree3@t@_nf_check_parallel_end (VsgPRTree3@t@ *tree,
     &tree->config.parallel_config.node_data.visit_backward;
   VsgPackedMsg pm[nfc->sz];
   MPI_Request end_fw_reqs[nfc->sz];
-  gint dropped_remaining = 1;
 /*   GTimer *timer = g_timer_new (); */
 
 /*   g_printerr ("%d(%d) : parallel_end begin (fw pending wv=%d) (bw pending wv=%d)\n", */
@@ -2792,14 +2808,9 @@ void vsg_prtree3@t@_nf_check_parallel_end (VsgPRTree3@t@ *tree,
       vsg_prtree3@t@_nf_check_receive (tree, nfc, MPI_ANY_TAG, FALSE);
     }
 
-  dropped_remaining = 1;
-  while (dropped_remaining > 0)
-    {
-      dropped_remaining = 0;
-      g_hash_table_foreach (nfc->procs_msgs,
-                            (GHFunc) _send_final_dropped_visitors,
-                            &dropped_remaining);
-    }
+  /* send information on all remaining dropped visitors */
+  _send_dropped_visitors (nfc);
+
 /*   g_printerr ("%d : all bw send ok (elapsed %f) (dropped %d)\n", nfc->rk, */
 /*               g_timer_elapsed (timer, NULL), _dropped_count); */
 
@@ -2811,7 +2822,7 @@ void vsg_prtree3@t@_nf_check_parallel_end (VsgPRTree3@t@ *tree,
 /*   g_printerr ("%d : pending bw recv ok (elapsed %f)\n", nfc->rk, */
 /*               g_timer_elapsed (timer, NULL)); */
 
-  g_hash_table_foreach (nfc->procs_msgs, (GHFunc) _wait_procs_msgs, NULL);
+  MPI_Waitall (nfc->sz, nfc->procs_requests, MPI_STATUS_IGNORE); 
 
   MPI_Barrier (comm);
 
