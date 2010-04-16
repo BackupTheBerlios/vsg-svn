@@ -1988,6 +1988,10 @@ static gboolean _compute_visiting_node (VsgPRTree2@t@ *tree,
 
   niaf.ref_info.depth = niaf.ref_info.id.depth;
 
+  /* no empty leaf node should be sent here, so an empty visitor must be a
+     interior node */
+  if (wv->node->point_count == 0) niaf.ref_info.isleaf = FALSE;
+
   vsg_prtree_key2@t@_copy (&ref_ancestry_ids[niaf.ref_info.id.depth],
                            &niaf.ref_info.id);
   for (i = niaf.ref_info.id.depth-1; i >= 0; i --)
