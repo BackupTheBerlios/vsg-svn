@@ -873,6 +873,10 @@ static void _prtree2@t@node_fix_counts_local (VsgPRTree2@t@Node *node)
   node->region_count = rcnt + g_slist_length (node->region_list);
 }
 
+/* returns the number of the processor holding node and its subtree or a
+ * negative value if @node is shared. In case of a negative value, it is built
+ * from the number of the processor holding the first child of @node.
+ */
 static gint _prtree2@t@node_get_children_proc (VsgPRTree2@t@Node *node)
 {
   vsgloc2 i;
@@ -885,7 +889,7 @@ static gint _prtree2@t@node_get_children_proc (VsgPRTree2@t@Node *node)
           4 * sizeof (VsgPRTree2@t@Node *));
 
   if (PRTREE2@T@NODE_IS_SHARED (children[0]))
-    return -1;
+    return -PRTREE2@T@NODE_PROC (children[0]) - 1;
   else
     children_proc =
       PRTREE2@T@NODE_PROC (children[0]);
@@ -896,7 +900,7 @@ static gint _prtree2@t@node_get_children_proc (VsgPRTree2@t@Node *node)
         PRTREE2@T@NODE_PROC (children[i]);
 
       if (PRTREE2@T@NODE_IS_SHARED (children[i]) || proc != children_proc)
-        return -1;
+        return -children_proc - 1;
     }
 
   return children_proc;
@@ -1031,6 +1035,7 @@ static void _traverse_distribute_nodes (VsgPRTree2@t@Node *node,
   else if (new_storage == VSG_PARALLEL_SHARED)
     {
       _prtree2@t@node_fix_counts_local (node);
+      dst = -dst - 1;
     }
 
   /* update node's parallel status */
@@ -1089,7 +1094,7 @@ static void _node_insert_child (VsgPRTree2@t@Node *node,
       if (children_proc < 0)
         {
           node->parallel_status.storage = VSG_PARALLEL_SHARED;
-          node->parallel_status.proc = -1; /* set an invalid value */
+          node->parallel_status.proc = -children_proc - 1; /* set value of first child's proc */
         }
       else
         {
@@ -1218,10 +1223,15 @@ void vsg_prtree2@t@_distribute_nodes (VsgPRTree2@t@ *tree,
 
           if (dst == rk || dst < 0)
             { /* we are destination of this message (bcast or not) */
-              VsgParallelStorage storage =
-                (dst >= 0) ? VSG_PARALLEL_LOCAL : VSG_PARALLEL_SHARED;
+              VsgParallelStorage storage = VSG_PARALLEL_LOCAL;
               VsgPackedMsg *unpack = (dst >= 0) ? msg : hdrmsg;
               NodePackData npd = NPD_MIGRATE (pc, unpack);
+
+              if (dst < 0)
+                {
+                  dst = -dst - 1;
+                  storage = VSG_PARALLEL_SHARED;
+                }
 
               /* load node contents */
 
@@ -1502,20 +1512,6 @@ void vsg_nf_config2@t@_tmp_free (VsgNFConfig2@t@ *nfc,
       pc->region.destroy (nfc->tmp_region, FALSE, pc->region.destroy_data);
       nfc->tmp_region = NULL;
     }
-}
-
-/*
- * Called before every shared/shared far interaction, it computes wether the
- * current processor has to do it or no.
- */
-gboolean vsg_nf_config2@t@_shared_far_interaction_skip (VsgNFConfig2@t@ *nfc)
-{
-  /* to dispatch far interaction between shared nodes on all processors */
-  gboolean doit = nfc->shared_far_interaction_counter % nfc->sz != nfc->rk;
-
-  nfc->shared_far_interaction_counter ++;
-
-  return doit;
 }
 
 /*

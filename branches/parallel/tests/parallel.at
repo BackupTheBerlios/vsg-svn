@@ -19,6 +19,8 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
+AT_TESTED([commbuffer prtree2parallel prtree2paradist prtree2paranftrav])
+
 AT_SETUP(Vsg basic parallel features)
 AT_CHECK([test "$DO_MPI_TESTS" = 1 || exit 77])
 AT_CHECK([mpiexec -n 2 commbuffer], 0)

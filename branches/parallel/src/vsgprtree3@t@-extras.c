@@ -385,7 +385,7 @@ _sub_neighborhood_near_far_traversal (VsgPRTree3@t@ *tree,
                          shared/shared far interaction */
                       if (PRTREE3@T@NODE_IS_SHARED (one_child) &&
                           PRTREE3@T@NODE_IS_SHARED (other_child) &&
-                          vsg_nf_config3@t@_shared_far_interaction_skip (nfc))
+                          PRTREE3@T@NODE_PROC (one_child) != nfc->rk)
                         continue;
 #endif
 

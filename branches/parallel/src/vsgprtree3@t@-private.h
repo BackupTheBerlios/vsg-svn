@@ -287,8 +287,6 @@ void vsg_nf_config3@t@_tmp_free (VsgNFConfig3@t@ *nfc,
 
 void vsg_nf_config3@t@_clean (VsgNFConfig3@t@ *nfc);
 
-gboolean vsg_nf_config3@t@_shared_far_interaction_skip (VsgNFConfig3@t@ *nfc);
-
 gboolean
 vsg_prtree3@t@_node_check_parallel_near_far (VsgPRTree3@t@ *tree,
                                              VsgNFConfig3@t@ *nfc,
